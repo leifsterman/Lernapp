@@ -5,7 +5,7 @@ Influenz, Polarisation, Feldlinienbilder, Spitzeneffekt / Faradayscher Käfig, F
 Plattenkondensator (E = U/d, Q = C·U, C = ε₀εᵣA/d), Reihen-/Parallelschaltung, Auf- und Entladung (Differenzialgleichung),
 Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 
-- 85 Karten in 11 Themen, jede mit Schwierigkeit (leicht, mittel, schwer) und Art (Abfrage oder Rechnen), Formeln mit KaTeX (lokal eingebunden, funktioniert offline)
+- 92 Karten in 11 Themen, jede mit Schwierigkeit (leicht, mittel, schwer) und Art (Abfrage oder Rechnen), Formeln mit KaTeX (lokal eingebunden, funktioniert offline)
 - Karteikasten mit 5 Fächern (Leitner): Gewusst = ein Fach weiter, Nicht gewusst = zurück in Fach 1; Fach antippen und nur dessen Karten üben
 - Fortschritt pro Karte wird im Browser gespeichert und über einen persönlichen Lerncode (Supabase) zwischen Geräten und Personen getrennt synchronisiert
 - Vollbild-/Fokus-Modus (Taste F), Dunkelmodus (Standard), Hellmodus per Knopf, Konfetti nach jeder Runde
@@ -21,6 +21,7 @@ Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 
 ## Labor (Simulationen)
 
+- **Herleitung live**: 9 Schritte mit Animation zur Differenzialgleichung: Q, C und U_C (Tank-Vergleich), U_R = R·I, I = dQ/dt, Maschenregel, (Q₀−Q)/τ, Entladen mit dem Minus, Variablentrennung (ln als Fläche), Lösung mit Probe und eine Übung zum Selbst-Herleiten (Schritte in die richtige Reihenfolge bringen). Jeder Formelteil ist farbig, antippbar und leuchtet im Bild auf
 - **RC-Schaltung** wie im Schaltbild der Aufgabe: Umschalter, R₁ zum Laden, R₂ zum Entladen, Voltmeter, bewegte Elektronen, Kurven Uc(t), I(t), Q(t), τ-Marke und Potenziale an den Punkten A bis F
 - **Differenzialgleichung**: die Kurve Schritt für Schritt per Euler-Verfahren aus dU/dt aufbauen, Schrittweite einstellbar
 - **Kondensator-Labor**: d, A, εᵣ und U verändern, angeschlossen oder getrennt, live C, Q, U, E und W

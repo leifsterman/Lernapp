@@ -144,6 +144,97 @@
 <h3>Das musst du können</h3>
 <ul class="check"><li>Dgl. aus der Maschenregel aufstellen und lösen (Variablentrennung).</li><li>Kurven zeichnen, $\tau$ einzeichnen.</li></ul>`, ["rc"]);
 
+  sheet("herleitung", "Herleitung Schritt für Schritt", "Auf- und Entladen ohne Vorwissen verstehen und selbst herleiten", R`
+<p class="hint"><b>Zum Anschauen:</b> Im Labor gibt es dazu die Simulation <b>„Herleitung live“</b>. Dort siehst du in 8 Schritten am Kondensator, was jeder Teil der Formel bedeutet und warum er dasteht. Im 9. Schritt leitest du selbst her.</p>
+<p>Ziel: Du kannst am Ende die Formeln für Auf- und Entladen <b>selbst auf einem leeren Blatt</b> herleiten. Lies jeden Schritt, decke dann die Rechnung ab und versuche sie allein. Im Labor („RC-Schaltung“ und „Differenzialgleichung“) siehst du alles live.</p>
+
+<h3>0 · Was du vorher wissen musst</h3>
+<ul>
+<li><b>Ladung</b> $Q$ (Einheit C): wie viel Ladung auf der Kondensatorplatte sitzt.</li>
+<li><b>Strom</b> $I$ (Einheit A): Ladung pro Zeit. $I = \dfrac{\mathrm{d}Q}{\mathrm{d}t}$ heißt: „Wie schnell ändert sich $Q$?“ Das ist die Steigung der $Q(t)$-Kurve.</li>
+<li><b>Spannung</b> $U$ (Einheit V): „Druck“, der Ladung antreibt.</li>
+<li><b>Kondensator:</b> $U_C = \dfrac{Q}{C}$. Je mehr Ladung drauf, desto höher seine Spannung.</li>
+<li><b>Widerstand (Ohm):</b> $U_R = R\cdot I$. Je mehr Strom, desto mehr Spannung fällt am Widerstand ab.</li>
+<li><b>Maschenregel:</b> In einem geschlossenen Kreis ergeben alle Spannungen zusammen null (Quelle zählt gegen die Verbraucher).</li>
+</ul>
+
+<h3>1 · Die Idee in Alltagssprache</h3>
+<p>Ein leerer Kondensator hinter einem Widerstand: Anfangs „drückt“ die Quelle voll, viel Strom fließt, $Q$ wächst schnell. Je voller der Kondensator, desto stärker drückt <b>er zurück</b>, der Strom wird kleiner, $Q$ wächst langsamer. Das Laden wird also immer träger und erreicht den Endwert nie ganz.</p>
+<p>Genauso beim Entladen: Viel Ladung drauf = viel Spannung = viel Strom = schnelle Abnahme. Je weniger Ladung übrig, desto langsamer fällt sie weiter. <b>Die Änderungsrate ist proportional zum Vorrat.</b> Genau das ist eine Differenzialgleichung, und ihre Lösung ist immer eine $e$-Funktion.</p>
+
+<h3>2 · Entladen: Dgl. aufstellen</h3>
+<p><b>Schaltung:</b> Geladener Kondensator ($Q_0$), Schalter zu, Widerstand $R$ im Kreis. Keine Quelle.</p>
+<ol>
+<li><b>Maschenregel:</b> $U_C + U_R = 0$</li>
+<li><b>Bausteine einsetzen:</b> $U_C = \dfrac{Q}{C}$ und $U_R = R\cdot I$ ergibt $\dfrac{Q}{C} + R\cdot I = 0$</li>
+<li><b>Strom durch $Q$ ausdrücken:</b> $I = \dfrac{\mathrm{d}Q}{\mathrm{d}t}$. Damit nur noch eine Unbekannte $Q(t)$ übrig bleibt: $\dfrac{Q}{C} + R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} = 0$</li>
+<li><b>Nach der Ableitung umstellen:</b> $R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} = -\dfrac{Q}{C}$ also
+$$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = -\dfrac{1}{RC}\,Q = -\dfrac{Q}{\tau}\qquad\text{mit } \tau = R\cdot C$$</li>
+</ol>
+<div class="hint">Das Minus sagt: $Q$ wird kleiner. Die Rate ist proportional zu $Q$ selbst, genau wie in Schritt 1 beschrieben. $I = \mathrm{d}Q/\mathrm{d}t$ ist hier negativ, weil der Strom entgegen der Lade-Richtung fließt.</div>
+
+<h3>3 · Entladen: Dgl. lösen (Variablentrennung)</h3>
+<p>Idee: Alles mit $Q$ auf eine Seite, alles mit $t$ auf die andere, dann auf beiden Seiten das Integral.</p>
+<ol>
+<li><b>Trennen:</b> $\dfrac{\mathrm{d}Q}{Q} = -\dfrac{1}{\tau}\,\mathrm{d}t$</li>
+<li><b>Integrieren</b> von Anfang ($t=0$, $Q=Q_0$) bis jetzt ($t$, $Q$):
+$$\int_{Q_0}^{Q}\dfrac{\mathrm{d}Q'}{Q'} = -\dfrac{1}{\tau}\int_{0}^{t}\mathrm{d}t' \;\Rightarrow\; \ln Q - \ln Q_0 = -\dfrac{t}{\tau}$$
+(Stammfunktion von $1/Q$ ist $\ln Q$, von $1$ ist $t$.)</li>
+<li><b>Logarithmen zusammenfassen:</b> $\ln\dfrac{Q}{Q_0} = -\dfrac{t}{\tau}$</li>
+<li><b>Mit $e$ „aufheben“:</b> $\dfrac{Q}{Q_0} = e^{-t/\tau}$ also
+$$Q(t) = Q_0\,e^{-t/\tau}$$</li>
+<li><b>Spannung und Strom folgen:</b> $U_C = \dfrac{Q}{C} = U_0\,e^{-t/\tau}$ und $I = -\dfrac{U_0}{R}\,e^{-t/\tau}$ (Betrag $\dfrac{U_0}{R}e^{-t/\tau}$).</li>
+</ol>
+<p><b>Probe (immer machen!):</b> Ableiten ergibt $\dfrac{\mathrm{d}Q}{\mathrm{d}t} = Q_0\cdot\left(-\dfrac{1}{\tau}\right)e^{-t/\tau} = -\dfrac{Q}{\tau}$. Das ist die Dgl. aus Schritt 2. Bei $t=0$ gilt $Q=Q_0$. Beides stimmt.</p>
+
+<h3>4 · Aufladen: Dgl. aufstellen</h3>
+<p><b>Schaltung:</b> Leerer Kondensator ($Q(0)=0$), Quelle $U_0$, Widerstand $R$ in Reihe.</p>
+<ol>
+<li><b>Maschenregel:</b> Die Quellspannung verteilt sich auf $R$ und $C$: $U_0 = U_R + U_C$</li>
+<li><b>Einsetzen:</b> $U_0 = R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} + \dfrac{Q}{C}$</li>
+<li><b>Endladung einführen:</b> Wenn alles fertig ist, fließt kein Strom mehr und $U_C = U_0$. Das heißt $Q_0 = C\cdot U_0$. Dann ist $U_0 = \dfrac{Q_0}{C}$, und es folgt $R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{C}$ also
+$$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{\tau}$$</li>
+</ol>
+<div class="hint">Lies es so: Die Rate ist proportional zum <b>Abstand zum Ziel</b> ($Q_0 - Q$). Weit weg = schnell. Fast da = langsam.</div>
+
+<h3>5 · Aufladen: Dgl. lösen</h3>
+<ol>
+<li><b>Trennen:</b> $\dfrac{\mathrm{d}Q}{Q_0 - Q} = \dfrac{\mathrm{d}t}{\tau}$</li>
+<li><b>Integrieren</b> von $t=0$ ($Q=0$) bis $t$:
+$$-\ln(Q_0 - Q)\,\Big|_{0}^{Q} = \dfrac{t}{\tau} \;\Rightarrow\; -\ln(Q_0 - Q) + \ln Q_0 = \dfrac{t}{\tau}$$
+(Vorsicht: Wegen der Kettenregel steht vor dem $\ln$ ein <b>Minus</b>, denn die innere Ableitung von $Q_0-Q$ ist $-1$.)</li>
+<li><b>Zusammenfassen:</b> $\ln\dfrac{Q_0 - Q}{Q_0} = -\dfrac{t}{\tau}$</li>
+<li><b>Mit $e$ aufheben:</b> $\dfrac{Q_0 - Q}{Q_0} = e^{-t/\tau}$</li>
+<li><b>Nach $Q$ umstellen:</b>
+$$Q(t) = Q_0\bigl(1 - e^{-t/\tau}\bigr)\qquad U_C(t) = U_0\bigl(1 - e^{-t/\tau}\bigr)$$</li>
+<li><b>Strom</b> = Ableitung: $I = \dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0}{\tau}\,e^{-t/\tau}$. Wegen $\dfrac{Q_0}{\tau} = \dfrac{C U_0}{RC} = \dfrac{U_0}{R}$ gilt
+$$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
+</ol>
+<p><b>Probe:</b> Bei $t=0$ ist $Q = Q_0(1-1) = 0$ ✓. Für $t\to\infty$ geht $e^{-t/\tau}\to 0$, also $Q\to Q_0$ ✓. Ableiten bestätigt $\dfrac{Q_0 - Q}{\tau}$ ✓.</p>
+
+<h3>6 · Was ist $\tau = R\cdot C$?</h3>
+<ul>
+<li><b>Einheit:</b> $\Omega\cdot\mathrm{F} = \dfrac{\mathrm{V}}{\mathrm{A}}\cdot\dfrac{\mathrm{C}}{\mathrm{V}} = \dfrac{\mathrm{C}}{\mathrm{A}} = \mathrm{s}$. Es ist eine Zeit.</li>
+<li>Setze $t = \tau$ ein: $e^{-1}\approx 0{,}37$. Entladen: noch 37 % übrig. Aufladen: $1 - 0{,}37 = 63\,\%$ erreicht.</li>
+<li>Nach $2\tau$: $e^{-2}\approx 13{,}5\,\%$, nach $3\tau$: $5\,\%$, nach $5\tau$: $0{,}7\,\%$ (praktisch fertig).</li>
+<li>Halbwertszeit: $e^{-t/\tau} = \dfrac{1}{2}$ ergibt $t_{1/2} = \tau\ln 2 \approx 0{,}69\,\tau$.</li>
+</ul>
+<p><b>Zahlenbeispiel:</b> $R = 10\,\mathrm{k\Omega}$, $C = 100\,\mu\mathrm{F}$ ergibt $\tau = 10^4\cdot 10^{-4} = 1\,\mathrm{s}$. Aufgeladen auf $U_0 = 9\,\mathrm{V}$: nach $1\,\mathrm{s}$ sind es $5{,}7\,\mathrm{V}$, nach $3\,\mathrm{s}$ schon $8{,}55\,\mathrm{V}$.</p>
+
+<h3>Das Rezept zum Merken</h3>
+<ol>
+<li><b>Skizze</b> mit $R$, $C$, Quelle bzw. Schalter.</li>
+<li><b>Maschenregel</b> hinschreiben.</li>
+<li>$U_R = R\,I$, $U_C = Q/C$, $I = \mathrm{d}Q/\mathrm{d}t$ <b>einsetzen</b>.</li>
+<li>Auf die Form $\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dots$ <b>umstellen</b> ($\tau = RC$ erkennen).</li>
+<li><b>Variablen trennen</b> und beidseitig integrieren, Grenzen aus der Anfangsbedingung.</li>
+<li>Mit $e$ <b>auflösen</b>, dann <b>Probe</b>: ableiten und $t=0$ prüfen.</li>
+</ol>
+<div class="hint">Typische Fehler: Vorzeichen bei $\mathrm{d}Q/\mathrm{d}t$ vergessen. Beim Aufladen das Minus vor dem $\ln$ verlieren. $\tau$ mit falschen Einheiten ($\mu\mathrm{F}$, $\mathrm{k\Omega}$ umrechnen!). Die Anfangsbedingung nicht einsetzen.</div>
+
+<h3>Das musst du können</h3>
+<ul class="check"><li>Beide Dgl. mit der Maschenregel selbst aufstellen.</li><li>Die Variablentrennung samt Integrationsgrenzen vorrechnen.</li><li>Die Probe durch Ableiten machen.</li><li>$\tau$ erklären und $37\,\%$, $63\,\%$ begründen.</li></ul>`, ["rc"]);
+
   sheet("millikan", "Millikan-Versuch", "Schwebemethode, Elementarladung", R`
 <h3>Aufbau</h3>
 <ul><li>Öltröpfchen zwischen waagerechten Kondensatorplatten, Mikroskop.</li>

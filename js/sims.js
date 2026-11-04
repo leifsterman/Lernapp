@@ -103,6 +103,7 @@
   A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
 
   const styleBoxes = [];
+  A.openSim = id => openSim(id);
   function openSim(id) {
     const def = SIMS.find(s => s.id === id); if (!def) return;
     const host = $("#sim-host");
@@ -117,7 +118,7 @@
     A.show("sim");
     startLoop(inst.obj);
   }
-  const ORDER = ["rc", "euler", "kond", "qu", "rp", "mill", "millq", "pol", "feld"];
+  const ORDER = ["herleitung", "rc", "euler", "kond", "qu", "rp", "mill", "millq", "pol", "feld"];
   function renderSimList() {
     SIMS.sort((a, b) => (ORDER.indexOf(a.id) + 99) % 99 - (ORDER.indexOf(b.id) + 99) % 99);
     $("#sim-list").innerHTML = SIMS.map(s => '<button type="button" class="method" data-sim="' + s.id + '"><span class="micon">' + (s.icon || "") + '</span><span class="mname">' + s.title + '</span><span class="mdesc">' + s.desc + "</span></button>").join("");

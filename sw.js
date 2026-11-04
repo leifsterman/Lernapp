@@ -1,5 +1,6 @@
 /* Offline-Cache: alles cachen, im Hintergrund aktualisieren. */
-const CACHE = "physikq1-v20";
+const CACHE = "physikq1-v22";
+const ASSETS = ["./", "index.html", "css/style.css", "js/config.js", "js/cards.js", "js/diagrams.js", "js/trainer.js", "js/quiz.js", "js/sheets.js", "js/methods.js", "js/gfx.js", "js/sims.js", "js/sims2.js", "js/sims3.js", "js/sims4.js", "js/calculator.js", "js/app.js",
   "vendor/katex/katex.min.css", "vendor/katex/katex.min.js", "vendor/katex/auto-render.min.js",
   "icon.svg", "manifest.webmanifest"];
 self.addEventListener("install", e => {

@@ -48,6 +48,58 @@
     x.drawImage(sp.cv, px - sp.px / 2 / sc, py - sp.px / 2 / sc, sp.px / sc, sp.px / sc);
     x.globalAlpha = prev;
   }
+
+  // ---- Darstellung der Elektronen: Punkt, Männchen mit Armen oder Biene mit Eimer (Energie-Modell) ----
+  // Eigene Zeichnung. Energie 0 … 1: wenig = müde / Eimer leer, viel = fröhlich, Arme hoch / Eimer voll.
+  const STYLE_KEY = "physikq1-teilchen";
+  let style = "punkt";
+  try { const v = localStorage.getItem(STYLE_KEY); if (v === "mann" || v === "biene" || v === "punkt") style = v; } catch (e) { /* ignorieren */ }
+  const LV = ["#9fb0cf", "#c8c58f", "#ffd45a", "#ffa63a", "#ff6f2b"], INK = "#3a2c1c";
+  const level = en => Math.max(0, Math.min(4, Math.round((en == null ? 0.5 : en) * 4)));
+  function paintFigure(cx, kind, lv, S, flip) {
+    const u = S / 8;
+    cx.save(); cx.scale(u * (flip ? -1 : 1), u); cx.lineCap = "round"; cx.lineJoin = "round"; cx.strokeStyle = INK; cx.fillStyle = LV[lv];
+    if (kind === "mann") {
+      const hands = [[4.6, 6.2], [5.4, 4.6], [6.2, 2], [5.9, -0.8], [4.8, -3.4]][lv];
+      cx.lineWidth = 1.5; cx.strokeStyle = LV[lv];
+      cx.beginPath(); cx.moveTo(0, 1.6); cx.lineTo(0, 5.6); cx.moveTo(0, 5.6); cx.lineTo(-2, 8); cx.moveTo(0, 5.6); cx.lineTo(2, 8);
+      cx.moveTo(0, 2); cx.lineTo(-hands[0], hands[1]); cx.moveTo(0, 2); cx.lineTo(hands[0], hands[1]); cx.stroke();
+      cx.lineWidth = 0.8; cx.strokeStyle = INK;
+      [-1, 1].forEach(sg => { cx.beginPath(); cx.arc(sg * hands[0], hands[1], 1.15, 0, TAU); cx.fill(); cx.stroke(); });
+      cx.beginPath(); cx.arc(0, -3, 3.7, 0, TAU); cx.fill(); cx.stroke();
+      cx.lineWidth = 0.9; cx.beginPath();
+      if (lv <= 1) { cx.moveTo(-2.2, -3.7); cx.lineTo(-0.6, -3.7); cx.moveTo(0.6, -3.7); cx.lineTo(2.2, -3.7); } // müde Augen
+      else { cx.moveTo(-1.3, -3.8); cx.lineTo(-1.3, -3.6); cx.moveTo(1.3, -3.8); cx.lineTo(1.3, -3.6); }
+      cx.stroke(); cx.beginPath();
+      if (lv === 0) cx.arc(0, -0.9, 1.3, Math.PI * 1.15, Math.PI * 1.85); else if (lv === 1) { cx.moveTo(-1.1, -1.7); cx.lineTo(1.1, -1.7); } else cx.arc(0, -2.4, 1.6, Math.PI * 0.15, Math.PI * 0.85);
+      cx.stroke();
+      if (lv === 4) { cx.strokeStyle = LV[4]; cx.lineWidth = 0.9; cx.beginPath(); cx.moveTo(-4.8, -6.4); cx.lineTo(-5.8, -7.4); cx.moveTo(4.8, -6.4); cx.lineTo(5.8, -7.4); cx.moveTo(0, -7.2); cx.lineTo(0, -8); cx.stroke(); }
+    } else {
+      // Biene: Flügel, gestreifter Körper, Kopf, Arm mit Eimer
+      cx.fillStyle = "rgba(255,255,255,.8)"; cx.strokeStyle = "rgba(90,110,150,.8)"; cx.lineWidth = 0.7;
+      [[-1.6, -3.4, -0.4], [1.2, -3.8, 0.4]].forEach(w => { cx.beginPath(); cx.ellipse(w[0], w[1], 1.8, 3, w[2], 0, TAU); cx.fill(); cx.stroke(); });
+      cx.fillStyle = "#ffd23a"; cx.strokeStyle = INK; cx.lineWidth = 0.9;
+      cx.beginPath(); cx.ellipse(0, 1, 4.6, 3.3, 0, 0, TAU); cx.fill(); cx.stroke();
+      cx.save(); cx.beginPath(); cx.ellipse(0, 1, 4.6, 3.3, 0, 0, TAU); cx.clip(); cx.fillStyle = INK; cx.fillRect(-0.7, -3, 1.5, 8); cx.fillRect(2.3, -3, 1.5, 8); cx.restore();
+      cx.fillStyle = "#ffc21a"; cx.beginPath(); cx.arc(-4.8, 0.4, 2.2, 0, TAU); cx.fill(); cx.stroke();
+      cx.fillStyle = INK; cx.beginPath(); cx.arc(-5.5, 0, 0.5, 0, TAU); cx.fill();
+      cx.lineWidth = 0.7; cx.beginPath(); cx.moveTo(-5.4, -1.6); cx.lineTo(-6.6, -3); cx.stroke();
+      cx.lineWidth = 0.7; cx.beginPath();
+      if (lv <= 1) cx.arc(-5, 1.7, 0.9, Math.PI * 1.1, Math.PI * 1.9); else cx.arc(-5, 0.7, 1, Math.PI * 0.15, Math.PI * 0.85);
+      cx.stroke();
+      cx.lineWidth = 1.2; cx.beginPath(); cx.moveTo(2.2, 2.6); cx.lineTo(5.4, 3.4); cx.stroke(); // Arm
+      cx.fillStyle = "rgba(255,255,255,.45)"; cx.strokeStyle = INK; cx.lineWidth = 0.9; // Eimer
+      cx.beginPath(); cx.moveTo(3.8, 3.4); cx.lineTo(9.6, 3.4); cx.lineTo(8.8, 9); cx.lineTo(4.6, 9); cx.closePath(); cx.fill();
+      if (lv > 0) { const h = lv / 4 * 5.4, w = 0.14 * (5.6 - h); cx.fillStyle = "#ff9d1c"; cx.beginPath(); cx.moveTo(3.8 + w * 5.6 / 5.6 + 0.8 * (5.6 - h) / 5.6, 9 - h); cx.lineTo(9.6 - 0.8 * (5.6 - h) / 5.6, 9 - h); cx.lineTo(8.8, 9); cx.lineTo(4.6, 9); cx.closePath(); cx.fill(); }
+      cx.stroke();
+    }
+    cx.restore();
+  }
+  function figure(x, kind, px, py, S, en, flip, a) {
+    const sc = x.getTransform().a || 1, lv = level(en), sz = Math.round(S * 2) / 2;
+    const sp = sprite("f" + kind + lv + "|" + sz + (flip ? "f" : ""), sz * 1.3, sc, cx => paintFigure(cx, kind, lv, sz, flip));
+    drawSprite(x, sp, px, py, a == null ? 1 : a);
+  }
   const bgCache = new Map();
 
   const G = {
@@ -127,6 +179,13 @@
       x.fill(); x.restore();
     },
     // glänzende Kugel (Ladung, Ion, Tröpfchen)
+    // negative Ladung = Elektron(en) auf Platte, Kugel oder Käfig; folgt der gewählten Darstellung
+    minus(x, c, px, py, r, opts) {
+      opts = opts || {};
+      if (style === "punkt") { G.ball(x, px, py, r, c.neg, "−", opts); return; }
+      if (!isFinite(px) || !isFinite(py)) return;
+      figure(x, style, px, py, Math.max(6, r * 2), opts.energy, opts.flip, opts.alpha);
+    },
     ball(x, px, py, r, col, sign, opts) {
       if (!isFinite(px) || !isFinite(py)) return;
       opts = opts || {};
@@ -152,8 +211,13 @@
       }
       x.restore();
     },
-    electron(x, c, px, py, a) {
+    // Darstellung der Elektronen (Punkt, Männchen, Biene), gilt in allen Versuchen
+    get style() { return style; },
+    setStyle(v) { if (v !== "punkt" && v !== "mann" && v !== "biene") return; style = v; try { localStorage.setItem(STYLE_KEY, v); } catch (e) { /* ignorieren */ } },
+    // Elektron in der Leitung; en = Energie 0 … 1, flip = schaut nach links
+    electron(x, c, px, py, a, en, flip) {
       if (!isFinite(px) || !isFinite(py)) return;
+      if (style !== "punkt") { figure(x, style, px, py, 8, en, flip, a); return; }
       const sc = x.getTransform().a || 1;
       const sp = sprite("e" + c.neg, 7, sc, cx => G._elPaint(cx, c, 0, 0));
       drawSprite(x, sp, px, py, a == null ? 1 : a);

@@ -120,6 +120,20 @@
     SIMS.sort((a, b) => (ORDER.indexOf(a.id) + 99) % 99 - (ORDER.indexOf(b.id) + 99) % 99);
     $("#sim-list").innerHTML = SIMS.map(s => '<button type="button" class="method" data-sim="' + s.id + '"><span class="micon">' + (s.icon || "") + '</span><span class="mname">' + s.title + '</span><span class="mdesc">' + s.desc + "</span></button>").join("");
   }
+  // Darstellung der Elektronen (Punkt, Männchen mit Armen, Biene mit Eimer): gilt in allen Versuchen und bleibt gespeichert
+  const STYLES = [{ v: "punkt", t: "● Punkt" }, { v: "mann", t: "☺ Männchen" }, { v: "biene", t: "🐝 Biene" }];
+  const STYLE_HINT = { punkt: "", mann: "Männchen mit Armen: Wer viel Energie hat (nach der Batterie), freut sich mit erhobenen Armen. Wer sie abgegeben hat (nach dem Widerstand), ist müde.",
+    biene: "Bienen mit Eimer: Der Eimer ist voll, wenn das Elektron viel Energie trägt (nach der Batterie), und leer, wenn es sie abgegeben hat (nach dem Widerstand)." };
+  const styleBoxes = [];
+  function makeStyleBox() {
+    const box = el("div", "sim-style"), hint = el("p", "fine tight");
+    const sg = seg(box, { label: "Elektronen darstellen als", options: STYLES, value: window.PHYS_GFX.style, onChange: v => { window.PHYS_GFX.setStyle(v); styleBoxes.forEach(b => b.sync()); } });
+    box.append(hint);
+    box.sync = () => { sg.set(window.PHYS_GFX.style); hint.textContent = STYLE_HINT[window.PHYS_GFX.style]; hint.hidden = !hint.textContent; };
+    box.sync(); styleBoxes.push(box); return box;
+  }
+  $("#sim-list").before(makeStyleBox());
+  $("#sim-host").before(makeStyleBox());
   $("#sim-list").addEventListener("click", e => { const b = e.target.closest("[data-sim]"); if (b) openSim(b.dataset.sim); });
   $("#sim-back").addEventListener("click", () => { A.setTab("lab"); A.home(); });
   $("#sim-sheet").addEventListener("click", () => { const id = $("#sim-sheet").dataset.sheet; if (id) A.openSheet(id); });
@@ -273,6 +287,35 @@
       } else break;
     }
   }
+  // Energie eines Elektrons (0 … 1) aus dem Potential seines Ortes: Bezug unterer Draht = 0 V, Elektronen sind dort am energiereichsten.
+  // Die Batterie hebt sie auf U₀, der Widerstand nimmt Energie weg, der Kondensator speichert sie.
+  function phiAt(p, mode, U0, Uc) {
+    if (p.c === "T" || p.c === "Bd") return Uc;
+    if (p.c === "B") return 0;
+    if (p.c === "L") {
+      const a = mode === "charge" ? Uc : U0, d = p.d;
+      if (d < 32) return a;
+      if (d < 92) return a + (U0 - a) * (d - 32) / 60;
+      if (d < 204) return U0;
+      if (d < 228) return U0 * (1 - (d - 204) / 24);
+      return 0;
+    }
+    const b = mode === "discharge" ? Uc : 0, d = p.d; // R
+    if (d < 342) return 0;
+    if (d < 402) return b * (d - 342) / 60;
+    return b;
+  }
+  function electronEnergy(S, mode, U0, Uc, dt, blade) {
+    S.e.forEach(p => {
+      const target = Math.max(0, Math.min(1, (U0 - phiAt(p, mode, U0, Uc)) / 12));
+      p.en = p.en == null ? target : GX.ease(p.en, target, dt, 6);
+      // Blickrichtung: entlang der Bewegung (nach links schauen, wenn sich das Elektron nach links bewegt)
+      const q = electronPos(p, blade), q2 = p.c === "Bd" ? [G.pv[0] + (blade[0] - G.pv[0]) * (p.d + 1) / BLEN, G.pv[1] + (blade[1] - G.pv[1]) * (p.d + 1) / BLEN] : pointAt(CH[p.c], Math.min(CLEN[p.c], p.d + 1));
+      const dirv = ((ROUTE[mode] || []).find(r => r[0] === p.c) || [0, 1])[1] * (S.sg || 1);
+      const tx = (q2[0] - q[0]) * dirv;
+      if (Math.abs(tx) > 0.2) p.fl = tx < 0;
+    });
+  }
   function electronPos(p, blade) {
     if (p.c === "Bd") { const u = p.d / BLEN; return [G.pv[0] + (blade[0] - G.pv[0]) * u, G.pv[1] + (blade[1] - G.pv[1]) * u]; }
     return pointAt(CH[p.c], p.d);
@@ -328,7 +371,8 @@
           Q = Qinf + (Q - Qinf) * Math.exp(-ds / tc);
         }
         const K = 9 * Uc() / 12, dK = K - prevK; prevK = K; // eine Elektronen-Abstandseinheit pro Platzstelle auf der Platte
-        if (mode !== "open") moveElectrons(EL, mode, SP * (mode === "charge" ? dK : -dK));
+        if (mode !== "open") { const a = SP * (mode === "charge" ? dK : -dK); moveElectrons(EL, mode, a); if (Math.abs(a) > 1e-6) EL.sg = Math.sign(a); }
+        electronEnergy(EL, mode, P.U0, Uc(), dt, blade);
         histT += ds;
         while (histT >= 0.04) { histT -= 0.04; hist.push([t, Uc(), curI()]); if (hist.length > 5000) hist.shift(); }
         const I = Math.abs(curI());
@@ -350,9 +394,9 @@
         drawCircuit(x, c, { blade, meter, glow: f > 0.05 ? 0.35 * f : 0, R1lab: de(P.R1) + " kΩ", R2lab: de(P.R2) + " kΩ", U0lab: P.U0 + " V" });
         // Elektronen auf den Leitungen (entgegen der technischen Stromrichtung); sie bleiben immer sichtbar
         const I = Math.abs(curI());
-        EL.e.forEach(p => { const q = electronPos(p, blade); GX.electron(x, c, q[0], q[1], 0.95); });
+        EL.e.forEach(p => { const q = electronPos(p, blade); GX.electron(x, c, q[0], q[1], 0.95, p.en, p.fl); });
         // Ladungen auf den Platten: so viele, wie Elektronen ein- bzw. ausgetreten sind
-        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.ball(x, 176 + i * 8.5, G.pb + 9, 3.6, c.neg, "−");
+        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6, { energy: P.U0 / 12 });
         for (let i = 0; i < Math.min(9, Math.max(0, EL.nT)); i++) GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+");
         // Stromstärke am aktiven Widerstand
         if (I > 0.004) {

@@ -99,7 +99,7 @@
         const nq = 1 + V.q * 20, nn = Math.ceil(nq);
         for (let i = 0; i < nn; i++) {
           const a = clamp(nq - i, 0, 1), px = xl + 6 + (i + 0.5) * (len - 12) / Math.max(nn, 8);
-          GX.ball(x, px, yT - 9, 3.6, c.pos, "+", { alpha: a }); GX.ball(x, px, yB + 9, 3.6, c.neg, "−", { alpha: a });
+          GX.ball(x, px, yT - 9, 3.6, c.pos, "+", { alpha: a }); GX.minus(x, c, px, yB + 9, 3.6, { alpha: a });
         }
         // Maße
         GX.dim(x, c, xr + 34, yT, xr + 34, yB, null);
@@ -189,16 +189,16 @@
           homes.forEach(p => GX.ball(x, CX + p[0], CY + p[1], 3.2, c.pos, "+", { alpha: 0.85 }));
           const earthN = els.filter(e => e.st === "earth").length;
           els.forEach((e, i) => {
-            if (e.st === "in") { GX.ball(x, CX + e.x, CY + e.y, 4.4, c.neg, "−"); return; }
+            if (e.st === "in") { GX.minus(x, c, CX + e.x, CY + e.y, 4.4); return; }
             if (e.st === "earth") return;
             // Weg: von der Kugel (Startpunkt) auf der Leitung nach unten zur Erde; zurück umgekehrt
             const u = e.st === "out" ? e.s : 1 - e.s;
             const sx = CX + (e.x0 || 0), sy = CY + (e.y0 || 0), top = CY + R;
             const leg1 = Math.hypot(sx - CX, sy - top), total = leg1 + (EARTH_Y - top), dd = u * total;
             const px = dd < leg1 ? sx + (CX - sx) * (dd / (leg1 || 1)) : CX, py = dd < leg1 ? sy + (top - sy) * (dd / (leg1 || 1)) : top + (dd - leg1);
-            GX.ball(x, px, py, 4.4, c.neg, "−");
+            GX.minus(x, c, px, py, 4.4);
           });
-          for (let i = 0; i < earthN; i++) GX.ball(x, CX + 22 + (i % 4) * 11, EARTH_Y + 12 + Math.floor(i / 4) * 11, 3.6, c.neg, "−", { alpha: 0.8 });
+          for (let i = 0; i < earthN; i++) GX.minus(x, c, CX + 22 + (i % 4) * 11, EARTH_Y + 12 + Math.floor(i / 4) * 11, 3.6, { alpha: 0.8 });
           // Stab (ziehbar)
           x.save(); const rg = x.createLinearGradient(0, CY - 20, 0, CY + 20); rg.addColorStop(0, GX.shade(c.neg, 0.35)); rg.addColorStop(1, GX.shade(c.neg, -0.3));
           x.fillStyle = rg; x.shadowColor = GX.alpha(c.neg, 0.5); x.shadowBlur = 10; GX.rr(x, edge - 104, CY - 18, 104, 36, 10); x.fill(); x.restore();
@@ -327,7 +327,7 @@
             x.save(); x.fillStyle = GX.alpha(c.surf2.startsWith("#") ? c.surf2 : "#888888", 0.92); x.strokeStyle = c.fg; x.lineWidth = 3; x.setLineDash([8, 4]);
             GX.rr(x, BX0, BY0, BX1 - BX0, BY1 - BY0, 4); x.fill(); x.stroke(); x.restore();
             const n = Math.round(3 + 5 * E);
-            for (let i = 0; i < n; i++) { const yy = BY0 + 10 + i * (BY1 - BY0 - 20) / Math.max(1, n - 1); GX.ball(x, BX0 + 8, yy, 3.8, c.neg, "−"); GX.ball(x, BX1 - 8, yy, 3.8, c.pos, "+"); }
+            for (let i = 0; i < n; i++) { const yy = BY0 + 10 + i * (BY1 - BY0 - 20) / Math.max(1, n - 1); GX.minus(x, c, BX0 + 8, yy, 3.8); GX.ball(x, BX1 - 8, yy, 3.8, c.pos, "+"); }
             GX.pill(x, c, "E = 0", (BX0 + BX1) / 2, (BY0 + BY1) / 2, { col: c.ok, size: 12 });
           } else {
             GX.ball(x, 180, 128, 8, c.warn, "+", { glow: 8 });

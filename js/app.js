@@ -11,7 +11,7 @@
   const BOX_TAB = ["Neu", "Fach 1", "Fach 2", "Fach 3", "Fach 4", "Fach 5"];
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], tab: "learn", stats: {} };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], tab: "learn", stats: {}, hidden: {}, ghidden: {} };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -27,6 +27,14 @@
   if (!Array.isArray(store.kinds) || !store.kinds.length) store.kinds = ["abfrage", "rechnen"];
   if (!store.stats || typeof store.stats !== "object") store.stats = {};
   const LVL_NAME = ["", "Leicht", "Mittel", "Schwer"];
+  // Gelöschte Karten: hidden = nur für mich (am Profil), ghidden = für alle (aus Supabase)
+  if (!store.hidden || typeof store.hidden !== "object") store.hidden = {};
+  if (!store.ghidden || typeof store.ghidden !== "object") store.ghidden = {};
+  const isHidden = id => !!((store.hidden[id] && store.hidden[id].on) || store.ghidden[id]);
+  const liveCards = () => CARDS.filter(c => !isHidden(c.id));
+  const plain = h => String(h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
+    .replace(/\\cdot/g, "·").replace(/\\(?:mathrm|text|mu|varepsilon|sigma|tau)\b/g, m => ({ "\\mu": "µ", "\\varepsilon": "ε", "\\sigma": "σ", "\\tau": "τ" }[m] || ""))
+    .replace(/\\[a-zA-Z]+/g, "").replace(/[${}]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
 
   // Eintrag je Karte: { b: Fach 1..5, t: Zeitstempel }. Ältere Formate ({s}, Text) umwandeln.
   function norm(e) {
@@ -69,7 +77,7 @@
   }
 
   // ------------------------------------------------------------ Karteikasten
-  function selectedCards() { return CARDS.filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
+  function selectedCards() { return liveCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
   function counts(cards) {
     const n = [0, 0, 0, 0, 0, 0];
     cards.forEach(c => { n[boxOf(c.id)]++; });
@@ -97,8 +105,9 @@
   }
 
   function renderRing() {
-    const all = CARDS.length;
-    const done = CARDS.filter(c => boxOf(c.id) >= 4).length;
+    const live = liveCards();
+    const all = live.length || 1;
+    const done = live.filter(c => boxOf(c.id) >= 4).length;
     const pct = Math.round(done / all * 100);
     const R = 40, C = 2 * Math.PI * R;
     $("#ring").innerHTML =
@@ -135,7 +144,8 @@
     const ul = $("#topic-list");
     ul.innerHTML = "";
     TOPICS.forEach(t => {
-      const cs = CARDS.filter(c => c.topic === t.id);
+      const cs = liveCards().filter(c => c.topic === t.id);
+      const nc = cs.length || 1;
       const g = cs.filter(c => boxOf(c.id) >= 4).length;
       const y = cs.filter(c => boxOf(c.id) === 3).length;
       const r = cs.filter(c => boxOf(c.id) === 1 || boxOf(c.id) === 2).length;
@@ -146,9 +156,9 @@
         '<span class="t-name">' + t.title + "</span>" +
         '<span class="t-stat">' + g + "/" + cs.length + "</span>" +
         '<span class="t-sub">' + t.sub + "</span>" +
-        '<span class="t-bar"><span class="g" style="width:' + (g / cs.length * 100) + '%"></span>' +
-        '<span class="y" style="width:' + (y / cs.length * 100) + '%"></span>' +
-        '<span class="r" style="width:' + (r / cs.length * 100) + '%"></span></span>' +
+        '<span class="t-bar"><span class="g" style="width:' + (g / nc * 100) + '%"></span>' +
+        '<span class="y" style="width:' + (y / nc * 100) + '%"></span>' +
+        '<span class="r" style="width:' + (r / nc * 100) + '%"></span></span>' +
         "</label>";
       ul.appendChild(li);
     });
@@ -517,6 +527,13 @@
     });
     store.progress = out;
     store.resetAt = reset;
+    const rh = remote.hidden || {}, hh = {};
+    new Set(Object.keys(rh).concat(Object.keys(store.hidden))).forEach(id => {
+      const a = store.hidden[id], b = rh[id];
+      const pick = !a ? b : !b ? a : (b.t > a.t ? b : a);
+      if (pick && typeof pick.t === "number") hh[id] = { on: !!pick.on, t: pick.t };
+    });
+    store.hidden = hh;
   }
   function setStatus(msg, err) {
     const el = $("#sync-status");
@@ -534,7 +551,7 @@
       const res = await rpc("lern_load", { p_code: store.sync.code });
       if (res && res.data) mergeData(res.data);
       save();
-      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: { progress: store.progress, resetAt: store.resetAt } });
+      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: { progress: store.progress, resetAt: store.resetAt, hidden: store.hidden } });
       const d = new Date();
       setStatus("Synchronisiert um " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " Uhr");
       if (!active) renderTopics();
@@ -587,9 +604,126 @@
     store.sync = null; save(); renderSync();
     setStatus("Getrennt. Dein Fortschritt bleibt auf diesem Gerät.");
   });
-  document.addEventListener("visibilitychange", () => { if (!syncing) syncNow(); });
+  document.addEventListener("visibilitychange", () => { if (!syncing) syncNow(); if (document.visibilityState === "visible") fetchGlobal(); });
   window.addEventListener("online", syncNow);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (active) fitDisplays(); });
+
+
+  // ------------------------------------------------------------ Hinweise, Dialog, Löschen
+  function toast(msg, actionLabel, fn) {
+    let t = $("#toast");
+    if (!t) { t = document.createElement("div"); t.id = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+    t.textContent = msg;
+    if (actionLabel) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "toast-act"; b.textContent = actionLabel;
+      b.onclick = () => { t.classList.remove("on"); fn && fn(); };
+      t.appendChild(b);
+    }
+    t.classList.add("on");
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), actionLabel ? 6000 : 2600);
+  }
+  function dialog(o) {
+    let d = $("#dlg");
+    if (d) d.remove();
+    d = document.createElement("div");
+    d.id = "dlg"; d.className = "dlg"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+    d.innerHTML = '<div class="dlg-box"><h3></h3><p></p><div class="dlg-actions"></div></div>';
+    d.querySelector("h3").textContent = o.title;
+    d.querySelector("p").textContent = o.text;
+    const close = () => { d.remove(); document.removeEventListener("keydown", onKey, true); };
+    const onKey = e => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+    document.addEventListener("keydown", onKey, true);
+    o.actions.forEach(a => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "btn" + (a.primary ? " primary" : "") + (a.danger ? " danger-fill" : "");
+      b.textContent = a.label;
+      b.onclick = () => { close(); a.fn && a.fn(); };
+      d.querySelector(".dlg-actions").appendChild(b);
+    });
+    d.addEventListener("click", e => { if (e.target === d) close(); });
+    document.body.appendChild(d);
+    d.querySelector(".btn:last-child").focus();
+  }
+
+  const nosync = !window.PHYS_SYNC;
+  document.documentElement.classList.toggle("nosync", nosync);
+  function needLogin() {
+    dialog({
+      title: "Anmeldung nötig",
+      text: "Zum Löschen musst du angemeldet sein. Erstelle unter „Mehr“ einen Lerncode oder verbinde dich mit deinem.",
+      actions: [{ label: "Abbrechen" }, { label: "Zu „Mehr“", primary: true, fn: () => { setTab("more"); home(); } }]
+    });
+  }
+  // scope: "me" (nur für mich, am Profil gespeichert) oder "all" (für alle, in Supabase)
+  function hideItem(id, label, scope, done) {
+    if (nosync) { toast("Löschen geht nur auf der gehosteten Seite."); return; }
+    if (!store.sync) { needLogin(); return; }
+    if (scope === "me") {
+      store.hidden[id] = { on: true, t: Date.now() };
+      save(); schedulePush(); renderTopics();
+      toast("Nur für dich gelöscht", "Rückgängig", () => { restoreItem(id, "me"); toast("Zurückgelegt. Sie kommt in der nächsten Runde wieder."); });
+      done && done();
+    } else {
+      dialog({
+        title: "Für alle löschen?",
+        text: "„" + label + "“ verschwindet sofort bei allen. Du kannst sie später unter „Mehr“ wiederherstellen.",
+        actions: [{ label: "Abbrechen" }, { label: "Für alle löschen", danger: true, fn: async () => {
+          try {
+            await rpc("lern_global_set", { p_code: store.sync.code, p_id: id, p_hidden: true });
+            store.ghidden[id] = store.sync.name || true;
+            save(); renderTopics();
+            toast("Für alle gelöscht", "Rückgängig", () => { restoreItem(id, "all"); });
+            done && done();
+          } catch (e) { toast("Das hat nicht geklappt. Bist du online?"); }
+        } }]
+      });
+    }
+  }
+  async function restoreItem(id, scope) {
+    if (scope === "me") {
+      store.hidden[id] = { on: false, t: Date.now() };
+      save(); schedulePush(); renderTopics(); changed();
+      return true;
+    }
+    if (!store.sync) { needLogin(); return false; }
+    try {
+      await rpc("lern_global_set", { p_code: store.sync.code, p_id: id, p_hidden: false });
+      delete store.ghidden[id];
+      save(); renderTopics(); changed();
+      return true;
+    } catch (e) { toast("Das hat nicht geklappt. Bist du online?"); return false; }
+  }
+  const changeHooks = [];
+  function changed() { changeHooks.forEach(fn => fn()); }
+  async function fetchGlobal() {
+    if (!CFG) return;
+    try {
+      const list = await rpc("lern_global_list", {});
+      const g = {};
+      (list || []).forEach(x => { if (x.hidden) g[x.id] = x.by || true; });
+      store.ghidden = g; save();
+      if (!active) renderTopics();
+      changed();
+    } catch (e) { /* offline: zuletzt bekannten Stand behalten */ }
+  }
+  function hiddenList() {
+    const ids = new Set(Object.keys(store.ghidden).concat(Object.keys(store.hidden).filter(i => store.hidden[i].on)));
+    return Array.from(ids).filter(isHidden).map(id => ({ id, me: !!(store.hidden[id] && store.hidden[id].on), all: !!store.ghidden[id], by: typeof store.ghidden[id] === "string" ? store.ghidden[id] : "" }));
+  }
+
+  function delCurrent(scope) {
+    if (!current) return;
+    const c = current;
+    hideItem(c.id, plain(c.front), scope, () => {
+      deck = deck.filter(x => x.id !== c.id);
+      total = Math.max(deck.length, total - 1);
+      renderDrawer($("#mini-drawer"), true);
+      loadCard();
+    });
+  }
+  $("#del-me").addEventListener("click", () => delCurrent("me"));
+  $("#del-all").addEventListener("click", () => delCurrent("all"));
 
   // ------------------------------------------------------------ Start
   renderTopics();
@@ -597,13 +731,15 @@
   setTab(store.tab);
   show("start");
   syncNow();
+  fetchGlobal();
 
   // Schnittstelle für methods.js
   window.PHYS_APP = {
     store, save, show, home, render, setTab, topicTitle, topicHue, LVL_NAME, reduceMotion, confetti,
     onShow: fn => showHooks.push(fn),
     startCards: only => { if (only) { store.sel = [only]; store.pick = null; save(); renderTopics(); } startSession("all"); },
-    refresh: renderTopics
+    refresh: renderTopics,
+    isHidden, liveCards, hideItem, restoreItem, hiddenList, toast, dialog, plain, onChange: fn => changeHooks.push(fn)
   };
 
   // Offline-Fähigkeit (nur über https/localhost)

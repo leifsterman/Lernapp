@@ -408,10 +408,9 @@
       <p>$$q \approx 3{,}2\cdot10^{-19}\,\mathrm{C}$$</p>
       <p>$$n = \dfrac{q}{e} \approx \dfrac{3{,}2\cdot10^{-19}}{1{,}6\cdot10^{-19}} = 2$$</p>
       <p>Das Tröpfchen trägt <b>2 Elementarladungen</b>.</p>`);
-  Calc(R`<b>Mittelwert.</b> Aus fünf Auswertungen ergibt sich $e$ (in $10^{-19}\,\mathrm{C}$): 1,55 · 1,63 · 1,60 · 1,58 · 1,64. Berechne den Mittelwert und die relative Abweichung vom Literaturwert $1{,}602\cdot10^{-19}\,\mathrm{C}$.`,
+  Calc(R`<b>Mittelwert.</b> Aus fünf Auswertungen ergibt sich $e$ (in $10^{-19}\,\mathrm{C}$): 1,55 · 1,63 · 1,60 · 1,58 · 1,64. Berechne den Mittelwert.`,
     R`<p>$$\bar{e} = \dfrac{1{,}55 + 1{,}63 + 1{,}60 + 1{,}58 + 1{,}64}{5}\cdot10^{-19}\,\mathrm{C}$$</p>
-      <p>$$\bar{e} = 1{,}60\cdot10^{-19}\,\mathrm{C}$$</p>
-      <p>Relative Abweichung: $\dfrac{|1{,}60 - 1{,}602|}{1{,}602} \approx 0{,}1\,\%$</p>`);
+      <p>$$\bar{e} = 1{,}60\cdot10^{-19}\,\mathrm{C}$$</p>`);
 
 
   // ---------------------------------------------------------------- Metadaten
@@ -430,6 +429,13 @@
   const CALC_TOPIC = { 77: "kraft", 78: "kraft", 79: "kraft", 80: "kondensator", 81: "kondensator", 82: "kondensator",
     83: "kondensator", 84: "schaltung", 85: "ladung", 86: "ladung", 87: "ladung", 88: "groessen", 89: "kraft",
     90: "millikan", 91: "klausur" };
+  // Nicht auf der Checkliste, deshalb entfernt (die Nummern bleiben vergeben, damit die IDs und der Lernfortschritt stabil bleiben):
+  // 42 Elektron beschleunigen, 55 Eselsbrücke Widerstand, 61 Halbwertszeit, 67 Masse des Tröpfchens (Stokes),
+  // 71 Abweichung vom Literaturwert, 89 Rechenaufgabe Elektron im Feld
+  const DROP = new Set([42, 55, 61, 67, 71, 89]);
+  for (let i = cards.length - 1; i >= 0; i--) {
+    if (DROP.has(+cards[i].id.slice(cards[i].id.lastIndexOf("-") + 1))) cards.splice(i, 1);
+  }
   cards.forEach(c => {
     const num = +c.id.slice(c.id.lastIndexOf("-") + 1);
     c.lvl = LVL[num] || 2;

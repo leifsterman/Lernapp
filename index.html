@@ -138,6 +138,12 @@
           <p class="fine tight" id="sync-status" role="status"></p>
         </div>
 
+        <div class="panel" id="deleted-panel">
+          <div class="panel-head"><h2>Gelöschte Karten</h2></div>
+          <p class="fine tight" id="deleted-empty">Noch nichts gelöscht.</p>
+          <ul id="deleted-list" class="deleted-list"></ul>
+        </div>
+
         <div class="panel exam">
           <h2>Klausur</h2>
           <ul>
@@ -182,6 +188,10 @@
         <button type="button" class="btn r-partial" data-rate="partial"><kbd>2</kbd> Teilweise</button>
         <button type="button" class="btn r-right" data-rate="correct"><kbd>3</kbd> Wusste ich</button>
       </div>
+      <div class="cardtools" id="cardtools">
+        <button type="button" class="tool" id="del-me"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Nur für mich löschen</button>
+        <button type="button" class="tool danger" id="del-all"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Für alle löschen</button>
+      </div>
     </section>
 
     <!-- Karteikasten: Ende -->
@@ -220,6 +230,10 @@
           <button type="submit" class="btn primary" id="task-check">Prüfen</button>
         </form>
         <div id="task-fb" class="fb" hidden></div>
+        <div class="cardtools" id="task-tools" hidden>
+          <button type="button" class="tool" id="tdel-me">Nur für mich löschen</button>
+          <button type="button" class="tool danger" id="tdel-all">Für alle löschen</button>
+        </div>
       </div>
       <div class="start-actions">
         <button type="button" id="task-next" class="btn primary" hidden>Weiter</button>

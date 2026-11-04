@@ -443,6 +443,30 @@ html.fs .formula-box { font-size: 1.5rem; }
 
 .sheet-body table.cmp { font-size: .84rem; }
 .sheet-body table.cmp th, .sheet-body table.cmp td { padding: 5px 6px; }
+
+/* Löschen, Dialog, Toast mit Aktion */
+.cardtools { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+.task-card .cardtools { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); justify-content: flex-start; }
+.cardtools[hidden] { display: none; }
+.tool { appearance: none; display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); color: var(--fg-dim); border-radius: 999px; padding: 6px 12px; font-size: .8rem; cursor: pointer; transition: color .15s, border-color .15s; }
+.tool:hover { color: var(--fg); border-color: var(--fg-dim); }
+.tool.danger:hover { color: var(--bad); border-color: var(--bad); }
+html.nosync .cardtools { display: none; }
+.dlg { position: fixed; inset: 0; z-index: 90; background: rgba(5, 8, 14, .6); display: grid; place-items: center; padding: 16px; }
+.dlg-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; width: min(420px, 100%); box-shadow: var(--shadow); }
+.dlg-box h3 { margin: 0 0 8px; font-size: 1.1rem; }
+.dlg-box p { margin: 0 0 16px; color: var(--fg-dim); overflow-wrap: anywhere; }
+.dlg-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.btn.danger-fill { background: var(--bad); border-color: var(--bad); color: #fff; }
+.toast-act { appearance: none; margin-left: 12px; background: none; border: 0; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+#toast.on { pointer-events: auto; }
+.deleted-list { list-style: none; margin: 0; padding: 0; }
+.deleted-list li { border-top: 1px solid var(--border); padding: 10px 0; }
+.deleted-list li:first-child { border-top: 0; }
+.d-t { font-size: .92rem; overflow-wrap: anywhere; }
+.d-m { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.badge { font-size: .7rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); color: var(--fg-dim); }
+.badge.all { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
 </style></head><body>
   <header class="top">
     <button id="btn-home" class="brand" type="button" aria-label="Zur Übersicht">
@@ -570,6 +594,12 @@ html.fs .formula-box { font-size: 1.5rem; }
           <p class="fine tight" id="sync-status" role="status"></p>
         </div>
 
+        <div class="panel" id="deleted-panel">
+          <div class="panel-head"><h2>Gelöschte Karten</h2></div>
+          <p class="fine tight" id="deleted-empty">Noch nichts gelöscht.</p>
+          <ul id="deleted-list" class="deleted-list"></ul>
+        </div>
+
         <div class="panel exam">
           <h2>Klausur</h2>
           <ul>
@@ -614,6 +644,10 @@ html.fs .formula-box { font-size: 1.5rem; }
         <button type="button" class="btn r-partial" data-rate="partial"><kbd>2</kbd> Teilweise</button>
         <button type="button" class="btn r-right" data-rate="correct"><kbd>3</kbd> Wusste ich</button>
       </div>
+      <div class="cardtools" id="cardtools">
+        <button type="button" class="tool" id="del-me"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Nur für mich löschen</button>
+        <button type="button" class="tool danger" id="del-all"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Für alle löschen</button>
+      </div>
     </section>
 
     <!-- Karteikasten: Ende -->
@@ -652,6 +686,10 @@ html.fs .formula-box { font-size: 1.5rem; }
           <button type="submit" class="btn primary" id="task-check">Prüfen</button>
         </form>
         <div id="task-fb" class="fb" hidden></div>
+        <div class="cardtools" id="task-tools" hidden>
+          <button type="button" class="tool" id="tdel-me">Nur für mich löschen</button>
+          <button type="button" class="tool danger" id="tdel-all">Für alle löschen</button>
+        </div>
       </div>
       <div class="start-actions">
         <button type="button" id="task-next" class="btn primary" hidden>Weiter</button>
@@ -1137,10 +1175,9 @@ window.PHYS_SYNC = {
       <p>$$q \approx 3{,}2\cdot10^{-19}\,\mathrm{C}$$</p>
       <p>$$n = \dfrac{q}{e} \approx \dfrac{3{,}2\cdot10^{-19}}{1{,}6\cdot10^{-19}} = 2$$</p>
       <p>Das Tröpfchen trägt <b>2 Elementarladungen</b>.</p>`);
-  Calc(R`<b>Mittelwert.</b> Aus fünf Auswertungen ergibt sich $e$ (in $10^{-19}\,\mathrm{C}$): 1,55 · 1,63 · 1,60 · 1,58 · 1,64. Berechne den Mittelwert und die relative Abweichung vom Literaturwert $1{,}602\cdot10^{-19}\,\mathrm{C}$.`,
+  Calc(R`<b>Mittelwert.</b> Aus fünf Auswertungen ergibt sich $e$ (in $10^{-19}\,\mathrm{C}$): 1,55 · 1,63 · 1,60 · 1,58 · 1,64. Berechne den Mittelwert.`,
     R`<p>$$\bar{e} = \dfrac{1{,}55 + 1{,}63 + 1{,}60 + 1{,}58 + 1{,}64}{5}\cdot10^{-19}\,\mathrm{C}$$</p>
-      <p>$$\bar{e} = 1{,}60\cdot10^{-19}\,\mathrm{C}$$</p>
-      <p>Relative Abweichung: $\dfrac{|1{,}60 - 1{,}602|}{1{,}602} \approx 0{,}1\,\%$</p>`);
+      <p>$$\bar{e} = 1{,}60\cdot10^{-19}\,\mathrm{C}$$</p>`);
 
 
   // ---------------------------------------------------------------- Metadaten
@@ -1159,6 +1196,13 @@ window.PHYS_SYNC = {
   const CALC_TOPIC = { 77: "kraft", 78: "kraft", 79: "kraft", 80: "kondensator", 81: "kondensator", 82: "kondensator",
     83: "kondensator", 84: "schaltung", 85: "ladung", 86: "ladung", 87: "ladung", 88: "groessen", 89: "kraft",
     90: "millikan", 91: "klausur" };
+  // Nicht auf der Checkliste, deshalb entfernt (die Nummern bleiben vergeben, damit die IDs und der Lernfortschritt stabil bleiben):
+  // 42 Elektron beschleunigen, 55 Eselsbrücke Widerstand, 61 Halbwertszeit, 67 Masse des Tröpfchens (Stokes),
+  // 71 Abweichung vom Literaturwert, 89 Rechenaufgabe Elektron im Feld
+  const DROP = new Set([42, 55, 61, 67, 71, 89]);
+  for (let i = cards.length - 1; i >= 0; i--) {
+    if (DROP.has(+cards[i].id.slice(cards[i].id.lastIndexOf("-") + 1))) cards.splice(i, 1);
+  }
   cards.forEach(c => {
     const num = +c.id.slice(c.id.lastIndexOf("-") + 1);
     c.lvl = LVL[num] || 2;
@@ -1406,7 +1450,7 @@ window.PHYS_SYNC = {
     return {
       q: R`Eine Ladung $Q = ${Qn}\,\mathrm{nC}$ befindet sich in einem Feld der Stärke $E = ${tx(E)}\,\mathrm{N/C}$. Wie groß ist die Kraft auf die Ladung?`,
       ans: F * 1e6, unit: "µN",
-      sol: R`<p>$$F = E\cdot Q = ${tx(E)}\,\tfrac{\mathrm{N}}{\mathrm{C}}\cdot ${Qn}\cdot10^{-9}\,\mathrm{C} = ${tx(F)}\,\mathrm{N} = ${tx(F * 1e6)}\,\mu\mathrm{N}$$</p>`
+      sol: R`<p>$$F = E\cdot Q = ${tx(E)}\,\tfrac{\mathrm{N}}{\mathrm{C}}\cdot ${Qn}\cdot10^{-9}\,\mathrm{C}$$</p><p>$$F = ${tx(F)}\,\mathrm{N} = ${tx(F * 1e6)}\,\mu\mathrm{N}$$</p>`
     };
   });
   add("kondensator", 1, "E = U/d", () => {
@@ -1516,7 +1560,7 @@ window.PHYS_SYNC = {
     return {
       q: R`Auf den Platten eines Plattenkondensators (Vakuum) sitzt die Ladung $Q = ${Qn}\,\mathrm{nC}$, die Plattenfläche ist $A = ${Acm}\,\mathrm{cm^2}$. Wie groß ist die Feldstärke zwischen den Platten?`,
       ans: E / 1e3, unit: "kV/m",
-      sol: R`<p>$$E = \dfrac{\sigma}{\varepsilon_0} = \dfrac{Q}{\varepsilon_0 A} = \dfrac{${Qn}\cdot10^{-9}}{8{,}854\cdot10^{-12}\cdot ${tx(Acm * 1e-4)}}\,\dfrac{\mathrm{V}}{\mathrm{m}} = ${tx(E / 1e3, 3)}\,\mathrm{kV/m}$$</p>`
+      sol: R`<p>$$E = \dfrac{\sigma}{\varepsilon_0} = \dfrac{Q}{\varepsilon_0 A}$$</p><p>$$E = \dfrac{${Qn}\cdot10^{-9}}{8{,}854\cdot10^{-12}\cdot ${tx(Acm * 1e-4)}}\,\tfrac{\mathrm{V}}{\mathrm{m}} = ${tx(E / 1e3, 3)}\,\mathrm{kV/m}$$</p>`
     };
   });
   add("millikan", 2, "Anzahl Elementarladungen", () => {
@@ -1554,7 +1598,7 @@ window.PHYS_SYNC = {
     return {
       q: R`Ein Kondensator ($C = ${C}\,\mu\mathrm{F}$) entlädt sich über $R = ${Rk}\,\mathrm{k\Omega}$. Nach welcher Zeit ist die Spannung auf $${p}\,\%$ von $U_0$ gefallen?`,
       ans: t, unit: "s",
-      sol: R`<p>$$\tau = RC = ${tx(tau, 3)}\,\mathrm{s}$$</p><p>$$e^{-t/\tau} = \dfrac{${p}}{100} \;\Rightarrow\; t = \tau\cdot\ln\dfrac{100}{${p}} = ${tx(tau, 3)}\,\mathrm{s}\cdot ${de(Math.log(100 / p), 3)} = ${de(t, 3)}\,\mathrm{s}$$</p>`
+      sol: R`<p>$$\tau = RC = ${tx(tau, 3)}\,\mathrm{s}$$</p><p>$$e^{-t/\tau} = \dfrac{${p}}{100} \;\Rightarrow\; t = \tau\cdot\ln\dfrac{100}{${p}}$$</p><p>$$t = ${tx(tau, 3)}\,\mathrm{s}\cdot ${de(Math.log(100 / p), 3)} = ${de(t, 3)}\,\mathrm{s}$$</p>`
     };
   });
   add("millikan", 3, "Millikan: Ladung des Tröpfchens", () => {
@@ -1566,15 +1610,6 @@ window.PHYS_SYNC = {
       q: R`Ein Öltröpfchen der Masse $m = ${tx(mr, 3)}\,\mathrm{kg}$ schwebt zwischen zwei Platten ($d = ${dmm}\,\mathrm{mm}$) bei $U = ${U}\,\mathrm{V}$. Welche Ladung trägt es? Gib $q$ in $10^{-19}\,\mathrm{C}$ an. ($g = 9{,}81\,\mathrm{m/s^2}$)`,
       ans: q / 1e-19, unit: "· 10⁻¹⁹ C",
       sol: R`<p>Schweben: $q\cdot E = m\cdot g$ mit $E = U/d$.</p><p>$$q = \dfrac{m\,g\,d}{U} = \dfrac{${tx(mr, 3)}\cdot9{,}81\cdot ${dmm}\cdot10^{-3}}{${U}}\,\mathrm{C}$$</p><p>$$q = ${de(q / 1e-19, 3)}\cdot10^{-19}\,\mathrm{C}$$</p><p>Das sind $\dfrac{q}{e} \approx ${n}$ Elementarladungen.</p>`
-    };
-  });
-  add("kraft", 3, "Elektron im Feld", () => {
-    const E = rnd([5e3, 1e4, 2e4, 5e4]);
-    const a = QE * E / ME;
-    return {
-      q: R`Ein Elektron befindet sich in einem homogenen Feld der Stärke $E = ${tx(E)}\,\mathrm{V/m}$. Wie groß ist seine Beschleunigung? ($e = 1{,}602\cdot10^{-19}\,\mathrm{C}$, $m_e = 9{,}109\cdot10^{-31}\,\mathrm{kg}$) Gib $a$ in $10^{15}\,\mathrm{m/s^2}$ an.`,
-      ans: a / 1e15, unit: "· 10¹⁵ m/s²",
-      sol: R`<p>$$a = \dfrac{e\,E}{m_e} = \dfrac{1{,}602\cdot10^{-19}\cdot ${tx(E)}}{9{,}109\cdot10^{-31}}\,\tfrac{\mathrm{m}}{\mathrm{s}^2}$$</p><p>$$a = ${de(a / 1e15, 3)}\cdot10^{15}\,\tfrac{\mathrm{m}}{\mathrm{s}^2}$$</p>`
     };
   });
 
@@ -1739,7 +1774,7 @@ window.PHYS_SYNC = {
 
   // ---------- automatisch aus den Größenkarten
   function sizeMC(cards) {
-    const sizes = cards.filter(c => c.type === "size");
+    const sizes = cards.filter(c => c.type === "size");  // alle Größenkarten, auch ausgeblendete (nur als Ablenker)
     const out = [];
     const strip = s => String(s).replace(/&nbsp;/g, " ");
     sizes.forEach(c => {
@@ -1751,7 +1786,7 @@ window.PHYS_SYNC = {
         sizes.forEach(o => { const v = strip(o[k]); if (o !== c && v !== right && !others.includes(v)) others.push(v); });
         // zufällig drei Ablenker
         for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
-        out.push({ id: "mcs-" + c.id + "-" + k, topic: "groessen", lvl, q, opts: [right].concat(others.slice(0, 3)),
+        out.push({ id: "mcs-" + c.id + "-" + k, cardId: c.id, topic: "groessen", lvl, q, opts: [right].concat(others.slice(0, 3)),
           why: "<p>" + c.front + ": " + c.symbol + " · " + c.unit + " · " + c.formula + "</p>" });
       });
     });
@@ -1792,14 +1827,13 @@ window.PHYS_SYNC = {
 <tr><td>Entladen</td><td>$U(t) = U_0\,e^{-t/\tau}$, &nbsp; $Q(t) = Q_0\,e^{-t/\tau}$</td></tr>
 <tr><td>Aufladen</td><td>$U_C(t) = U_0(1 - e^{-t/\tau})$</td></tr>
 <tr><td>Strom</td><td>$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$</td></tr>
-<tr><td>Halbwertszeit</td><td>$t_{1/2} = \tau\ln 2 \approx 0{,}69\,\tau$</td></tr></table>
+</table>
 <h3>Millikan und Konstanten</h3>
 <table class="cmp"><tr><th>Größe</th><th>Wert / Formel</th></tr>
 <tr><td>Schweben</td><td>$q = \dfrac{m\,g\,d}{U}$</td></tr>
 <tr><td>Elementarladung</td><td>$e = 1{,}602\cdot10^{-19}\,\mathrm{C}$</td></tr>
 <tr><td>Feldkonstante</td><td>$\varepsilon_0 = 8{,}854\cdot10^{-12}\,\mathrm{F/m}$</td></tr>
-<tr><td>Coulomb-Konstante</td><td>$\dfrac{1}{4\pi\varepsilon_0} = 8{,}99\cdot10^{9}\,\mathrm{N\,m^2/C^2}$</td></tr>
-<tr><td>Elektronenmasse</td><td>$m_e = 9{,}109\cdot10^{-31}\,\mathrm{kg}$</td></tr></table>
+<tr><td>Coulomb-Konstante</td><td>$\dfrac{1}{4\pi\varepsilon_0} = 8{,}99\cdot10^{9}\,\mathrm{N\,m^2/C^2}$</td></tr></table>
 <p class="hint">Formelsammlung laut Notiz: S. 23, 24, 25, 27.</p>`);
 
   // ------------------------------------------------------------ Themen
@@ -1866,7 +1900,7 @@ window.PHYS_SYNC = {
 <li>Gleichnamig stoßen sich ab, ungleichnamig ziehen sich an.</li>
 <li><b>Radialsymmetrisch</b>: Punktladung, $E\sim 1/r^2$, inhomogen.</li>
 <li><b>Homogen</b> = überall gleich: parallele, gleich weit entfernte Linien (Plattenkondensator).</li>
-<li>Elektron im Feld: $a = \dfrac{eE}{m_e}$.</li></ul>
+</ul>
 <h3>Das musst du können</h3>
 <ul class="check"><li>Coulomb-Gesetz aus $F = EQ$ ableiten.</li><li>Abstandsänderungen im Kopf rechnen (doppelt, dreifach).</li></ul>`, ["pos"]);
 
@@ -1906,7 +1940,7 @@ window.PHYS_SYNC = {
 <h3>Merkpunkte</h3>
 <ul><li>$\tau = R\,C$. Nach $\tau$: Entladen 37 %, Aufladen 63 %. Nach $5\tau$ praktisch fertig.</li>
 <li>Strom beim Einschalten maximal: $I_0 = U_0/R$.</li>
-<li>$t_{1/2} = \tau\ln 2$. $\ln U$ über $t$ ist eine Gerade mit Steigung $-1/\tau$.</li></ul>
+<li>$\ln U$ über $t$ ist eine Gerade mit Steigung $-1/\tau$.</li></ul>
 <h3>Das musst du können</h3>
 <ul class="check"><li>Dgl. aus der Maschenregel aufstellen und lösen (Variablentrennung).</li><li>Kurven zeichnen, $\tau$ einzeichnen.</li></ul>`, ["rc"]);
 
@@ -1935,7 +1969,7 @@ window.PHYS_SYNC = {
 <table class="cmp"><tr><th>Diagramm</th><th>Verlauf</th><th>Steigung</th></tr>
 <tr><td>$Q$ über $U$</td><td>Gerade</td><td>$C$</td></tr><tr><td>$E$ über $r$</td><td>Hyperbel $1/r^2$</td><td>–</td></tr>
 <tr><td>$\ln U$ über $t$</td><td>Gerade</td><td>$-1/\tau$</td></tr></table>
-<p class="hint">Abweichung: $\dfrac{|x_{mess} - x_{Lit}|}{x_{Lit}}\cdot100\,\%$</p>`);
+`);
 
   window.PHYS_SHEETS = S;
 })();
@@ -1954,7 +1988,7 @@ window.PHYS_SYNC = {
   const BOX_TAB = ["Neu", "Fach 1", "Fach 2", "Fach 3", "Fach 4", "Fach 5"];
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], tab: "learn", stats: {} };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], tab: "learn", stats: {}, hidden: {}, ghidden: {} };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -1970,6 +2004,14 @@ window.PHYS_SYNC = {
   if (!Array.isArray(store.kinds) || !store.kinds.length) store.kinds = ["abfrage", "rechnen"];
   if (!store.stats || typeof store.stats !== "object") store.stats = {};
   const LVL_NAME = ["", "Leicht", "Mittel", "Schwer"];
+  // Gelöschte Karten: hidden = nur für mich (am Profil), ghidden = für alle (aus Supabase)
+  if (!store.hidden || typeof store.hidden !== "object") store.hidden = {};
+  if (!store.ghidden || typeof store.ghidden !== "object") store.ghidden = {};
+  const isHidden = id => !!((store.hidden[id] && store.hidden[id].on) || store.ghidden[id]);
+  const liveCards = () => CARDS.filter(c => !isHidden(c.id));
+  const plain = h => String(h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
+    .replace(/\\cdot/g, "·").replace(/\\(?:mathrm|text|mu|varepsilon|sigma|tau)\b/g, m => ({ "\\mu": "µ", "\\varepsilon": "ε", "\\sigma": "σ", "\\tau": "τ" }[m] || ""))
+    .replace(/\\[a-zA-Z]+/g, "").replace(/[${}]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
 
   // Eintrag je Karte: { b: Fach 1..5, t: Zeitstempel }. Ältere Formate ({s}, Text) umwandeln.
   function norm(e) {
@@ -2012,7 +2054,7 @@ window.PHYS_SYNC = {
   }
 
   // ------------------------------------------------------------ Karteikasten
-  function selectedCards() { return CARDS.filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
+  function selectedCards() { return liveCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
   function counts(cards) {
     const n = [0, 0, 0, 0, 0, 0];
     cards.forEach(c => { n[boxOf(c.id)]++; });
@@ -2040,8 +2082,9 @@ window.PHYS_SYNC = {
   }
 
   function renderRing() {
-    const all = CARDS.length;
-    const done = CARDS.filter(c => boxOf(c.id) >= 4).length;
+    const live = liveCards();
+    const all = live.length || 1;
+    const done = live.filter(c => boxOf(c.id) >= 4).length;
     const pct = Math.round(done / all * 100);
     const R = 40, C = 2 * Math.PI * R;
     $("#ring").innerHTML =
@@ -2078,7 +2121,8 @@ window.PHYS_SYNC = {
     const ul = $("#topic-list");
     ul.innerHTML = "";
     TOPICS.forEach(t => {
-      const cs = CARDS.filter(c => c.topic === t.id);
+      const cs = liveCards().filter(c => c.topic === t.id);
+      const nc = cs.length || 1;
       const g = cs.filter(c => boxOf(c.id) >= 4).length;
       const y = cs.filter(c => boxOf(c.id) === 3).length;
       const r = cs.filter(c => boxOf(c.id) === 1 || boxOf(c.id) === 2).length;
@@ -2089,9 +2133,9 @@ window.PHYS_SYNC = {
         '<span class="t-name">' + t.title + "</span>" +
         '<span class="t-stat">' + g + "/" + cs.length + "</span>" +
         '<span class="t-sub">' + t.sub + "</span>" +
-        '<span class="t-bar"><span class="g" style="width:' + (g / cs.length * 100) + '%"></span>' +
-        '<span class="y" style="width:' + (y / cs.length * 100) + '%"></span>' +
-        '<span class="r" style="width:' + (r / cs.length * 100) + '%"></span></span>' +
+        '<span class="t-bar"><span class="g" style="width:' + (g / nc * 100) + '%"></span>' +
+        '<span class="y" style="width:' + (y / nc * 100) + '%"></span>' +
+        '<span class="r" style="width:' + (r / nc * 100) + '%"></span></span>' +
         "</label>";
       ul.appendChild(li);
     });
@@ -2460,6 +2504,13 @@ window.PHYS_SYNC = {
     });
     store.progress = out;
     store.resetAt = reset;
+    const rh = remote.hidden || {}, hh = {};
+    new Set(Object.keys(rh).concat(Object.keys(store.hidden))).forEach(id => {
+      const a = store.hidden[id], b = rh[id];
+      const pick = !a ? b : !b ? a : (b.t > a.t ? b : a);
+      if (pick && typeof pick.t === "number") hh[id] = { on: !!pick.on, t: pick.t };
+    });
+    store.hidden = hh;
   }
   function setStatus(msg, err) {
     const el = $("#sync-status");
@@ -2477,7 +2528,7 @@ window.PHYS_SYNC = {
       const res = await rpc("lern_load", { p_code: store.sync.code });
       if (res && res.data) mergeData(res.data);
       save();
-      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: { progress: store.progress, resetAt: store.resetAt } });
+      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: { progress: store.progress, resetAt: store.resetAt, hidden: store.hidden } });
       const d = new Date();
       setStatus("Synchronisiert um " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " Uhr");
       if (!active) renderTopics();
@@ -2530,9 +2581,126 @@ window.PHYS_SYNC = {
     store.sync = null; save(); renderSync();
     setStatus("Getrennt. Dein Fortschritt bleibt auf diesem Gerät.");
   });
-  document.addEventListener("visibilitychange", () => { if (!syncing) syncNow(); });
+  document.addEventListener("visibilitychange", () => { if (!syncing) syncNow(); if (document.visibilityState === "visible") fetchGlobal(); });
   window.addEventListener("online", syncNow);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (active) fitDisplays(); });
+
+
+  // ------------------------------------------------------------ Hinweise, Dialog, Löschen
+  function toast(msg, actionLabel, fn) {
+    let t = $("#toast");
+    if (!t) { t = document.createElement("div"); t.id = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+    t.textContent = msg;
+    if (actionLabel) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "toast-act"; b.textContent = actionLabel;
+      b.onclick = () => { t.classList.remove("on"); fn && fn(); };
+      t.appendChild(b);
+    }
+    t.classList.add("on");
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), actionLabel ? 6000 : 2600);
+  }
+  function dialog(o) {
+    let d = $("#dlg");
+    if (d) d.remove();
+    d = document.createElement("div");
+    d.id = "dlg"; d.className = "dlg"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+    d.innerHTML = '<div class="dlg-box"><h3></h3><p></p><div class="dlg-actions"></div></div>';
+    d.querySelector("h3").textContent = o.title;
+    d.querySelector("p").textContent = o.text;
+    const close = () => { d.remove(); document.removeEventListener("keydown", onKey, true); };
+    const onKey = e => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+    document.addEventListener("keydown", onKey, true);
+    o.actions.forEach(a => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "btn" + (a.primary ? " primary" : "") + (a.danger ? " danger-fill" : "");
+      b.textContent = a.label;
+      b.onclick = () => { close(); a.fn && a.fn(); };
+      d.querySelector(".dlg-actions").appendChild(b);
+    });
+    d.addEventListener("click", e => { if (e.target === d) close(); });
+    document.body.appendChild(d);
+    d.querySelector(".btn:last-child").focus();
+  }
+
+  const nosync = !window.PHYS_SYNC;
+  document.documentElement.classList.toggle("nosync", nosync);
+  function needLogin() {
+    dialog({
+      title: "Anmeldung nötig",
+      text: "Zum Löschen musst du angemeldet sein. Erstelle unter „Mehr“ einen Lerncode oder verbinde dich mit deinem.",
+      actions: [{ label: "Abbrechen" }, { label: "Zu „Mehr“", primary: true, fn: () => { setTab("more"); home(); } }]
+    });
+  }
+  // scope: "me" (nur für mich, am Profil gespeichert) oder "all" (für alle, in Supabase)
+  function hideItem(id, label, scope, done) {
+    if (nosync) { toast("Löschen geht nur auf der gehosteten Seite."); return; }
+    if (!store.sync) { needLogin(); return; }
+    if (scope === "me") {
+      store.hidden[id] = { on: true, t: Date.now() };
+      save(); schedulePush(); renderTopics();
+      toast("Nur für dich gelöscht", "Rückgängig", () => { restoreItem(id, "me"); toast("Zurückgelegt. Sie kommt in der nächsten Runde wieder."); });
+      done && done();
+    } else {
+      dialog({
+        title: "Für alle löschen?",
+        text: "„" + label + "“ verschwindet sofort bei allen. Du kannst sie später unter „Mehr“ wiederherstellen.",
+        actions: [{ label: "Abbrechen" }, { label: "Für alle löschen", danger: true, fn: async () => {
+          try {
+            await rpc("lern_global_set", { p_code: store.sync.code, p_id: id, p_hidden: true });
+            store.ghidden[id] = store.sync.name || true;
+            save(); renderTopics();
+            toast("Für alle gelöscht", "Rückgängig", () => { restoreItem(id, "all"); });
+            done && done();
+          } catch (e) { toast("Das hat nicht geklappt. Bist du online?"); }
+        } }]
+      });
+    }
+  }
+  async function restoreItem(id, scope) {
+    if (scope === "me") {
+      store.hidden[id] = { on: false, t: Date.now() };
+      save(); schedulePush(); renderTopics(); changed();
+      return true;
+    }
+    if (!store.sync) { needLogin(); return false; }
+    try {
+      await rpc("lern_global_set", { p_code: store.sync.code, p_id: id, p_hidden: false });
+      delete store.ghidden[id];
+      save(); renderTopics(); changed();
+      return true;
+    } catch (e) { toast("Das hat nicht geklappt. Bist du online?"); return false; }
+  }
+  const changeHooks = [];
+  function changed() { changeHooks.forEach(fn => fn()); }
+  async function fetchGlobal() {
+    if (!CFG) return;
+    try {
+      const list = await rpc("lern_global_list", {});
+      const g = {};
+      (list || []).forEach(x => { if (x.hidden) g[x.id] = x.by || true; });
+      store.ghidden = g; save();
+      if (!active) renderTopics();
+      changed();
+    } catch (e) { /* offline: zuletzt bekannten Stand behalten */ }
+  }
+  function hiddenList() {
+    const ids = new Set(Object.keys(store.ghidden).concat(Object.keys(store.hidden).filter(i => store.hidden[i].on)));
+    return Array.from(ids).filter(isHidden).map(id => ({ id, me: !!(store.hidden[id] && store.hidden[id].on), all: !!store.ghidden[id], by: typeof store.ghidden[id] === "string" ? store.ghidden[id] : "" }));
+  }
+
+  function delCurrent(scope) {
+    if (!current) return;
+    const c = current;
+    hideItem(c.id, plain(c.front), scope, () => {
+      deck = deck.filter(x => x.id !== c.id);
+      total = Math.max(deck.length, total - 1);
+      renderDrawer($("#mini-drawer"), true);
+      loadCard();
+    });
+  }
+  $("#del-me").addEventListener("click", () => delCurrent("me"));
+  $("#del-all").addEventListener("click", () => delCurrent("all"));
 
   // ------------------------------------------------------------ Start
   renderTopics();
@@ -2540,13 +2708,15 @@ window.PHYS_SYNC = {
   setTab(store.tab);
   show("start");
   syncNow();
+  fetchGlobal();
 
   // Schnittstelle für methods.js
   window.PHYS_APP = {
     store, save, show, home, render, setTab, topicTitle, topicHue, LVL_NAME, reduceMotion, confetti,
     onShow: fn => showHooks.push(fn),
     startCards: only => { if (only) { store.sel = [only]; store.pick = null; save(); renderTopics(); } startSession("all"); },
-    refresh: renderTopics
+    refresh: renderTopics,
+    isHidden, liveCards, hideItem, restoreItem, hiddenList, toast, dialog, plain, onChange: fn => changeHooks.push(fn)
   };
 
   // Offline-Fähigkeit (nur über https/localhost)
@@ -2564,12 +2734,7 @@ window.PHYS_SYNC = {
   const sample = (a, n) => shuffle(a).slice(0, n);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  function toast(msg) {
-    let t = $("#toast");
-    if (!t) { t = document.createElement("div"); t.id = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
-    t.textContent = msg; t.classList.add("on");
-    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2600);
-  }
+  const toast = A.toast;
 
   // ------------------------------------------------------------ Statistik
   function stat(key) { return S.stats[key] || (S.stats[key] = { n: 0, ok: 0 }); }
@@ -2588,7 +2753,8 @@ window.PHYS_SYNC = {
 
   // ------------------------------------------------------------ Aufgaben-Läufer (Quiz, Trainer, Klausur)
   const MC_ALL = () => window.PHYS_MC.concat(window.PHYS_MC_AUTO());
-  const mcPool = (useLevels) => MC_ALL().filter(q => S.sel.includes(q.topic) && (!useLevels || S.levels.includes(q.lvl)));
+  const mcHidden = q => A.isHidden(q.id) || (q.cardId && A.isHidden(q.cardId));
+  const mcPool = (useLevels) => MC_ALL().filter(q => !mcHidden(q) && S.sel.includes(q.topic) && (!useLevels || S.levels.includes(q.lvl)));
   let run = null, timer = null, lastMode = "mc";
 
   function mkMC(q) {
@@ -2612,7 +2778,7 @@ window.PHYS_SYNC = {
     } else {
       // Klausur: gemischte Stufen, nur Themenfilter
       const pool = mcPool(false);
-      const pick = lv => { const c = pool.filter(q => q.lvl === lv); return c.length ? rnd(c) : rnd(pool.length ? pool : MC_ALL()); };
+      const pick = lv => { const c = pool.filter(q => q.lvl === lv); return c.length ? rnd(c) : rnd(pool.length ? pool : MC_ALL().filter(q => !mcHidden(q))); };
       const used = new Set();
       const mcs = [1, 2, 2, 3].map(lv => { let q, k = 0; do { q = pick(lv); k++; } while (used.has(q.id) && k < 12); used.add(q.id); return mkMC(q); });
       const calcs = [1, 2, 2, 3].map(lv => mkCalc([lv], S.sel));
@@ -2668,6 +2834,7 @@ window.PHYS_SYNC = {
       setTimeout(() => $("#task-input").focus({ preventScroll: true }), 50);
     }
     if (run.mode === "exam" && it.kind === "mc") { $("#task-next").hidden = true; }
+    $("#task-tools").hidden = !(it.kind === "mc" && run.mode === "mc");
     A.render($("#screen-task"));
   }
   const lastLabel = () => run.i === run.items.length - 1 ? "Abgeben" : "Weiter";
@@ -2736,6 +2903,20 @@ window.PHYS_SYNC = {
     showFeedback(it, false, '<p>Lösung: <b>' + TR.fmtAns(it.task) + '</b></p><div class="why">' + it.task.sol + "</div>");
   });
 
+  // Frage löschen (nur für mich / für alle)
+  function delTask(scope) {
+    if (!run) return;
+    const it = run.items[run.i];
+    if (!it || it.kind !== "mc") return;
+    A.hideItem(it.id, A.plain(it.q), scope, () => {
+      if (run.answered) return; // bereits gewertet: nur für künftige Runden ausgeblendet
+      run.items.splice(run.i, 1); run.max -= it.points;
+      if (run.i >= run.items.length) finishTasks(false); else renderTask();
+    });
+  }
+  $("#tdel-me").addEventListener("click", () => delTask("me"));
+  $("#tdel-all").addEventListener("click", () => delTask("all"));
+
   $("#task-next").addEventListener("click", nextTask);
   function nextTask() {
     if (!run) return;
@@ -2803,7 +2984,7 @@ window.PHYS_SYNC = {
   function nextMatchRound() {
     const lvl = rnd(S.levels), mk = MODES[lvl][0];
     const strip = s => String(s).replace(/&nbsp;/g, " ").replace(/\\dfrac/g, "\\tfrac");
-    const sizes = window.PHYS_CARDS.filter(c => c.type === "size");
+    const sizes = A.liveCards().filter(c => c.type === "size");
     const count = {}; sizes.forEach(c => { const v = strip(c[mk]); count[v] = (count[v] || 0) + 1; });
     const ok = sizes.filter(c => count[strip(c[mk])] === 1);
     const pairs = sample(ok, 6).map(c => ({ name: c.front, val: strip(c[mk]) }));
@@ -2908,10 +3089,34 @@ window.PHYS_SYNC = {
       else if (e.key === "Enter" && inField && run.mode === "exam") { e.preventDefault(); nextTask(); }
     }
   });
+  // ------------------------------------------------------------ Gelöschte Karten
+  function labelOf(id) {
+    const c = window.PHYS_CARDS.find(x => x.id === id);
+    if (c) return A.plain(c.front);
+    const q = MC_ALL().find(x => x.id === id);
+    return q ? "Quiz: " + A.plain(q.q) : id;
+  }
+  function renderDeleted() {
+    const list = A.hiddenList();
+    $("#deleted-empty").hidden = list.length > 0;
+    $("#deleted-list").innerHTML = list.map(h =>
+      '<li><div class="d-t">' + esc(labelOf(h.id)) + '</div><div class="d-m"><span class="badge' + (h.all ? " all" : "") + '">' +
+      (h.all ? "für alle" + (h.by ? " · " + esc(h.by) : "") : "nur für mich") + "</span>" +
+      (h.me ? '<button type="button" class="link" data-id="' + esc(h.id) + '" data-scope="me">Für mich zurück</button>' : "") +
+      (h.all ? '<button type="button" class="link" data-id="' + esc(h.id) + '" data-scope="all">Für alle zurück</button>' : "") + "</div></li>").join("");
+  }
+  $("#deleted-list").addEventListener("click", async e => {
+    const b = e.target.closest("button[data-id]"); if (!b) return;
+    const ok = await A.restoreItem(b.dataset.id, b.dataset.scope);
+    if (ok) toast("Wiederhergestellt");
+  });
+  A.onChange(renderDeleted);
+
   A.onShow(name => {
     if (name !== "task") clearInterval(timer);
-    if (name === "start") renderStats();
+    if (name === "start") { renderStats(); renderDeleted(); }
   });
   renderStats();
+  renderDeleted();
 })();
 </script></body></html>

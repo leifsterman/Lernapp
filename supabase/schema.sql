@@ -28,3 +28,35 @@ revoke all on function public.lern_load(text) from public;
 revoke all on function public.lern_save(text, text, jsonb) from public;
 grant execute on function public.lern_load(text) to anon, authenticated;
 grant execute on function public.lern_save(text, text, jsonb) to anon, authenticated;
+
+-- Karten, die für alle ausgeblendet sind (soft delete, wiederherstellbar). Nur mit gültigem Lerncode änderbar.
+create table public.lern_global (
+  card_id text primary key check (char_length(card_id) between 1 and 80),
+  hidden boolean not null default true,
+  by_name text not null default '',
+  updated_at timestamptz not null default now()
+);
+alter table public.lern_global enable row level security;
+
+create function public.lern_global_list() returns jsonb
+language sql security definer set search_path = '' as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', card_id, 'hidden', hidden, 'by', by_name, 't', updated_at)), '[]'::jsonb)
+  from public.lern_global;
+$$;
+
+create function public.lern_global_set(p_code text, p_id text, p_hidden boolean) returns void
+language plpgsql security definer set search_path = '' as $$
+declare v_name text;
+begin
+  select name into v_name from public.lern_profile where code = p_code;
+  if not found then raise exception 'not signed in'; end if;
+  if p_id is null or char_length(p_id) < 1 or char_length(p_id) > 80 then raise exception 'invalid id'; end if;
+  insert into public.lern_global (card_id, hidden, by_name, updated_at)
+  values (p_id, coalesce(p_hidden, true), left(coalesce(v_name, ''), 40), now())
+  on conflict (card_id) do update set hidden = excluded.hidden, by_name = excluded.by_name, updated_at = now();
+end; $$;
+
+revoke all on function public.lern_global_list() from public;
+revoke all on function public.lern_global_set(text, text, boolean) from public;
+grant execute on function public.lern_global_list() to anon, authenticated;
+grant execute on function public.lern_global_set(text, text, boolean) to anon, authenticated;

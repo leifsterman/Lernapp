@@ -25,7 +25,7 @@
     return {
       q: R`Eine Ladung $Q = ${Qn}\,\mathrm{nC}$ befindet sich in einem Feld der Stärke $E = ${tx(E)}\,\mathrm{N/C}$. Wie groß ist die Kraft auf die Ladung?`,
       ans: F * 1e6, unit: "µN",
-      sol: R`<p>$$F = E\cdot Q = ${tx(E)}\,\tfrac{\mathrm{N}}{\mathrm{C}}\cdot ${Qn}\cdot10^{-9}\,\mathrm{C} = ${tx(F)}\,\mathrm{N} = ${tx(F * 1e6)}\,\mu\mathrm{N}$$</p>`
+      sol: R`<p>$$F = E\cdot Q = ${tx(E)}\,\tfrac{\mathrm{N}}{\mathrm{C}}\cdot ${Qn}\cdot10^{-9}\,\mathrm{C}$$</p><p>$$F = ${tx(F)}\,\mathrm{N} = ${tx(F * 1e6)}\,\mu\mathrm{N}$$</p>`
     };
   });
   add("kondensator", 1, "E = U/d", () => {
@@ -135,7 +135,7 @@
     return {
       q: R`Auf den Platten eines Plattenkondensators (Vakuum) sitzt die Ladung $Q = ${Qn}\,\mathrm{nC}$, die Plattenfläche ist $A = ${Acm}\,\mathrm{cm^2}$. Wie groß ist die Feldstärke zwischen den Platten?`,
       ans: E / 1e3, unit: "kV/m",
-      sol: R`<p>$$E = \dfrac{\sigma}{\varepsilon_0} = \dfrac{Q}{\varepsilon_0 A} = \dfrac{${Qn}\cdot10^{-9}}{8{,}854\cdot10^{-12}\cdot ${tx(Acm * 1e-4)}}\,\dfrac{\mathrm{V}}{\mathrm{m}} = ${tx(E / 1e3, 3)}\,\mathrm{kV/m}$$</p>`
+      sol: R`<p>$$E = \dfrac{\sigma}{\varepsilon_0} = \dfrac{Q}{\varepsilon_0 A}$$</p><p>$$E = \dfrac{${Qn}\cdot10^{-9}}{8{,}854\cdot10^{-12}\cdot ${tx(Acm * 1e-4)}}\,\tfrac{\mathrm{V}}{\mathrm{m}} = ${tx(E / 1e3, 3)}\,\mathrm{kV/m}$$</p>`
     };
   });
   add("millikan", 2, "Anzahl Elementarladungen", () => {
@@ -173,7 +173,7 @@
     return {
       q: R`Ein Kondensator ($C = ${C}\,\mu\mathrm{F}$) entlädt sich über $R = ${Rk}\,\mathrm{k\Omega}$. Nach welcher Zeit ist die Spannung auf $${p}\,\%$ von $U_0$ gefallen?`,
       ans: t, unit: "s",
-      sol: R`<p>$$\tau = RC = ${tx(tau, 3)}\,\mathrm{s}$$</p><p>$$e^{-t/\tau} = \dfrac{${p}}{100} \;\Rightarrow\; t = \tau\cdot\ln\dfrac{100}{${p}} = ${tx(tau, 3)}\,\mathrm{s}\cdot ${de(Math.log(100 / p), 3)} = ${de(t, 3)}\,\mathrm{s}$$</p>`
+      sol: R`<p>$$\tau = RC = ${tx(tau, 3)}\,\mathrm{s}$$</p><p>$$e^{-t/\tau} = \dfrac{${p}}{100} \;\Rightarrow\; t = \tau\cdot\ln\dfrac{100}{${p}}$$</p><p>$$t = ${tx(tau, 3)}\,\mathrm{s}\cdot ${de(Math.log(100 / p), 3)} = ${de(t, 3)}\,\mathrm{s}$$</p>`
     };
   });
   add("millikan", 3, "Millikan: Ladung des Tröpfchens", () => {
@@ -185,15 +185,6 @@
       q: R`Ein Öltröpfchen der Masse $m = ${tx(mr, 3)}\,\mathrm{kg}$ schwebt zwischen zwei Platten ($d = ${dmm}\,\mathrm{mm}$) bei $U = ${U}\,\mathrm{V}$. Welche Ladung trägt es? Gib $q$ in $10^{-19}\,\mathrm{C}$ an. ($g = 9{,}81\,\mathrm{m/s^2}$)`,
       ans: q / 1e-19, unit: "· 10⁻¹⁹ C",
       sol: R`<p>Schweben: $q\cdot E = m\cdot g$ mit $E = U/d$.</p><p>$$q = \dfrac{m\,g\,d}{U} = \dfrac{${tx(mr, 3)}\cdot9{,}81\cdot ${dmm}\cdot10^{-3}}{${U}}\,\mathrm{C}$$</p><p>$$q = ${de(q / 1e-19, 3)}\cdot10^{-19}\,\mathrm{C}$$</p><p>Das sind $\dfrac{q}{e} \approx ${n}$ Elementarladungen.</p>`
-    };
-  });
-  add("kraft", 3, "Elektron im Feld", () => {
-    const E = rnd([5e3, 1e4, 2e4, 5e4]);
-    const a = QE * E / ME;
-    return {
-      q: R`Ein Elektron befindet sich in einem homogenen Feld der Stärke $E = ${tx(E)}\,\mathrm{V/m}$. Wie groß ist seine Beschleunigung? ($e = 1{,}602\cdot10^{-19}\,\mathrm{C}$, $m_e = 9{,}109\cdot10^{-31}\,\mathrm{kg}$) Gib $a$ in $10^{15}\,\mathrm{m/s^2}$ an.`,
-      ans: a / 1e15, unit: "· 10¹⁵ m/s²",
-      sol: R`<p>$$a = \dfrac{e\,E}{m_e} = \dfrac{1{,}602\cdot10^{-19}\cdot ${tx(E)}}{9{,}109\cdot10^{-31}}\,\tfrac{\mathrm{m}}{\mathrm{s}^2}$$</p><p>$$a = ${de(a / 1e15, 3)}\cdot10^{15}\,\tfrac{\mathrm{m}}{\mathrm{s}^2}$$</p>`
     };
   });
 

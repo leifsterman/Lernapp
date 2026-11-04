@@ -5,7 +5,7 @@ Influenz, Polarisation, Feldlinienbilder, Spitzeneffekt / Faradayscher Käfig, F
 Plattenkondensator (E = U/d, Q = C·U, C = ε₀εᵣA/d), Reihen-/Parallelschaltung, Auf- und Entladung (Differenzialgleichung),
 Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 
-- 91 Karten in 11 Themen, jede mit Schwierigkeit (leicht, mittel, schwer) und Art (Abfrage oder Rechnen), Formeln mit KaTeX (lokal eingebunden, funktioniert offline)
+- 85 Karten in 11 Themen, jede mit Schwierigkeit (leicht, mittel, schwer) und Art (Abfrage oder Rechnen), Formeln mit KaTeX (lokal eingebunden, funktioniert offline)
 - Karteikasten mit 5 Fächern (Leitner): Gewusst = ein Fach weiter, Nicht gewusst = zurück in Fach 1; Fach antippen und nur dessen Karten üben
 - Fortschritt pro Karte wird im Browser gespeichert und über einen persönlichen Lerncode (Supabase) zwischen Geräten und Personen getrennt synchronisiert
 - Vollbild-/Fokus-Modus (Taste F), Dunkelmodus (Standard), Hellmodus per Knopf, Konfetti nach jeder Runde
@@ -41,3 +41,10 @@ Mit `node build.mjs` wird daraus `public/index.html` gebaut. Lokal testen: `pyth
 Beim ersten Start „Neuen Code erstellen“ (Name eintragen). Der Code (z. B. `K7M2-QX9P`) wird auf dem anderen Gerät unter „Verbinden“ eingegeben.
 Jede Person hat ihren eigenen Code. Die Tabelle ist per RLS gesperrt, Zugriff nur über zwei Funktionen (`supabase/schema.sql`),
 der Code ist das Geheimnis. Der Publishable-Key in `js/config.js` ist für den Browser gedacht.
+
+## Karten löschen
+
+Unter jeder Karte (und jeder Quizfrage) gibt es zwei Knöpfe. Beide setzen eine Anmeldung per Lerncode voraus.
+- **Nur für mich löschen**: wird in deinem Profil gespeichert und mit deinen Geräten synchronisiert.
+- **Für alle löschen**: blendet die Karte bei allen aus (Tabelle `lern_global`, mit Bestätigung).
+Beides lässt sich unter *Mehr → Gelöschte Karten* wieder rückgängig machen.

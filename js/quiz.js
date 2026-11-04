@@ -126,7 +126,7 @@
 
   // ---------- automatisch aus den Größenkarten
   function sizeMC(cards) {
-    const sizes = cards.filter(c => c.type === "size");
+    const sizes = cards.filter(c => c.type === "size");  // alle Größenkarten, auch ausgeblendete (nur als Ablenker)
     const out = [];
     const strip = s => String(s).replace(/&nbsp;/g, " ");
     sizes.forEach(c => {
@@ -138,7 +138,7 @@
         sizes.forEach(o => { const v = strip(o[k]); if (o !== c && v !== right && !others.includes(v)) others.push(v); });
         // zufällig drei Ablenker
         for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
-        out.push({ id: "mcs-" + c.id + "-" + k, topic: "groessen", lvl, q, opts: [right].concat(others.slice(0, 3)),
+        out.push({ id: "mcs-" + c.id + "-" + k, cardId: c.id, topic: "groessen", lvl, q, opts: [right].concat(others.slice(0, 3)),
           why: "<p>" + c.front + ": " + c.symbol + " · " + c.unit + " · " + c.formula + "</p>" });
       });
     });

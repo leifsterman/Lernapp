@@ -27,14 +27,13 @@
 <tr><td>Entladen</td><td>$U(t) = U_0\,e^{-t/\tau}$, &nbsp; $Q(t) = Q_0\,e^{-t/\tau}$</td></tr>
 <tr><td>Aufladen</td><td>$U_C(t) = U_0(1 - e^{-t/\tau})$</td></tr>
 <tr><td>Strom</td><td>$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$</td></tr>
-<tr><td>Halbwertszeit</td><td>$t_{1/2} = \tau\ln 2 \approx 0{,}69\,\tau$</td></tr></table>
+</table>
 <h3>Millikan und Konstanten</h3>
 <table class="cmp"><tr><th>Größe</th><th>Wert / Formel</th></tr>
 <tr><td>Schweben</td><td>$q = \dfrac{m\,g\,d}{U}$</td></tr>
 <tr><td>Elementarladung</td><td>$e = 1{,}602\cdot10^{-19}\,\mathrm{C}$</td></tr>
 <tr><td>Feldkonstante</td><td>$\varepsilon_0 = 8{,}854\cdot10^{-12}\,\mathrm{F/m}$</td></tr>
-<tr><td>Coulomb-Konstante</td><td>$\dfrac{1}{4\pi\varepsilon_0} = 8{,}99\cdot10^{9}\,\mathrm{N\,m^2/C^2}$</td></tr>
-<tr><td>Elektronenmasse</td><td>$m_e = 9{,}109\cdot10^{-31}\,\mathrm{kg}$</td></tr></table>
+<tr><td>Coulomb-Konstante</td><td>$\dfrac{1}{4\pi\varepsilon_0} = 8{,}99\cdot10^{9}\,\mathrm{N\,m^2/C^2}$</td></tr></table>
 <p class="hint">Formelsammlung laut Notiz: S. 23, 24, 25, 27.</p>`);
 
   // ------------------------------------------------------------ Themen
@@ -101,7 +100,7 @@
 <li>Gleichnamig stoßen sich ab, ungleichnamig ziehen sich an.</li>
 <li><b>Radialsymmetrisch</b>: Punktladung, $E\sim 1/r^2$, inhomogen.</li>
 <li><b>Homogen</b> = überall gleich: parallele, gleich weit entfernte Linien (Plattenkondensator).</li>
-<li>Elektron im Feld: $a = \dfrac{eE}{m_e}$.</li></ul>
+</ul>
 <h3>Das musst du können</h3>
 <ul class="check"><li>Coulomb-Gesetz aus $F = EQ$ ableiten.</li><li>Abstandsänderungen im Kopf rechnen (doppelt, dreifach).</li></ul>`, ["pos"]);
 
@@ -141,7 +140,7 @@
 <h3>Merkpunkte</h3>
 <ul><li>$\tau = R\,C$. Nach $\tau$: Entladen 37 %, Aufladen 63 %. Nach $5\tau$ praktisch fertig.</li>
 <li>Strom beim Einschalten maximal: $I_0 = U_0/R$.</li>
-<li>$t_{1/2} = \tau\ln 2$. $\ln U$ über $t$ ist eine Gerade mit Steigung $-1/\tau$.</li></ul>
+<li>$\ln U$ über $t$ ist eine Gerade mit Steigung $-1/\tau$.</li></ul>
 <h3>Das musst du können</h3>
 <ul class="check"><li>Dgl. aus der Maschenregel aufstellen und lösen (Variablentrennung).</li><li>Kurven zeichnen, $\tau$ einzeichnen.</li></ul>`, ["rc"]);
 
@@ -170,7 +169,7 @@
 <table class="cmp"><tr><th>Diagramm</th><th>Verlauf</th><th>Steigung</th></tr>
 <tr><td>$Q$ über $U$</td><td>Gerade</td><td>$C$</td></tr><tr><td>$E$ über $r$</td><td>Hyperbel $1/r^2$</td><td>–</td></tr>
 <tr><td>$\ln U$ über $t$</td><td>Gerade</td><td>$-1/\tau$</td></tr></table>
-<p class="hint">Abweichung: $\dfrac{|x_{mess} - x_{Lit}|}{x_{Lit}}\cdot100\,\%$</p>`);
+`);
 
   window.PHYS_SHEETS = S;
 })();

@@ -9,12 +9,7 @@
   const sample = (a, n) => shuffle(a).slice(0, n);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  function toast(msg) {
-    let t = $("#toast");
-    if (!t) { t = document.createElement("div"); t.id = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
-    t.textContent = msg; t.classList.add("on");
-    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2600);
-  }
+  const toast = A.toast;
 
   // ------------------------------------------------------------ Statistik
   function stat(key) { return S.stats[key] || (S.stats[key] = { n: 0, ok: 0 }); }
@@ -33,7 +28,8 @@
 
   // ------------------------------------------------------------ Aufgaben-Läufer (Quiz, Trainer, Klausur)
   const MC_ALL = () => window.PHYS_MC.concat(window.PHYS_MC_AUTO());
-  const mcPool = (useLevels) => MC_ALL().filter(q => S.sel.includes(q.topic) && (!useLevels || S.levels.includes(q.lvl)));
+  const mcHidden = q => A.isHidden(q.id) || (q.cardId && A.isHidden(q.cardId));
+  const mcPool = (useLevels) => MC_ALL().filter(q => !mcHidden(q) && S.sel.includes(q.topic) && (!useLevels || S.levels.includes(q.lvl)));
   let run = null, timer = null, lastMode = "mc";
 
   function mkMC(q) {
@@ -57,7 +53,7 @@
     } else {
       // Klausur: gemischte Stufen, nur Themenfilter
       const pool = mcPool(false);
-      const pick = lv => { const c = pool.filter(q => q.lvl === lv); return c.length ? rnd(c) : rnd(pool.length ? pool : MC_ALL()); };
+      const pick = lv => { const c = pool.filter(q => q.lvl === lv); return c.length ? rnd(c) : rnd(pool.length ? pool : MC_ALL().filter(q => !mcHidden(q))); };
       const used = new Set();
       const mcs = [1, 2, 2, 3].map(lv => { let q, k = 0; do { q = pick(lv); k++; } while (used.has(q.id) && k < 12); used.add(q.id); return mkMC(q); });
       const calcs = [1, 2, 2, 3].map(lv => mkCalc([lv], S.sel));
@@ -113,6 +109,7 @@
       setTimeout(() => $("#task-input").focus({ preventScroll: true }), 50);
     }
     if (run.mode === "exam" && it.kind === "mc") { $("#task-next").hidden = true; }
+    $("#task-tools").hidden = !(it.kind === "mc" && run.mode === "mc");
     A.render($("#screen-task"));
   }
   const lastLabel = () => run.i === run.items.length - 1 ? "Abgeben" : "Weiter";
@@ -181,6 +178,20 @@
     showFeedback(it, false, '<p>Lösung: <b>' + TR.fmtAns(it.task) + '</b></p><div class="why">' + it.task.sol + "</div>");
   });
 
+  // Frage löschen (nur für mich / für alle)
+  function delTask(scope) {
+    if (!run) return;
+    const it = run.items[run.i];
+    if (!it || it.kind !== "mc") return;
+    A.hideItem(it.id, A.plain(it.q), scope, () => {
+      if (run.answered) return; // bereits gewertet: nur für künftige Runden ausgeblendet
+      run.items.splice(run.i, 1); run.max -= it.points;
+      if (run.i >= run.items.length) finishTasks(false); else renderTask();
+    });
+  }
+  $("#tdel-me").addEventListener("click", () => delTask("me"));
+  $("#tdel-all").addEventListener("click", () => delTask("all"));
+
   $("#task-next").addEventListener("click", nextTask);
   function nextTask() {
     if (!run) return;
@@ -248,7 +259,7 @@
   function nextMatchRound() {
     const lvl = rnd(S.levels), mk = MODES[lvl][0];
     const strip = s => String(s).replace(/&nbsp;/g, " ").replace(/\\dfrac/g, "\\tfrac");
-    const sizes = window.PHYS_CARDS.filter(c => c.type === "size");
+    const sizes = A.liveCards().filter(c => c.type === "size");
     const count = {}; sizes.forEach(c => { const v = strip(c[mk]); count[v] = (count[v] || 0) + 1; });
     const ok = sizes.filter(c => count[strip(c[mk])] === 1);
     const pairs = sample(ok, 6).map(c => ({ name: c.front, val: strip(c[mk]) }));
@@ -353,9 +364,33 @@
       else if (e.key === "Enter" && inField && run.mode === "exam") { e.preventDefault(); nextTask(); }
     }
   });
+  // ------------------------------------------------------------ Gelöschte Karten
+  function labelOf(id) {
+    const c = window.PHYS_CARDS.find(x => x.id === id);
+    if (c) return A.plain(c.front);
+    const q = MC_ALL().find(x => x.id === id);
+    return q ? "Quiz: " + A.plain(q.q) : id;
+  }
+  function renderDeleted() {
+    const list = A.hiddenList();
+    $("#deleted-empty").hidden = list.length > 0;
+    $("#deleted-list").innerHTML = list.map(h =>
+      '<li><div class="d-t">' + esc(labelOf(h.id)) + '</div><div class="d-m"><span class="badge' + (h.all ? " all" : "") + '">' +
+      (h.all ? "für alle" + (h.by ? " · " + esc(h.by) : "") : "nur für mich") + "</span>" +
+      (h.me ? '<button type="button" class="link" data-id="' + esc(h.id) + '" data-scope="me">Für mich zurück</button>' : "") +
+      (h.all ? '<button type="button" class="link" data-id="' + esc(h.id) + '" data-scope="all">Für alle zurück</button>' : "") + "</div></li>").join("");
+  }
+  $("#deleted-list").addEventListener("click", async e => {
+    const b = e.target.closest("button[data-id]"); if (!b) return;
+    const ok = await A.restoreItem(b.dataset.id, b.dataset.scope);
+    if (ok) toast("Wiederhergestellt");
+  });
+  A.onChange(renderDeleted);
+
   A.onShow(name => {
     if (name !== "task") clearInterval(timer);
-    if (name === "start") renderStats();
+    if (name === "start") { renderStats(); renderDeleted(); }
   });
   renderStats();
+  renderDeleted();
 })();

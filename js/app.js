@@ -880,6 +880,18 @@
   fetchGlobal();
   fetchBoard();
 
+  // Ladeanimation (Schwebfliege) ausblenden, sobald alles bereit ist
+  (function () {
+    const sp = document.getElementById("splash"); if (!sp) return;
+    const t0 = performance.timeOrigin ? Date.now() - performance.now() : Date.now();
+    const done = () => {
+      const wait = Math.max(0, 900 - (Date.now() - t0));
+      setTimeout(() => { sp.classList.add("hide"); setTimeout(() => sp.remove(), 450); }, reduceMotion ? 0 : wait);
+    };
+    const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    Promise.race([fontsReady, new Promise(r => setTimeout(r, 2500))]).then(done);
+  })();
+
   // Schnittstelle für methods.js
   window.PHYS_APP = {
     store, save, show, home, render, setTab, topicTitle, topicHue, LVL_NAME, reduceMotion, confetti,

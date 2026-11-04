@@ -539,3 +539,31 @@ html.nosync .cardtools { display: none; }
 .br .badge { display: inline-block; margin-left: 4px; }
 .rules { margin: 8px 0 0; padding-left: 20px; color: var(--fg-dim); font-size: .92rem; } .rules li { margin-bottom: 4px; }
 .br .bn .badge { align-self: flex-start; margin: 2px 0; }
+
+/* ---------- Schwebfliege: Logo und Ladeanimation ---------- */
+.brand-mark .hfly { display: block; }
+.hfly .wing { transform-box: view-box; animation: flapL .017s linear infinite alternate; }
+.hfly .wl { transform-origin: 28px 25px; }
+.hfly .wr { transform-origin: 36px 25px; animation-name: flapR; }
+.hfly .blur { animation: shimmer .05s linear infinite alternate; }
+@keyframes flapL { from { transform: rotate(16deg) scaleX(1); } to { transform: rotate(-30deg) scaleX(.82); } }
+@keyframes flapR { from { transform: rotate(-16deg) scaleX(1); } to { transform: rotate(30deg) scaleX(.82); } }
+@keyframes shimmer { from { opacity: .12; } to { opacity: .3; } }
+/* im Kopf nur beim Antippen/Überfahren flattern */
+.brand .hfly .wing, .brand .hfly .blur { animation-play-state: paused; }
+.brand .hfly .blur { opacity: 0; }
+.brand:hover .hfly .wing, .brand:active .hfly .wing, .brand:focus-visible .hfly .wing, .brand:hover .hfly .blur, .brand:active .hfly .blur { animation-play-state: running; }
+.brand:hover .hfly .blur, .brand:active .hfly .blur { opacity: .25; }
+.splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); transition: opacity .4s ease, visibility .4s; }
+.splash.hide { opacity: 0; visibility: hidden; }
+.splash-in { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px; text-align: center; }
+.fly-wrap { position: relative; width: 140px; height: 140px; animation: hover 1.7s ease-in-out infinite; }
+.fly-wrap .hfly { width: 140px; height: 140px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .25)); }
+.fly-shadow { position: absolute; left: 50%; bottom: -18px; width: 56px; height: 10px; margin-left: -28px; border-radius: 50%; background: rgba(0, 0, 0, .28); filter: blur(4px); animation: shadow 1.7s ease-in-out infinite; }
+@keyframes hover { 0%, 100% { transform: translate(0, 0) rotate(0); } 20% { transform: translate(3px, -6px) rotate(2deg); } 45% { transform: translate(-2px, -1px) rotate(-1deg); } 70% { transform: translate(-4px, -7px) rotate(-2deg); } 85% { transform: translate(1px, -3px) rotate(1deg); } }
+@keyframes shadow { 0%, 100% { transform: scale(1); opacity: .9; } 20%, 70% { transform: scale(.8); opacity: .6; } }
+.splash-title { margin: 22px 0 0; font-size: 1.4rem; font-weight: 800; letter-spacing: -.01em; }
+.splash-sub { margin: 0; color: var(--fg-dim); font-size: .9rem; max-width: 30ch; }
+@media (prefers-reduced-motion: reduce) {
+  .hfly .wing, .hfly .blur, .fly-wrap, .fly-shadow { animation: none; }
+}

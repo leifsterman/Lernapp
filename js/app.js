@@ -11,7 +11,7 @@
   const BOX_TAB = ["Neu", "Fach 1", "Fach 2", "Fach 3", "Fach 4", "Fach 5"];
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], tab: "learn", stats: {} };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -22,6 +22,11 @@
   const topicTitle = {}, topicHue = {};
   TOPICS.forEach((t, i) => { topicTitle[t.id] = t.title; topicHue[t.id] = (i * 31 + 205) % 360; });
   if (!Array.isArray(store.sel)) store.sel = TOPICS.map(t => t.id);
+  store.sel = store.sel.filter(id => topicTitle[id]); // veraltete Themen entfernen
+  if (!Array.isArray(store.levels) || !store.levels.length) store.levels = [1, 2, 3];
+  if (!Array.isArray(store.kinds) || !store.kinds.length) store.kinds = ["abfrage", "rechnen"];
+  if (!store.stats || typeof store.stats !== "object") store.stats = {};
+  const LVL_NAME = ["", "Leicht", "Mittel", "Schwer"];
 
   // Eintrag je Karte: { b: Fach 1..5, t: Zeitstempel }. Ältere Formate ({s}, Text) umwandeln.
   function norm(e) {
@@ -51,17 +56,20 @@
   });
 
   // ------------------------------------------------------------ Screens
-  const screens = { start: $("#screen-start"), quiz: $("#screen-quiz"), end: $("#screen-end") };
+  const screens = {};
+  document.querySelectorAll("main > .screen").forEach(el => { screens[el.id.replace("screen-", "")] = el; });
   let active = false;
+  const showHooks = [];
   function show(name) {
     for (const k in screens) screens[k].hidden = k !== name;
     window.scrollTo(0, 0);
     active = name === "quiz";
     if (!active) setFullscreen(false);
+    showHooks.forEach(fn => fn(name));
   }
 
   // ------------------------------------------------------------ Karteikasten
-  function selectedCards() { return CARDS.filter(c => store.sel.includes(c.topic)); }
+  function selectedCards() { return CARDS.filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
   function counts(cards) {
     const n = [0, 0, 0, 0, 0, 0];
     cards.forEach(c => { n[boxOf(c.id)]++; });
@@ -104,7 +112,7 @@
   function renderDrawerInfo() {
     const info = $("#drawer-info");
     const sel = selectedCards().length;
-    $("#drawer-total").textContent = sel + " Karten gewählt";
+    $("#drawer-total").textContent = sel + " Karten im Filter";
     if (store.pick === null) info.innerHTML = "Tippe ein Fach an, um nur dessen Karten zu üben.";
     else {
       const k = poolFor(store.pick).length;
@@ -147,7 +155,15 @@
     refreshHome();
   }
 
+  function refreshFilters() {
+    document.querySelectorAll("#chips-level .chip").forEach(b => b.setAttribute("aria-pressed", store.levels.includes(+b.dataset.lvl)));
+    document.querySelectorAll("#chips-kind .chip").forEach(b => b.setAttribute("aria-pressed", store.kinds.includes(b.dataset.kind)));
+    $("#topics-sel").textContent = "(" + store.sel.length + " von " + TOPICS.length + ")";
+    const lv = store.levels.length === 3 ? "alle Stufen" : store.levels.map(l => LVL_NAME[l]).join(" + ");
+    $("#filter-summary").textContent = lv;
+  }
   function refreshHome() {
+    refreshFilters();
     renderDrawer($("#drawer"), false);
     renderDrawerInfo();
     renderRing();
@@ -165,6 +181,28 @@
     store.pick = store.pick === i ? null : i;
     save(); refreshHome();
   });
+  function toggleIn(arr, v) {
+    const i = arr.indexOf(v);
+    if (i >= 0) { if (arr.length > 1) arr.splice(i, 1); } else arr.push(v);
+    return arr;
+  }
+  $("#chips-level").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    store.levels = toggleIn(store.levels.slice(), +b.dataset.lvl).sort(); save(); renderTopics();
+  });
+  $("#chips-kind").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    store.kinds = toggleIn(store.kinds.slice(), b.dataset.kind); save(); renderTopics();
+  });
+  // Reiter
+  function setTab(t) {
+    if (!["learn", "sheets", "more"].includes(t)) t = "learn";
+    store.tab = t; save();
+    document.querySelectorAll(".tab-btn").forEach(b => { const on = b.dataset.tab === t; b.setAttribute("aria-selected", on); b.classList.toggle("on", on); });
+    ["learn", "sheets", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
+  }
+  document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest(".tab-btn"); if (b) setTab(b.dataset.tab); });
+
   $("#topic-list").addEventListener("change", e => {
     const id = e.target.getAttribute("data-topic");
     if (!id) return;
@@ -214,6 +252,12 @@
         delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }],
         throwOnError: false
       });
+      // zu breite abgesetzte Formeln verkleinern, statt seitlich zu scrollen
+      el.querySelectorAll(".katex-display").forEach(d => {
+        d.style.fontSize = "";
+        let size = 100;
+        while (d.scrollWidth > d.clientWidth + 1 && size > 60) { size -= 4; d.style.fontSize = size + "%"; }
+      });
     }
   }
 
@@ -246,6 +290,7 @@
     cardEl.style.setProperty("--h", topicHue[c.topic]);
     setChip($("#front-box"), boxOf(c.id));
     setChip($("#back-box"), boxOf(c.id));
+    ["#front-lvl", "#back-lvl"].forEach(s => { const e = $(s); e.textContent = LVL_NAME[c.lvl]; e.className = "lvlchip lvl-" + c.lvl; });
 
     const front = $("#front-body"), back = $("#back-body");
     front.classList.toggle("big", c.type === "size");
@@ -549,8 +594,17 @@
   // ------------------------------------------------------------ Start
   renderTopics();
   renderSync();
+  setTab(store.tab);
   show("start");
   syncNow();
+
+  // Schnittstelle für methods.js
+  window.PHYS_APP = {
+    store, save, show, home, render, setTab, topicTitle, topicHue, LVL_NAME, reduceMotion, confetti,
+    onShow: fn => showHooks.push(fn),
+    startCards: only => { if (only) { store.sel = [only]; store.pick = null; save(); renderTopics(); } startSession("all"); },
+    refresh: renderTopics
+  };
 
   // Offline-Fähigkeit (nur über https/localhost)
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {

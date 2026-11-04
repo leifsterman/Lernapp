@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b0f17">
-  <meta name="description" content="Karteikasten zum elektrischen Feld (Physik Q1): Influenz, Feldlinien, Coulomb, Kondensator, Auf- und Entladung, Millikan.">
+  <meta name="description" content="Lernapp zum elektrischen Feld (Physik Q1): Karteikasten, Quiz, Rechentrainer, Zuordnen, Klausur-Simulation und Kernübersichten.">
   <title>Physik Q1 – Elektrisches Feld</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -27,70 +27,129 @@
         <div class="hero-text">
           <p class="eyebrow" id="countdown"></p>
           <h1>Das elektrische Feld</h1>
-          <p class="lead">Dein Karteikasten zur Klausur. Was du weißt, wandert ein Fach weiter. Was nicht, zurück auf Anfang.</p>
+          <p class="lead">Karteikasten, Quiz, Rechentrainer und Klausur-Simulation. Stelle Schwierigkeit und Themen ein und leg los.</p>
         </div>
         <div class="ring" id="ring" role="img" aria-label="Gesamtfortschritt"></div>
       </div>
 
-      <div class="panel drawer-panel">
-        <div class="panel-head">
-          <h2>Dein Karteikasten</h2>
-          <span class="fine nomargin" id="drawer-total"></span>
+      <nav class="tabs" role="tablist" aria-label="Bereiche">
+        <button type="button" class="tab-btn" role="tab" data-tab="learn">Lernen</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="sheets">Übersichten</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="more">Mehr</button>
+      </nav>
+
+      <!-- Tab: Lernen -->
+      <div class="tabpane" id="tab-learn">
+        <div class="panel filter">
+          <div class="panel-head"><h2>Einstellungen</h2><span class="fine nomargin" id="filter-summary"></span></div>
+          <div class="frow">
+            <span class="flabel">Schwierigkeit</span>
+            <div class="chips" id="chips-level" role="group" aria-label="Schwierigkeit">
+              <button type="button" class="chip lvl-1" data-lvl="1" aria-pressed="true">Leicht</button>
+              <button type="button" class="chip lvl-2" data-lvl="2" aria-pressed="true">Mittel</button>
+              <button type="button" class="chip lvl-3" data-lvl="3" aria-pressed="true">Schwer</button>
+            </div>
+          </div>
+          <div class="frow">
+            <span class="flabel">Art (Karteikasten)</span>
+            <div class="chips" id="chips-kind" role="group" aria-label="Art der Karten">
+              <button type="button" class="chip" data-kind="abfrage" aria-pressed="true">Abfrage</button>
+              <button type="button" class="chip" data-kind="rechnen" aria-pressed="true">Rechnen</button>
+            </div>
+          </div>
+          <details class="topics-details">
+            <summary>Themen <span id="topics-sel"></span></summary>
+            <div class="mini-actions"><button type="button" id="sel-all" class="link">Alle</button><button type="button" id="sel-none" class="link">Keine</button></div>
+            <ul id="topic-list" class="topics"></ul>
+          </details>
+          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ gilt nur für den Karteikasten, der Rechentrainer rechnet immer.</p>
         </div>
-        <div id="drawer" class="drawer"></div>
-        <p id="drawer-info" class="drawer-info"></p>
-      </div>
 
-      <div class="start-actions">
-        <button id="btn-start" class="btn primary" type="button">Lernrunde starten <span id="start-count" class="count"></span></button>
-        <button id="btn-weak" class="btn" type="button">Nur Schwächen <span id="weak-count" class="count"></span></button>
-      </div>
-      <p class="fine">Tasten im Quiz: <kbd>Leertaste</kbd> umdrehen · <kbd>1</kbd> nicht gewusst · <kbd>2</kbd> teilweise · <kbd>3</kbd> gewusst · <kbd>F</kbd> Vollbild · <kbd>Esc</kbd> Übersicht</p>
-
-      <div class="panel">
-        <div class="panel-head">
-          <h2>Themen</h2>
-          <div class="mini-actions">
-            <button type="button" id="sel-all" class="link">Alle</button>
-            <button type="button" id="sel-none" class="link">Keine</button>
+        <div class="panel drawer-panel">
+          <div class="panel-head">
+            <h2>Karteikasten</h2>
+            <span class="fine nomargin" id="drawer-total"></span>
+          </div>
+          <div id="drawer" class="drawer"></div>
+          <p id="drawer-info" class="drawer-info"></p>
+          <div class="start-actions">
+            <button id="btn-start" class="btn primary" type="button">Lernrunde starten <span id="start-count" class="count"></span></button>
+            <button id="btn-weak" class="btn" type="button">Nur Schwächen <span id="weak-count" class="count"></span></button>
           </div>
         </div>
-        <ul id="topic-list" class="topics"></ul>
+
+        <h2 class="section-title">Weitere Lernmethoden</h2>
+        <div class="methods">
+          <button type="button" class="method" id="m-mc">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 7h2M5 12h2M5 17h2M10 7h9M10 12h9M10 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></span>
+            <span class="mname">Quiz</span>
+            <span class="mdesc">Eine Frage, vier Antworten, sofort erklärt</span>
+            <span class="mstat" id="stat-mc"></span>
+          </button>
+          <button type="button" class="method" id="m-trainer">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+            <span class="mname">Rechentrainer</span>
+            <span class="mdesc">Zufallsaufgaben mit Eingabe und Lösungsweg</span>
+            <span class="mstat" id="stat-tr"></span>
+          </button>
+          <button type="button" class="method" id="m-match">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="6" cy="7" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.4 7h3c3 0 1 10 4.2 10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>
+            <span class="mname">Zuordnen</span>
+            <span class="mdesc">Größen mit Symbol, Einheit oder Formel verbinden</span>
+            <span class="mstat" id="stat-match"></span>
+          </button>
+          <button type="button" class="method" id="m-exam">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9v4l3 2M9.5 3h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></span>
+            <span class="mname">Klausur-Simulation</span>
+            <span class="mdesc">20 Minuten, 8 Aufgaben, Punkte und Note</span>
+            <span class="mstat" id="stat-exam"></span>
+          </button>
+        </div>
+        <p class="fine">Tasten im Karteikasten: <kbd>Leertaste</kbd> umdrehen · <kbd>1</kbd> nicht gewusst · <kbd>2</kbd> teilweise · <kbd>3</kbd> gewusst · <kbd>F</kbd> Vollbild · <kbd>Esc</kbd> Übersicht</p>
       </div>
 
-      <div class="panel" id="sync-panel">
-        <div class="panel-head"><h2>Sync zwischen Geräten</h2></div>
-        <div id="sync-off">
-          <p class="fine tight">Mit einem Lerncode siehst du deinen Fortschritt auf Handy und Laptop. Jede Person hat ihren eigenen Code.</p>
-          <div class="row">
-            <input id="sync-name" type="text" maxlength="30" placeholder="Dein Name" autocomplete="off">
-            <button type="button" id="sync-create" class="btn">Neuen Code erstellen</button>
-          </div>
-          <div class="row">
-            <input id="sync-code" type="text" maxlength="12" placeholder="Code vom anderen Gerät, z. B. K7M2-QX9P" autocomplete="off" autocapitalize="characters" spellcheck="false">
-            <button type="button" id="sync-join" class="btn">Verbinden</button>
-          </div>
-        </div>
-        <div id="sync-on" hidden>
-          <p class="sync-who"><b id="sync-who"></b></p>
-          <p class="fine tight">Dein Lerncode (auf dem anderen Gerät eingeben):</p>
-          <p class="sync-code"><code id="sync-code-show"></code> <button type="button" id="sync-copy" class="link">Kopieren</button></p>
-          <button type="button" id="sync-leave" class="link danger">Auf diesem Gerät trennen</button>
-        </div>
-        <p class="fine tight" id="sync-status" role="status"></p>
+      <!-- Tab: Übersichten -->
+      <div class="tabpane" id="tab-sheets" hidden>
+        <p class="fine tight">Kernübersichten: alles Wichtige pro Thema auf einer Seite, mit Formeln und Skizzen.</p>
+        <ul id="sheet-list" class="sheet-list"></ul>
       </div>
 
-      <div class="panel exam">
-        <h2>Klausur</h2>
-        <ul>
-          <li>Messwerttabelle erstellen · Mittelwert · Diagramme zeichnen</li>
-          <li>Formelsammlung: <b>S. 23, 24, 25, 27</b></li>
-        </ul>
+      <!-- Tab: Mehr -->
+      <div class="tabpane" id="tab-more" hidden>
+        <div class="panel" id="sync-panel">
+          <div class="panel-head"><h2>Sync zwischen Geräten</h2></div>
+          <div id="sync-off">
+            <p class="fine tight">Mit einem Lerncode siehst du deinen Fortschritt auf Handy und Laptop. Jede Person hat ihren eigenen Code.</p>
+            <div class="row">
+              <input id="sync-name" type="text" maxlength="30" placeholder="Dein Name" autocomplete="off">
+              <button type="button" id="sync-create" class="btn">Neuen Code erstellen</button>
+            </div>
+            <div class="row">
+              <input id="sync-code" type="text" maxlength="12" placeholder="Code vom anderen Gerät, z. B. K7M2-QX9P" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <button type="button" id="sync-join" class="btn">Verbinden</button>
+            </div>
+          </div>
+          <div id="sync-on" hidden>
+            <p class="sync-who"><b id="sync-who"></b></p>
+            <p class="fine tight">Dein Lerncode (auf dem anderen Gerät eingeben):</p>
+            <p class="sync-code"><code id="sync-code-show"></code> <button type="button" id="sync-copy" class="link">Kopieren</button></p>
+            <button type="button" id="sync-leave" class="link danger">Auf diesem Gerät trennen</button>
+          </div>
+          <p class="fine tight" id="sync-status" role="status"></p>
+        </div>
+
+        <div class="panel exam">
+          <h2>Klausur</h2>
+          <ul>
+            <li>Messwerttabelle erstellen · Mittelwert · Diagramme zeichnen</li>
+            <li>Formelsammlung: <b>S. 23, 24, 25, 27</b></li>
+          </ul>
+        </div>
+        <p class="fine"><button type="button" id="btn-reset" class="link danger">Lernfortschritt zurücksetzen</button></p>
       </div>
-      <p class="fine"><button type="button" id="btn-reset" class="link danger">Lernfortschritt zurücksetzen</button></p>
     </section>
 
-    <!-- Quiz -->
+    <!-- Karteikasten: Quiz -->
     <section id="screen-quiz" class="screen" hidden>
       <div class="quizbar">
         <button type="button" id="btn-quit" class="link">← Übersicht</button>
@@ -106,12 +165,12 @@
         <div id="card" class="card" tabindex="0" role="button" aria-label="Karte umdrehen">
           <div class="card-inner">
             <div class="face front">
-              <div class="face-head"><span class="tag"><i class="dot"></i><span id="front-tag"></span></span><span class="boxchip" id="front-box"></span></div>
+              <div class="face-head"><span class="tag"><i class="dot"></i><span id="front-tag"></span></span><span class="chips-r"><span class="lvlchip" id="front-lvl"></span><span class="boxchip" id="front-box"></span></span></div>
               <div id="front-body" class="front-body"></div>
               <p class="flip-hint">Tippen zum Aufdecken</p>
             </div>
             <div class="face back">
-              <div class="face-head"><span class="tag"><i class="dot"></i><span id="back-tag"></span></span><span class="boxchip" id="back-box"></span></div>
+              <div class="face-head"><span class="tag"><i class="dot"></i><span id="back-tag"></span></span><span class="chips-r"><span class="lvlchip" id="back-lvl"></span><span class="boxchip" id="back-box"></span></span></div>
               <div id="back-body" class="back-body"></div>
             </div>
           </div>
@@ -125,7 +184,7 @@
       </div>
     </section>
 
-    <!-- Ende -->
+    <!-- Karteikasten: Ende -->
     <section id="screen-end" class="screen" hidden>
       <div class="hero center">
         <h1>Runde geschafft</h1>
@@ -141,6 +200,87 @@
         <button id="btn-end-home" class="btn" type="button">Zur Übersicht</button>
       </div>
     </section>
+
+    <!-- Quiz / Rechentrainer / Klausur: eine Aufgabe nach der anderen -->
+    <section id="screen-task" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="task-quit" class="link">← Übersicht</button>
+        <span id="task-title" class="task-title"></span>
+        <span id="task-timer" class="timer" hidden></span>
+      </div>
+      <div class="progress"><div id="task-progress-bar"></div></div>
+      <p class="left" id="task-count"></p>
+      <div class="panel task-card">
+        <div class="face-head"><span class="tag"><i class="dot" id="task-dot"></i><span id="task-tag"></span></span><span class="lvlchip" id="task-lvl"></span></div>
+        <div id="task-q" class="task-q"></div>
+        <div id="task-opts" class="opts"></div>
+        <form id="task-form" class="ansrow" hidden>
+          <input id="task-input" type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ergebnis" aria-label="Ergebnis">
+          <span id="task-unit" class="unit"></span>
+          <button type="submit" class="btn primary" id="task-check">Prüfen</button>
+        </form>
+        <div id="task-fb" class="fb" hidden></div>
+      </div>
+      <div class="start-actions">
+        <button type="button" id="task-next" class="btn primary" hidden>Weiter</button>
+        <button type="button" id="task-giveup" class="btn" hidden>Lösung zeigen</button>
+      </div>
+    </section>
+
+    <!-- Zuordnen -->
+    <section id="screen-match" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="match-quit" class="link">← Übersicht</button>
+        <span id="match-title" class="task-title"></span>
+      </div>
+      <div class="progress"><div id="match-progress-bar"></div></div>
+      <p class="left" id="match-count"></p>
+      <div class="panel">
+        <p class="fine tight" id="match-hint"></p>
+        <div class="match">
+          <div id="match-left" class="mcol"></div>
+          <div id="match-right" class="mcol"></div>
+        </div>
+      </div>
+      <div class="start-actions" id="match-actions" hidden>
+        <button type="button" id="match-next" class="btn primary">Nächste Runde</button>
+        <button type="button" id="match-home" class="btn">Zur Übersicht</button>
+      </div>
+    </section>
+
+    <!-- Ergebnis (Quiz, Trainer, Klausur) -->
+    <section id="screen-result" class="screen" hidden>
+      <div class="hero center">
+        <h1 id="result-title">Geschafft</h1>
+        <p class="lead" id="result-sub"></p>
+      </div>
+      <div class="panel" id="result-score" hidden></div>
+      <div class="panel" id="result-review" hidden></div>
+      <div class="start-actions">
+        <button id="result-again" class="btn primary" type="button">Nochmal</button>
+        <button id="result-home" class="btn" type="button">Zur Übersicht</button>
+      </div>
+    </section>
+
+    <!-- Kernübersicht -->
+    <section id="screen-sheet" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="sheet-back" class="link">← Übersichten</button>
+        <span class="grow"></span>
+        <button type="button" id="sheet-prev" class="icon-btn small" aria-label="Vorheriges Thema">‹</button>
+        <button type="button" id="sheet-next" class="icon-btn small" aria-label="Nächstes Thema">›</button>
+      </div>
+      <article class="panel sheet">
+        <h2 id="sheet-title" class="sheet-title"></h2>
+        <p class="fine tight" id="sheet-sub"></p>
+        <div id="sheet-body" class="sheet-body"></div>
+        <div id="sheet-dia" class="dia-grid"></div>
+      </article>
+      <div class="start-actions">
+        <button type="button" id="sheet-practice" class="btn primary">Karten zu diesem Thema üben</button>
+        <button type="button" id="sheet-print" class="btn">Drucken</button>
+      </div>
+    </section>
   </main>
   <canvas id="confetti" aria-hidden="true"></canvas>
 
@@ -149,6 +289,10 @@
   <script src="js/config.js"></script>
   <script src="js/cards.js"></script>
   <script src="js/diagrams.js"></script>
+  <script src="js/trainer.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/sheets.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/methods.js"></script>
 </body>
 </html>

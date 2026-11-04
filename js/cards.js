@@ -16,8 +16,7 @@
     { id: "schaltung",  title: "Reihen- & Parallelschaltung",     sub: "Ersatzkapazität" },
     { id: "ladung",     title: "Auf- und Entladung",              sub: "Differenzialgleichung, τ = R·C" },
     { id: "millikan",   title: "Millikan-Versuch",                sub: "Schwebemethode, Elementarladung" },
-    { id: "klausur",    title: "Messwerte & Diagramme",           sub: "Tabelle, Mittelwert, Diagramm" },
-    { id: "rechnen",    title: "Rechenaufgaben",                  sub: "Zahlen einsetzen wie in der Klausur" }
+    { id: "klausur",    title: "Messwerte & Diagramme",           sub: "Tabelle, Mittelwert, Diagramm" }
   ];
 
   const cards = [];
@@ -413,6 +412,30 @@
     R`<p>$$\bar{e} = \dfrac{1{,}55 + 1{,}63 + 1{,}60 + 1{,}58 + 1{,}64}{5}\cdot10^{-19}\,\mathrm{C}$$</p>
       <p>$$\bar{e} = 1{,}60\cdot10^{-19}\,\mathrm{C}$$</p>
       <p>Relative Abweichung: $\dfrac{|1{,}60 - 1{,}602|}{1{,}602} \approx 0{,}1\,\%$</p>`);
+
+
+  // ---------------------------------------------------------------- Metadaten
+  // lvl: 1 = leicht (Grundwissen), 2 = mittel, 3 = schwer (Herleitung, Dgl., mehrere Schritte)
+  // kind: "abfrage" (Wissen) oder "rechnen" (Rechenaufgabe). Die IDs bleiben gleich, damit Fortschritt erhalten bleibt.
+  const LVL = {
+    1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:2, 9:2, 10:2, 11:2, 12:2, 13:1,
+    14:1, 15:2, 16:2, 17:2, 18:1, 19:1, 20:2, 21:2, 22:2,
+    23:1, 24:1, 25:1, 26:2, 27:2, 28:1, 29:2, 30:3, 31:1, 32:2, 33:1, 34:1, 35:3,
+    36:1, 37:1, 38:2, 39:1, 40:1, 41:3, 42:2,
+    43:1, 44:3, 45:2, 46:1, 47:1, 48:3, 49:2, 50:3, 51:3, 52:1, 53:1, 54:2, 55:2,
+    56:3, 57:3, 58:2, 59:2, 60:2, 61:2, 62:3, 63:1, 64:2, 65:1, 66:2, 67:3, 68:2,
+    69:1, 70:1, 71:1, 72:1, 73:2, 74:2, 75:2, 76:1,
+    77:2, 78:2, 79:1, 80:1, 81:2, 82:2, 83:2, 84:2, 85:2, 86:3, 87:3, 88:1, 89:3, 90:3, 91:1
+  };
+  const CALC_TOPIC = { 77: "kraft", 78: "kraft", 79: "kraft", 80: "kondensator", 81: "kondensator", 82: "kondensator",
+    83: "kondensator", 84: "schaltung", 85: "ladung", 86: "ladung", 87: "ladung", 88: "groessen", 89: "kraft",
+    90: "millikan", 91: "klausur" };
+  cards.forEach(c => {
+    const num = +c.id.slice(c.id.lastIndexOf("-") + 1);
+    c.lvl = LVL[num] || 2;
+    c.kind = c.calc ? "rechnen" : "abfrage";
+    if (CALC_TOPIC[num]) c.topic = CALC_TOPIC[num];
+  });
 
   window.PHYS_TOPICS = TOPICS;
   window.PHYS_CARDS = cards;

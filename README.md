@@ -57,7 +57,7 @@ Mit `node build.mjs` wird daraus `public/index.html` gebaut. Lokal testen: `pyth
 - Registrieren mit **Benutzername und eigenem Passwort**, keine E-Mail. Dafür braucht man einmal den Einladungscode der Gruppe.
 - Anmelden auf jedem Gerät mit Benutzername und Passwort, der Fortschritt wird synchronisiert.
 - Passwort und Benutzername lassen sich im Reiter „Konto“ ändern. Ohne E-Mail gibt es kein Zurücksetzen per Link.
-- **Rangliste** im gleichnamigen Reiter: alle Konten stehen automatisch in der Liste (Ausblenden im Konto möglich). Punkte: Karteikasten nach Fach (1/2/4/7/10 je Karte), Quiz (1, bis 150), Rechentrainer (2, bis 75 Aufgaben), Schaltung beschriften (3, bis 10), Zuordnen (1 pro Runde, bis 20) und Klausur (4 pro Notenpunkt). Eine bereits richtig gelöste Aufgabe bringt bei Wiederholung nur noch ein Viertel der Punkte. Dazu Titel von „Einsteiger“ bis „Physik-Legende“, eigene Karte mit Fortschritt und Aufschlüsselung.
+- **Rangliste** im gleichnamigen Reiter: alle Konten stehen automatisch in der Liste (Ausblenden im Konto möglich). Punkte: Karteikasten nach Fach (1/2/4/7/10 je Karte), Quiz (1, bis 150), Rechentrainer (2, bis 75 Aufgaben), Schaltung beschriften (3, bis 10), Zuordnen (1 pro Runde, bis 20) und Klausur (4 pro Notenpunkt). Die Rangliste hat eine Tageswertung („Heute“: Punkte seit Mitternacht, deutsche Zeit) neben „Gesamt“. Eine bereits richtig gelöste Aufgabe bringt bei Wiederholung nur noch ein Viertel der Punkte. Dazu Titel von „Einsteiger“ bis „Physik-Legende“, eigene Karte mit Fortschritt und Aufschlüsselung.
 
 ## Synchronisation (alt: Lerncode)
 

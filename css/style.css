@@ -540,6 +540,7 @@ html.nosync .cardtools { display: none; }
 .br .bar { display: block; height: 4px; margin-top: 5px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
 .br .bar i, .bar.big i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .4s ease; }
 .br.me .bar { background: color-mix(in srgb, var(--accent) 20%, var(--surface-2)); }
+#board-mode { margin: 0 0 10px; }
 .me-card { margin: 4px 0 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
 .me-card[hidden] { display: none; }
 .me-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }

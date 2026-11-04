@@ -116,6 +116,14 @@
 
       <!-- Tab: Lernen -->
       <div class="tabpane" id="tab-learn">
+        <div class="panel topics-panel">
+          <div class="panel-head">
+            <h2>Themen <span class="fine nomargin" id="topics-sel"></span></h2>
+            <span class="mini-actions"><button type="button" id="sel-all" class="link">Alle</button><button type="button" id="sel-none" class="link">Keine</button></span>
+          </div>
+          <ul id="topic-list" class="topics"></ul>
+        </div>
+
         <div class="panel filter">
           <div class="panel-head"><h2>Einstellungen</h2><span class="fine nomargin" id="filter-summary"></span></div>
           <div class="frow">
@@ -133,12 +141,14 @@
               <button type="button" class="chip" data-kind="rechnen" aria-pressed="true">Rechnen</button>
             </div>
           </div>
-          <details class="topics-details">
-            <summary>Themen <span id="topics-sel"></span></summary>
-            <div class="mini-actions"><button type="button" id="sel-all" class="link">Alle</button><button type="button" id="sel-none" class="link">Keine</button></div>
-            <ul id="topic-list" class="topics"></ul>
-          </details>
-          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ gilt nur für den Karteikasten, der Rechentrainer rechnet immer.</p>
+          <div class="frow">
+            <span class="flabel">Taschenrechner</span>
+            <div class="chips" id="chips-calc" role="group" aria-label="Taschenrechner">
+              <button type="button" class="chip" data-calc="1" aria-pressed="true">Mit</button>
+              <button type="button" class="chip" data-calc="0" aria-pressed="false">Ohne</button>
+            </div>
+          </div>
+          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ gilt nur für den Karteikasten, der Rechentrainer rechnet immer. „Ohne“ blendet den Taschenrechner überall aus (wie in der Klausur ohne GTR).</p>
         </div>
 
         <div class="panel drawer-panel">
@@ -472,6 +482,7 @@
   <script src="js/trainer.js"></script>
   <script src="js/quiz.js"></script>
   <script src="js/sheets.js"></script>
+  <script src="js/calculator.js"></script>
   <script src="js/app.js"></script>
   <script src="js/methods.js"></script>
   <script src="js/gfx.js"></script>

@@ -11,7 +11,7 @@
   const BOX_TAB = ["Neu", "Fach 1", "Fach 2", "Fach 3", "Fach 4", "Fach 5"];
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], tab: "learn", stats: {}, hidden: {}, ghidden: {} };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], calc: true, tab: "learn", stats: {}, hidden: {}, ghidden: {} };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -44,6 +44,8 @@
   if (!store.ghidden || typeof store.ghidden !== "object") store.ghidden = {};
   const isHidden = id => !!((store.hidden[id] && store.hidden[id].on) || store.ghidden[id]);
   const liveCards = () => CARDS.filter(c => !isHidden(c.id));
+  // Ohne Taschenrechner: Rechenkarten ausblenden
+  const availCards = () => liveCards().filter(c => store.calc || !c.calc);
   const plain = h => String(h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
     .replace(/\\cdot/g, "·").replace(/\\(?:mathrm|text|mu|varepsilon|sigma|tau)\b/g, m => ({ "\\mu": "µ", "\\varepsilon": "ε", "\\sigma": "σ", "\\tau": "τ" }[m] || ""))
     .replace(/\\[a-zA-Z]+/g, "").replace(/[${}]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
@@ -103,7 +105,7 @@
   });
 
   // ------------------------------------------------------------ Karteikasten
-  function selectedCards() { return liveCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
+  function selectedCards() { return availCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
   function counts(cards) {
     const n = [0, 0, 0, 0, 0, 0];
     cards.forEach(c => { n[boxOf(c.id)]++; });
@@ -131,7 +133,7 @@
   }
 
   function renderRing() {
-    const live = liveCards();
+    const live = availCards();
     const all = live.length || 1;
     const done = live.filter(c => boxOf(c.id) >= 4).length;
     const pct = Math.round(done / all * 100);
@@ -173,7 +175,7 @@
     const ul = $("#topic-list");
     ul.innerHTML = "";
     TOPICS.forEach(t => {
-      const cs = liveCards().filter(c => c.topic === t.id);
+      const cs = availCards().filter(c => c.topic === t.id);
       const nc = cs.length || 1;
       const g = cs.filter(c => boxOf(c.id) >= 4).length;
       const y = cs.filter(c => boxOf(c.id) === 3).length;
@@ -197,6 +199,8 @@
   function refreshFilters() {
     document.querySelectorAll("#chips-level .chip").forEach(b => b.setAttribute("aria-pressed", store.levels.includes(+b.dataset.lvl)));
     document.querySelectorAll("#chips-kind .chip").forEach(b => b.setAttribute("aria-pressed", store.kinds.includes(b.dataset.kind)));
+    document.querySelectorAll("#chips-calc .chip").forEach(b => b.setAttribute("aria-pressed", (b.dataset.calc === "1") === !!store.calc));
+    if (window.PHYS_CALC) window.PHYS_CALC.enable(!!store.calc);
     $("#topics-sel").textContent = "(" + store.sel.length + " von " + TOPICS.length + ")";
     const lv = store.levels.length === 3 ? "alle Stufen" : store.levels.map(l => LVL_NAME[l]).join(" + ");
     $("#filter-summary").textContent = lv;
@@ -229,6 +233,10 @@
   $("#chips-level").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
     store.levels = toggleIn(store.levels.slice(), +b.dataset.lvl).sort(); save(); renderTopics();
+  });
+  $("#chips-calc").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    store.calc = b.dataset.calc === "1"; save(); renderTopics(); if (window.PHYS_METHODS_REFRESH) window.PHYS_METHODS_REFRESH();
   });
   $("#chips-kind").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;

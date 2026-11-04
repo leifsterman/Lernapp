@@ -102,6 +102,7 @@
   function stopLoop() { cancelAnimationFrame(raf); raf = 0; cur = null; }
   A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
 
+  const styleBoxes = [];
   function openSim(id) {
     const def = SIMS.find(s => s.id === id); if (!def) return;
     const host = $("#sim-host");
@@ -109,6 +110,7 @@
     let inst = INST[id];
     if (!inst) { const box = document.createElement("div"); host.replaceChildren(box); inst = INST[id] = { box, obj: def.make(box) }; }
     else host.replaceChildren(inst.box);
+    if (styleBoxes[1]) styleBoxes[1].hidden = !def.el; // Darstellung nur, wo Elektronen vorkommen
     $("#sim-title").textContent = def.title;
     $("#sim-sheet").dataset.sheet = def.sheet || "";
     $("#sim-sheet").hidden = !def.sheet;
@@ -122,9 +124,8 @@
   }
   // Darstellung der Elektronen (Punkt, Männchen mit Armen, Biene mit Eimer): gilt in allen Versuchen und bleibt gespeichert
   const STYLES = [{ v: "punkt", t: "● Punkt" }, { v: "mann", t: "☺ Männchen" }, { v: "biene", t: "🐝 Biene" }];
-  const STYLE_HINT = { punkt: "", mann: "Männchen mit Armen: Wer viel Energie hat (nach der Batterie), freut sich mit erhobenen Armen. Wer sie abgegeben hat (nach dem Widerstand), ist müde.",
-    biene: "Bienen mit Eimer: Der Eimer ist voll, wenn das Elektron viel Energie trägt (nach der Batterie), und leer, wenn es sie abgegeben hat (nach dem Widerstand)." };
-  const styleBoxes = [];
+  const STYLE_HINT = { punkt: "", mann: "Männchen mit Armen: Wer viel Energie hat (nach der Batterie), freut sich mit erhobenen Armen. Wer sie abgegeben hat (nach dem Widerstand), ist müde. Wie schnell sie laufen, zeigt die Stromstärke.",
+    biene: "Bienen mit Eimer: Der Füllstand des Eimers ist die Energie pro Elektron, also die Spannung in Volt (nach der Batterie voll, nach dem Widerstand leer). Wie schnell die Bienen fliegen, ist die Stromstärke in Ampere." };
   function makeStyleBox() {
     const box = el("div", "sim-style"), hint = el("p", "fine tight");
     const sg = seg(box, { label: "Elektronen darstellen als", options: STYLES, value: window.PHYS_GFX.style, onChange: v => { window.PHYS_GFX.setStyle(v); styleBoxes.forEach(b => b.sync()); } });
@@ -132,7 +133,7 @@
     box.sync = () => { sg.set(window.PHYS_GFX.style); hint.textContent = STYLE_HINT[window.PHYS_GFX.style]; hint.hidden = !hint.textContent; };
     box.sync(); styleBoxes.push(box); return box;
   }
-  $("#sim-list").before(makeStyleBox());
+  $("#sim-list").before(makeStyleBox()); styleBoxes[0].hidden = false;
   $("#sim-host").before(makeStyleBox());
   $("#sim-list").addEventListener("click", e => { const b = e.target.closest("[data-sim]"); if (b) openSim(b.dataset.sim); });
   $("#sim-back").addEventListener("click", () => { A.setTab("lab"); A.home(); });
@@ -323,7 +324,7 @@
 
   // ------------------------------------------------------------ Simulation 1: RC-Schaltung
   SIMS.push({
-    id: "rc", title: "RC-Schaltung", desc: "Laden und Entladen mit Schalter, Voltmeter und Kurven", sheet: "ladung",
+    id: "rc", el: true, title: "RC-Schaltung", desc: "Laden und Entladen mit Schalter, Voltmeter und Kurven", sheet: "ladung",
     icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 18c4 0 5-12 9-12s5 12 9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
@@ -345,7 +346,7 @@
       slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
       slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
       slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); } });
-      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { const u = Uc(); P.C = v; Q = u * v; if (ev) ev.tau = tau(ev.mode); } });
+      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { const u = Uc(); P.C = v; Q = u * v; prevK = Q; if (ev) ev.tau = tau(ev.mode); } });
       slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { P.speed = v; } });
       const acts = el("div", "sim-acts"); host.append(acts);
       button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; histT = 0; ev = null; mode = "open"; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; prevK = 0; });
@@ -370,7 +371,7 @@
           const tc = tau(mode), Qinf = mode === "charge" ? P.C * P.U0 : 0;
           Q = Qinf + (Q - Qinf) * Math.exp(-ds / tc);
         }
-        const K = 9 * Uc() / 12, dK = K - prevK; prevK = K; // eine Elektronen-Abstandseinheit pro Platzstelle auf der Platte
+        const dK = (Q - prevK) / 600; prevK = Q; // Tempo der Elektronen ∝ Stromstärke: eine Abstandseinheit je 600 µC
         if (mode !== "open") { const a = SP * (mode === "charge" ? dK : -dK); moveElectrons(EL, mode, a); if (Math.abs(a) > 1e-6) EL.sg = Math.sign(a); }
         electronEnergy(EL, mode, P.U0, Uc(), dt, blade);
         histT += ds;

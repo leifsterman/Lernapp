@@ -100,7 +100,7 @@
 
   // ============================================================ Reihen- und Parallelschaltung
   K.add({
-    id: "rp", title: "Reihe & Parallel", desc: "Zwei Kondensatoren schalten: Ladungen, Teilspannungen, Ersatzkapazität", sheet: "schaltung",
+    id: "rp", el: true, title: "Reihe & Parallel", desc: "Zwei Kondensatoren schalten: Ladungen, Teilspannungen, Ersatzkapazität", sheet: "schaltung",
     icon: ICON('<path d="M3 8h5M8 4v8M11 4v8M11 8h10M3 16h5M8 12v8M11 12v8M11 16h10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>'),
     make(host) {
       const st = stage(360, 240); host.append(st.c);

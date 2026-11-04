@@ -24,7 +24,7 @@
 
   // ============================================================ Kondensator-Labor
   K.add({
-    id: "kond", title: "Kondensator-Labor", desc: "Abstand, Fläche und Dielektrikum verändern: C, Q, U, E live", sheet: "kondensator",
+    id: "kond", el: true, title: "Kondensator-Labor", desc: "Abstand, Fläche und Dielektrikum verändern: C, Q, U, E live", sheet: "kondensator",
     icon: ICON('<path d="M4 9h16M4 15h16M12 3v6M12 15v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>'),
     make(host) {
       const W = 360, H = 260, st = stage(W, H);
@@ -114,7 +114,7 @@
 
   // ============================================================ Influenz, Polarisation, Faraday
   K.add({
-    id: "pol", title: "Influenz & Polarisation", desc: "Animationen: Ladungstrennung, Dipole im Dielektrikum, Faradayscher Käfig", sheet: "influenz",
+    id: "pol", el: true, title: "Influenz & Polarisation", desc: "Animationen: Ladungstrennung, Dipole im Dielektrikum, Faradayscher Käfig", sheet: "influenz",
     icon: ICON('<circle cx="9" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17 8v8M20 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     make(host) {
       let tab = "inf";

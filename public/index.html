@@ -3642,17 +3642,26 @@ window.PHYS_SYNC = {
       cx.lineWidth = 0.7; cx.beginPath();
       if (lv <= 1) cx.arc(-5, 1.7, 0.9, Math.PI * 1.1, Math.PI * 1.9); else cx.arc(-5, 0.7, 1, Math.PI * 0.15, Math.PI * 0.85);
       cx.stroke();
-      cx.lineWidth = 1.2; cx.beginPath(); cx.moveTo(2.2, 2.6); cx.lineTo(5.4, 3.4); cx.stroke(); // Arm
-      cx.fillStyle = "rgba(255,255,255,.45)"; cx.strokeStyle = INK; cx.lineWidth = 0.9; // Eimer
-      cx.beginPath(); cx.moveTo(3.8, 3.4); cx.lineTo(9.6, 3.4); cx.lineTo(8.8, 9); cx.lineTo(4.6, 9); cx.closePath(); cx.fill();
-      if (lv > 0) { const h = lv / 4 * 5.4, w = 0.14 * (5.6 - h); cx.fillStyle = "#ff9d1c"; cx.beginPath(); cx.moveTo(3.8 + w * 5.6 / 5.6 + 0.8 * (5.6 - h) / 5.6, 9 - h); cx.lineTo(9.6 - 0.8 * (5.6 - h) / 5.6, 9 - h); cx.lineTo(8.8, 9); cx.lineTo(4.6, 9); cx.closePath(); cx.fill(); }
+      cx.lineWidth = 1.4; cx.beginPath(); cx.moveTo(2.2, 2.6); cx.lineTo(5.2, 3.2); cx.stroke(); // Arm
+      // großer Eimer: Füllstand = Energie pro Elektron (Spannung in V), Skalenstriche zeigen die Stufen
+      const top = 1.6, bot = 10.6, xl = 4.6, xr = 12.2, inset = 1.1;
+      cx.fillStyle = "rgba(255,255,255,.55)"; cx.strokeStyle = INK; cx.lineWidth = 1;
+      cx.beginPath(); cx.moveTo(xl, top); cx.lineTo(xr, top); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.fill();
+      if (lv > 0) {
+        const h = lv / 4 * (bot - top - 0.8), y = bot - h, f = (yy, side) => side < 0 ? xl + inset * (yy - top) / (bot - top) : xr - inset * (yy - top) / (bot - top);
+        cx.fillStyle = "#ff9d1c"; cx.beginPath(); cx.moveTo(f(y, -1), y); cx.lineTo(f(y, 1), y); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.fill();
+        cx.fillStyle = "#ffd27a"; cx.fillRect(f(y, -1) + 0.5, y, (f(y, 1) - f(y, -1)) - 1, 0.9);
+      }
+      cx.beginPath(); cx.moveTo(xl, top); cx.lineTo(xr, top); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.stroke();
+      cx.lineWidth = 0.7; cx.beginPath(); for (let i = 1; i < 4; i++) { const yy = bot - i * (bot - top - 0.8) / 4; cx.moveTo(xl + 0.2 + inset * (yy - top) / (bot - top), yy); cx.lineTo(xl + 1.8 + inset * (yy - top) / (bot - top), yy); } cx.stroke();
+      cx.lineWidth = 0.9; cx.beginPath(); cx.arc((xl + xr) / 2, top, (xr - xl) / 2 - 0.6, Math.PI, 0); cx.stroke(); // Henkel
       cx.stroke();
     }
     cx.restore();
   }
   function figure(x, kind, px, py, S, en, flip, a) {
     const sc = x.getTransform().a || 1, lv = level(en), sz = Math.round(S * 2) / 2;
-    const sp = sprite("f" + kind + lv + "|" + sz + (flip ? "f" : ""), sz * 1.3, sc, cx => paintFigure(cx, kind, lv, sz, flip));
+    const sp = sprite("f" + kind + lv + "|" + sz + (flip ? "f" : ""), sz * (kind === "biene" ? 1.9 : 1.4), sc, cx => paintFigure(cx, kind, lv, sz, flip));
     drawSprite(x, sp, px, py, a == null ? 1 : a);
   }
   const bgCache = new Map();
@@ -3739,7 +3748,7 @@ window.PHYS_SYNC = {
       opts = opts || {};
       if (style === "punkt") { G.ball(x, px, py, r, c.neg, "−", opts); return; }
       if (!isFinite(px) || !isFinite(py)) return;
-      figure(x, style, px, py, Math.max(6, r * 2), opts.energy, opts.flip, opts.alpha);
+      figure(x, style, px, py, Math.max(style === "biene" ? 9 : 7, r * 2.4), opts.energy, opts.flip, opts.alpha);
     },
     ball(x, px, py, r, col, sign, opts) {
       if (!isFinite(px) || !isFinite(py)) return;
@@ -3772,7 +3781,7 @@ window.PHYS_SYNC = {
     // Elektron in der Leitung; en = Energie 0 … 1, flip = schaut nach links
     electron(x, c, px, py, a, en, flip) {
       if (!isFinite(px) || !isFinite(py)) return;
-      if (style !== "punkt") { figure(x, style, px, py, 8, en, flip, a); return; }
+      if (style !== "punkt") { figure(x, style, px, py, style === "biene" ? 9.5 : 9, en, flip, a); return; }
       const sc = x.getTransform().a || 1;
       const sp = sprite("e" + c.neg, 7, sc, cx => G._elPaint(cx, c, 0, 0));
       drawSprite(x, sp, px, py, a == null ? 1 : a);
@@ -3982,6 +3991,7 @@ window.PHYS_SYNC = {
   function stopLoop() { cancelAnimationFrame(raf); raf = 0; cur = null; }
   A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
 
+  const styleBoxes = [];
   function openSim(id) {
     const def = SIMS.find(s => s.id === id); if (!def) return;
     const host = $("#sim-host");
@@ -3989,6 +3999,7 @@ window.PHYS_SYNC = {
     let inst = INST[id];
     if (!inst) { const box = document.createElement("div"); host.replaceChildren(box); inst = INST[id] = { box, obj: def.make(box) }; }
     else host.replaceChildren(inst.box);
+    if (styleBoxes[1]) styleBoxes[1].hidden = !def.el; // Darstellung nur, wo Elektronen vorkommen
     $("#sim-title").textContent = def.title;
     $("#sim-sheet").dataset.sheet = def.sheet || "";
     $("#sim-sheet").hidden = !def.sheet;
@@ -4002,9 +4013,8 @@ window.PHYS_SYNC = {
   }
   // Darstellung der Elektronen (Punkt, Männchen mit Armen, Biene mit Eimer): gilt in allen Versuchen und bleibt gespeichert
   const STYLES = [{ v: "punkt", t: "● Punkt" }, { v: "mann", t: "☺ Männchen" }, { v: "biene", t: "🐝 Biene" }];
-  const STYLE_HINT = { punkt: "", mann: "Männchen mit Armen: Wer viel Energie hat (nach der Batterie), freut sich mit erhobenen Armen. Wer sie abgegeben hat (nach dem Widerstand), ist müde.",
-    biene: "Bienen mit Eimer: Der Eimer ist voll, wenn das Elektron viel Energie trägt (nach der Batterie), und leer, wenn es sie abgegeben hat (nach dem Widerstand)." };
-  const styleBoxes = [];
+  const STYLE_HINT = { punkt: "", mann: "Männchen mit Armen: Wer viel Energie hat (nach der Batterie), freut sich mit erhobenen Armen. Wer sie abgegeben hat (nach dem Widerstand), ist müde. Wie schnell sie laufen, zeigt die Stromstärke.",
+    biene: "Bienen mit Eimer: Der Füllstand des Eimers ist die Energie pro Elektron, also die Spannung in Volt (nach der Batterie voll, nach dem Widerstand leer). Wie schnell die Bienen fliegen, ist die Stromstärke in Ampere." };
   function makeStyleBox() {
     const box = el("div", "sim-style"), hint = el("p", "fine tight");
     const sg = seg(box, { label: "Elektronen darstellen als", options: STYLES, value: window.PHYS_GFX.style, onChange: v => { window.PHYS_GFX.setStyle(v); styleBoxes.forEach(b => b.sync()); } });
@@ -4012,7 +4022,7 @@ window.PHYS_SYNC = {
     box.sync = () => { sg.set(window.PHYS_GFX.style); hint.textContent = STYLE_HINT[window.PHYS_GFX.style]; hint.hidden = !hint.textContent; };
     box.sync(); styleBoxes.push(box); return box;
   }
-  $("#sim-list").before(makeStyleBox());
+  $("#sim-list").before(makeStyleBox()); styleBoxes[0].hidden = false;
   $("#sim-host").before(makeStyleBox());
   $("#sim-list").addEventListener("click", e => { const b = e.target.closest("[data-sim]"); if (b) openSim(b.dataset.sim); });
   $("#sim-back").addEventListener("click", () => { A.setTab("lab"); A.home(); });
@@ -4203,7 +4213,7 @@ window.PHYS_SYNC = {
 
   // ------------------------------------------------------------ Simulation 1: RC-Schaltung
   SIMS.push({
-    id: "rc", title: "RC-Schaltung", desc: "Laden und Entladen mit Schalter, Voltmeter und Kurven", sheet: "ladung",
+    id: "rc", el: true, title: "RC-Schaltung", desc: "Laden und Entladen mit Schalter, Voltmeter und Kurven", sheet: "ladung",
     icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 18c4 0 5-12 9-12s5 12 9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
@@ -4225,7 +4235,7 @@ window.PHYS_SYNC = {
       slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
       slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
       slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); } });
-      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { const u = Uc(); P.C = v; Q = u * v; if (ev) ev.tau = tau(ev.mode); } });
+      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { const u = Uc(); P.C = v; Q = u * v; prevK = Q; if (ev) ev.tau = tau(ev.mode); } });
       slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { P.speed = v; } });
       const acts = el("div", "sim-acts"); host.append(acts);
       button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; histT = 0; ev = null; mode = "open"; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; prevK = 0; });
@@ -4250,7 +4260,7 @@ window.PHYS_SYNC = {
           const tc = tau(mode), Qinf = mode === "charge" ? P.C * P.U0 : 0;
           Q = Qinf + (Q - Qinf) * Math.exp(-ds / tc);
         }
-        const K = 9 * Uc() / 12, dK = K - prevK; prevK = K; // eine Elektronen-Abstandseinheit pro Platzstelle auf der Platte
+        const dK = (Q - prevK) / 600; prevK = Q; // Tempo der Elektronen ∝ Stromstärke: eine Abstandseinheit je 600 µC
         if (mode !== "open") { const a = SP * (mode === "charge" ? dK : -dK); moveElectrons(EL, mode, a); if (Math.abs(a) > 1e-6) EL.sg = Math.sign(a); }
         electronEnergy(EL, mode, P.U0, Uc(), dt, blade);
         histT += ds;
@@ -4566,7 +4576,7 @@ window.PHYS_SYNC = {
 
   // ============================================================ Kondensator-Labor
   K.add({
-    id: "kond", title: "Kondensator-Labor", desc: "Abstand, Fläche und Dielektrikum verändern: C, Q, U, E live", sheet: "kondensator",
+    id: "kond", el: true, title: "Kondensator-Labor", desc: "Abstand, Fläche und Dielektrikum verändern: C, Q, U, E live", sheet: "kondensator",
     icon: ICON('<path d="M4 9h16M4 15h16M12 3v6M12 15v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>'),
     make(host) {
       const W = 360, H = 260, st = stage(W, H);
@@ -4656,7 +4666,7 @@ window.PHYS_SYNC = {
 
   // ============================================================ Influenz, Polarisation, Faraday
   K.add({
-    id: "pol", title: "Influenz & Polarisation", desc: "Animationen: Ladungstrennung, Dipole im Dielektrikum, Faradayscher Käfig", sheet: "influenz",
+    id: "pol", el: true, title: "Influenz & Polarisation", desc: "Animationen: Ladungstrennung, Dipole im Dielektrikum, Faradayscher Käfig", sheet: "influenz",
     icon: ICON('<circle cx="9" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17 8v8M20 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     make(host) {
       let tab = "inf";
@@ -5168,7 +5178,7 @@ window.PHYS_SYNC = {
 
   // ============================================================ Reihen- und Parallelschaltung
   K.add({
-    id: "rp", title: "Reihe & Parallel", desc: "Zwei Kondensatoren schalten: Ladungen, Teilspannungen, Ersatzkapazität", sheet: "schaltung",
+    id: "rp", el: true, title: "Reihe & Parallel", desc: "Zwei Kondensatoren schalten: Ladungen, Teilspannungen, Ersatzkapazität", sheet: "schaltung",
     icon: ICON('<path d="M3 8h5M8 4v8M11 4v8M11 8h10M3 16h5M8 12v8M11 12v8M11 16h10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>'),
     make(host) {
       const st = stage(360, 240); host.append(st.c);

@@ -671,15 +671,14 @@
   });
   $("#form-register").addEventListener("submit", async e => {
     e.preventDefault();
-    const u = $("#reg-user").value.trim(), p = $("#reg-pw").value, p2 = $("#reg-pw2").value, inv = normCode($("#reg-invite").value);
+    const u = $("#reg-user").value.trim(), p = $("#reg-pw").value, p2 = $("#reg-pw2").value;
     if (!USER_RE.test(u)) { setStatus(ERR["bad username"], true); $("#reg-user").focus(); return; }
     if (p.length < 1) { setStatus(ERR["bad password"], true); $("#reg-pw").focus(); return; }
     if (p !== p2) { setStatus("Die beiden Passwörter stimmen nicht überein.", true); $("#reg-pw2").focus(); return; }
-    if (inv.length !== 8) { setStatus("Bitte den Einladungscode der Gruppe eintragen (8 Zeichen).", true); $("#reg-invite").focus(); return; }
     setStatus("Erstelle Konto …");
     try {
       // Fortschritt auf dem Gerät nur übernehmen, wenn er noch keinem anderen Konto gehört
-      const r = await rpc("lern_register", { p_user: u, p_pw: p, p_invite: inv, p_data: store.owner ? {} : payload() });
+      const r = await rpc("lern_register", { p_user: u, p_pw: p, p_invite: "", p_data: store.owner ? {} : payload() });
       if (!r || !r.ok) { setStatus(ERR[r && r.error] || "Das hat nicht geklappt.", true); return; }
       $("#reg-pw").value = ""; $("#reg-pw2").value = "";
       await afterLogin(r, true);

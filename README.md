@@ -54,7 +54,7 @@ Mit `node build.mjs` wird daraus `public/index.html` gebaut. Lokal testen: `pyth
 
 ## Konto und Rangliste
 
-- Registrieren mit **Benutzername und eigenem Passwort**, keine E-Mail. Dafür braucht man einmal den Einladungscode der Gruppe.
+- Registrieren mit **Benutzername und eigenem Passwort**, keine E-Mail..
 - Anmelden auf jedem Gerät mit Benutzername und Passwort, der Fortschritt wird synchronisiert.
 - Passwort und Benutzername lassen sich im Reiter „Konto“ ändern. Ohne E-Mail gibt es kein Zurücksetzen per Link.
 - **Rangliste** im gleichnamigen Reiter: Punkte aus Karteikasten (Fachnummer je Karte), Quiz (2), Rechentrainer (3), Schaltung beschriften (5), Zuordnen (3 pro Runde) und Klausur-Simulation (5 pro Notenpunkt). Wer nicht erscheinen will, schaltet das im Konto ab.

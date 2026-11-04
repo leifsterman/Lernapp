@@ -87,6 +87,7 @@ end; $$;
 
 -- Konten: Benutzername + selbst gewähltes Passwort (bcrypt über pgcrypto), Rangliste
 -- Siehe Migration "lernapp_accounts_leaderboard" im Supabase-Projekt. Funktionen:
+--   (Mindestlänge Benutzername 1, Passwort 1 – Migration lernapp_min_length_1)
 --   lern_register(p_user, p_pw, p_invite, p_data) -> {ok, code, name}   (braucht den Einladungscode)
 --   lern_login(p_user, p_pw)                      -> {ok, code, name}   (8 Fehlversuche = 5 Minuten Sperre)
 --   lern_set_login(p_code, p_user, p_pw)          -> {ok, name}         (Name/Passwort ändern, alter Lerncode aufwerten)

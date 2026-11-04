@@ -521,7 +521,7 @@
   const CFG = window.PHYS_SYNC;
   const normCode = s => (s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   const escH = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const USER_RE = /^[A-Za-z0-9ÄÖÜäöüß._-]{3,20}$/;
+  const USER_RE = /^[A-Za-z0-9ÄÖÜäöüß._-]{1,20}$/;
   async function rpc(fn, body) {
     const r = await fetch(CFG.url + "/rest/v1/rpc/" + fn, {
       method: "POST", keepalive: true,
@@ -641,8 +641,8 @@
   const ERR = {
     "username taken": "Dieser Benutzername ist schon vergeben.",
     "invite required": "Der Einladungscode stimmt nicht.",
-    "bad username": "Der Benutzername braucht 3 bis 20 Zeichen (Buchstaben, Ziffern, . _ -).",
-    "bad password": "Das Passwort braucht mindestens 6 Zeichen.",
+    "bad username": "Der Benutzername braucht 1 bis 20 Zeichen (Buchstaben, Ziffern, . _ -).",
+    "bad password": "Bitte ein Passwort eingeben.",
     "not signed in": "Du bist nicht mehr angemeldet. Bitte neu anmelden.",
     "data too large": "Zu viele Daten zum Speichern."
   };
@@ -673,7 +673,7 @@
     e.preventDefault();
     const u = $("#reg-user").value.trim(), p = $("#reg-pw").value, p2 = $("#reg-pw2").value, inv = normCode($("#reg-invite").value);
     if (!USER_RE.test(u)) { setStatus(ERR["bad username"], true); $("#reg-user").focus(); return; }
-    if (p.length < 6) { setStatus(ERR["bad password"], true); $("#reg-pw").focus(); return; }
+    if (p.length < 1) { setStatus(ERR["bad password"], true); $("#reg-pw").focus(); return; }
     if (p !== p2) { setStatus("Die beiden Passwörter stimmen nicht überein.", true); $("#reg-pw2").focus(); return; }
     if (inv.length !== 8) { setStatus("Bitte den Einladungscode der Gruppe eintragen (8 Zeichen).", true); $("#reg-invite").focus(); return; }
     setStatus("Erstelle Konto …");
@@ -700,7 +700,7 @@
     e.preventDefault();
     const u = $("#set-user").value.trim(), p = $("#set-pw").value, p2 = $("#set-pw2").value;
     if (!USER_RE.test(u)) { setStatus(ERR["bad username"], true); return; }
-    if (p.length < 6) { setStatus(ERR["bad password"], true); return; }
+    if (p.length < 1) { setStatus(ERR["bad password"], true); return; }
     if (p !== p2) { setStatus("Die beiden Passwörter stimmen nicht überein.", true); return; }
     try {
       const r = await rpc("lern_set_login", { p_code: store.sync.code, p_user: u, p_pw: p });

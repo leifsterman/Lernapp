@@ -157,19 +157,27 @@ h2 { font-size: 1rem; margin: 0; }
 .mini .slot .tab { top: -11px; font-size: .56rem; padding: 2px 3px 1px; min-width: 52%; }
 .mini .slot.sel { transform: none; }
 
-.topics { list-style: none; margin: 0; padding: 0; }
-.topics li { border-top: 1px solid var(--border); }
-.topics li:first-child { border-top: 0; }
-.topic { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; padding: 11px 0; cursor: pointer; --h: 210; }
-.topic input { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; }
-.topic .t-name { font-weight: 600; min-width: 0; display: flex; align-items: center; gap: 8px; }
-.topic .t-name::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: hsl(var(--h) 70% 58%); flex: none; }
-.topic .t-sub { grid-column: 2; color: var(--fg-dim); font-size: .85rem; min-width: 0; }
-.topic .t-stat { grid-column: 3; grid-row: 1; font-size: .85rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; text-align: right; }
-.topic .t-bar { grid-column: 2 / 4; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; display: flex; }
+.topics { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.topics li { min-width: 0; }
+.topic { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; align-items: center; padding: 10px 12px 10px 14px; cursor: pointer; --h: 210; height: 100%; box-sizing: border-box;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color .15s, background .15s, opacity .15s; opacity: .62; }
+.topic::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: hsl(var(--h) 70% 58%); }
+.topic:hover { opacity: 1; }
+.topic:has(input:checked) { opacity: 1; border-color: hsl(var(--h) 70% 58%); background: color-mix(in srgb, hsl(var(--h) 70% 58%) 13%, var(--surface)); }
+.topic:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.topic input { position: absolute; opacity: 0; pointer-events: none; }
+.topic .t-name { grid-column: 1 / 3; font-weight: 700; font-size: .88rem; min-width: 0; line-height: 1.25; overflow-wrap: break-word; hyphens: auto; }
+.topic .t-name::after { content: "✓"; display: inline-block; width: 16px; height: 16px; margin-left: 4px; border-radius: 50%; font-size: .66rem; line-height: 16px; text-align: center; vertical-align: 1px; background: hsl(var(--h) 70% 52%); color: #fff; opacity: 0; }
+.topic:has(input:checked) .t-name::after { opacity: 1; }
+.topic .t-sub { grid-column: 1; grid-row: 2; color: var(--fg-dim); font-size: .76rem; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topic .t-stat { grid-column: 2; grid-row: 2; font-size: .78rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; text-align: right; }
+.topic .t-bar { grid-column: 1 / 3; grid-row: 3; height: 5px; background: color-mix(in srgb, var(--fg) 10%, transparent); border-radius: 3px; overflow: hidden; display: flex; margin-top: 2px; }
 .t-bar .g { background: var(--b5); }
 .t-bar .y { background: var(--b3); }
 .t-bar .r { background: var(--b1); }
+.topics-panel .panel-head h2 { display: flex; align-items: baseline; gap: 8px; }
+.topics-panel .mini-actions { display: flex; gap: 14px; }
+@media (min-width: 720px) { .topics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 .start-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .btn { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; font-weight: 600; cursor: pointer; transition: transform .1s, border-color .15s, background .15s; }
@@ -571,6 +579,63 @@ html.nosync .cardtools { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .hfly .wing, .hfly .blur, .fly-wrap, .fly-shadow { animation: none; }
 }
+
+/* ---------- Taschenrechner ---------- */
+#calc-root[hidden] { display: none; }
+#calc-fab { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: max(14px, env(safe-area-inset-bottom, 0px)); z-index: 75; width: 54px; height: 54px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 10px 24px -8px rgba(0, 0, 0, .55); transition: transform .12s; }
+#calc-fab:hover { transform: scale(1.06); }
+#calc-fab.on { background: var(--surface); color: var(--accent); outline: 2px solid var(--accent); }
+#calc { --ck: #3a3f4b; --ck-fn: #2c313b; --ck-op: #566073; --lcd: #cfdcc4; --lcd-fg: #1c261a; --lcd-dim: rgba(28, 38, 26, .55);
+  position: fixed; z-index: 76; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(max(14px, env(safe-area-inset-bottom, 0px)) + 62px);
+  width: min(352px, calc(100vw - 16px)); max-height: calc(100dvh - 90px); overflow: auto; box-sizing: border-box;
+  background: linear-gradient(180deg, #2a2e37, #1b1e25); border: 1px solid #0c0e12; border-radius: 18px; padding: 10px 10px 12px; color: #eef1f6;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .08); font-family: var(--font); touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+#calc[hidden] { display: none; }
+:root:not([data-theme="light"]) #calc { --lcd: #1a2a21; --lcd-fg: #a9f0bd; --lcd-dim: rgba(169, 240, 189, .55); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) #calc { --lcd: #cfdcc4; --lcd-fg: #1c261a; --lcd-dim: rgba(28, 38, 26, .55); } }
+:root[data-theme="dark"] #calc { --lcd: #1a2a21; --lcd-fg: #a9f0bd; --lcd-dim: rgba(169, 240, 189, .55); }
+.c-head { display: flex; align-items: center; gap: 8px; padding: 0 2px 8px; cursor: grab; touch-action: none; }
+.c-brand { font-weight: 800; letter-spacing: .08em; font-size: .78rem; color: #c8cfdb; white-space: nowrap; }
+.c-brand b { color: #5aa9ff; } .c-brand i { font-weight: 600; color: #8b93a3; margin-left: 4px; }
+.c-solar { flex: 1; height: 16px; border-radius: 4px; background: repeating-linear-gradient(90deg, #3b2a1e 0 12px, #1d1510 12px 14px); opacity: .85; border: 1px solid #0c0e12; }
+.c-ic { appearance: none; width: 30px; height: 30px; border-radius: 8px; border: 0; background: #2f343e; color: #d7dce6; display: grid; place-items: center; cursor: pointer; }
+.c-ic:hover { background: #3b4150; }
+.c-lcd { background: var(--lcd); color: var(--lcd-fg); border-radius: 8px; padding: 6px 10px 8px; box-shadow: inset 0 3px 8px rgba(0, 0, 0, .45); margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+.c-flags { display: flex; gap: 10px; font-size: .62rem; font-weight: 700; letter-spacing: .06em; color: var(--lcd-dim); }
+.c-flags span { opacity: .35; } .c-flags span.on, .c-flags [data-f="mode"], .c-flags [data-f="fmt"] { opacity: .9; }
+.c-expr { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 1.05rem; min-height: 1.5em; line-height: 1.5; white-space: nowrap; overflow-x: auto; scrollbar-width: none; text-align: right; }
+.c-expr::-webkit-scrollbar { display: none; }
+.c-expr sup, .c-res sup { font-size: .68em; line-height: 0; }
+.c-res { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 1.9rem; font-weight: 600; text-align: right; line-height: 1.25; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.c-res.err { font-size: 1.1rem; color: #b3261e; padding: 8px 0; }
+:root:not([data-theme="light"]) .c-res.err { color: #ff8a80; }
+.c-keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.ck { position: relative; appearance: none; border: 0; border-radius: 9px; height: 40px; background: var(--ck); color: #f1f3f7; font: 600 1rem var(--font); cursor: pointer; box-shadow: 0 2px 0 rgba(0, 0, 0, .55); padding: 0; transition: transform .05s, filter .1s; }
+.ck:active { transform: translateY(2px); box-shadow: 0 0 0 rgba(0, 0, 0, 0); filter: brightness(1.2); }
+.ck:focus-visible { outline: 2px solid #5aa9ff; outline-offset: 1px; }
+.ck small { position: absolute; top: 1px; left: 0; right: 0; text-align: center; font-size: .56rem; font-weight: 700; color: #f2b84b; line-height: 1.2; }
+.ck.mode, .ck.fn { background: var(--ck-fn); font-size: .86rem; }
+.ck.mode { font-size: .74rem; letter-spacing: .02em; color: #c4cada; }
+.ck.fn small { top: 2px; } .ck.fn span { display: block; margin-top: 8px; }
+.ck.mode span { margin-top: 0; }
+.ck.num { background: #4a505e; font-size: 1.15rem; }
+.ck.op { background: var(--ck-op); font-size: 1.2rem; }
+.ck.del { background: #c1502f; } .ck.eq { background: #2f7de1; font-size: 1.3rem; }
+.ck.act { background: #f2b84b; color: #20170a; }
+.ck.sh small { color: #ffd27a; text-shadow: 0 0 6px rgba(242, 184, 75, .55); }
+.c-pop { position: absolute; left: 10px; right: 10px; top: 92px; bottom: 12px; z-index: 3; background: #20242c; border: 1px solid #0c0e12; border-radius: 12px; overflow: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, .6); padding: 6px; }
+.c-pop[hidden] { display: none; }
+.c-pop-h { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: .8rem; color: #aab2c2; padding: 6px 8px; }
+.c-clear { appearance: none; border: 0; background: transparent; color: #8fb6ff; font-weight: 600; cursor: pointer; font-size: .78rem; }
+.c-row { appearance: none; display: grid; grid-template-columns: 34px 1fr; gap: 0 8px; width: 100%; text-align: left; background: transparent; border: 0; border-top: 1px solid #2d323d; color: #eef1f6; padding: 8px; cursor: pointer; border-radius: 8px; font: inherit; }
+.c-row:hover { background: #2b303b; }
+.c-row b { grid-row: 1 / 3; align-self: center; font-size: 1rem; color: #8fb6ff; }
+.c-row span { font-size: .78rem; color: #c3c9d6; } .c-row em { font-style: normal; font-size: .74rem; color: #8b93a3; font-variant-numeric: tabular-nums; }
+.c-row.hist { grid-template-columns: 1fr; } .c-row.hist .he { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .86rem; color: #c3c9d6; overflow-x: auto; white-space: nowrap; } .c-row.hist em { font-size: .95rem; color: #a9f0bd; }
+.c-none { color: #8b93a3; font-size: .85rem; padding: 10px; margin: 0; }
+@media (max-width: 380px) { .ck { height: 37px; } .c-res { font-size: 1.6rem; } }
+@media (max-height: 640px) { .ck { height: 34px; } .ck.fn span { margin-top: 6px; } }
 </style></head><body>
   <div id="splash" class="splash" role="status" aria-label="App wird geladen">
     <div class="splash-in">
@@ -676,6 +741,14 @@ html.nosync .cardtools { display: none; }
 
       <!-- Tab: Lernen -->
       <div class="tabpane" id="tab-learn">
+        <div class="panel topics-panel">
+          <div class="panel-head">
+            <h2>Themen <span class="fine nomargin" id="topics-sel"></span></h2>
+            <span class="mini-actions"><button type="button" id="sel-all" class="link">Alle</button><button type="button" id="sel-none" class="link">Keine</button></span>
+          </div>
+          <ul id="topic-list" class="topics"></ul>
+        </div>
+
         <div class="panel filter">
           <div class="panel-head"><h2>Einstellungen</h2><span class="fine nomargin" id="filter-summary"></span></div>
           <div class="frow">
@@ -693,12 +766,14 @@ html.nosync .cardtools { display: none; }
               <button type="button" class="chip" data-kind="rechnen" aria-pressed="true">Rechnen</button>
             </div>
           </div>
-          <details class="topics-details">
-            <summary>Themen <span id="topics-sel"></span></summary>
-            <div class="mini-actions"><button type="button" id="sel-all" class="link">Alle</button><button type="button" id="sel-none" class="link">Keine</button></div>
-            <ul id="topic-list" class="topics"></ul>
-          </details>
-          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ gilt nur für den Karteikasten, der Rechentrainer rechnet immer.</p>
+          <div class="frow">
+            <span class="flabel">Taschenrechner</span>
+            <div class="chips" id="chips-calc" role="group" aria-label="Taschenrechner">
+              <button type="button" class="chip" data-calc="1" aria-pressed="true">Mit</button>
+              <button type="button" class="chip" data-calc="0" aria-pressed="false">Ohne</button>
+            </div>
+          </div>
+          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ gilt nur für den Karteikasten, der Rechentrainer rechnet immer. „Ohne“ blendet den Taschenrechner überall aus (wie in der Klausur ohne GTR).</p>
         </div>
 
         <div class="panel drawer-panel">
@@ -2239,6 +2314,425 @@ window.PHYS_SYNC = {
 })();
 
 ;
+/* Taschenrechner (wissenschaftlich, Casio-Stil). Eigener Parser, kein eval.
+   Außen: window.PHYS_CALC.enable(true|false) blendet den Rechner ein oder aus. */
+(function () {
+  "use strict";
+  const SKEY = "physikq1.calc";
+  let st = { deg: true, sci: false, mem: 0, hist: [], x: null, y: null };
+  try { Object.assign(st, JSON.parse(localStorage.getItem(SKEY) || "{}")); } catch (e) { /* ohne Speicher */ }
+  const persist = () => { try { localStorage.setItem(SKEY, JSON.stringify({ deg: st.deg, sci: st.sci, mem: st.mem, hist: st.hist.slice(0, 30), x: st.x, y: st.y })); } catch (e) { /* ignorieren */ } };
+
+  // ---------------------------------------------------------------- Rechnen
+  const CONST = [
+    ["ε₀", "Elektrische Feldkonstante", 8.8541878128e-12, "F/m"],
+    ["e", "Elementarladung", 1.602176634e-19, "C"],
+    ["k", "Coulomb-Konstante 1/(4πε₀)", 8.9875517923e9, "N·m²/C²"],
+    ["g", "Ortsfaktor", 9.81, "m/s²"],
+    ["mₑ", "Elektronenmasse", 9.1093837015e-31, "kg"],
+    ["mₚ", "Protonenmasse", 1.67262192369e-27, "kg"],
+    ["c", "Lichtgeschwindigkeit", 299792458, "m/s"],
+    ["µ₀", "Magnetische Feldkonstante", 1.25663706212e-6, "N/A²"],
+    ["h", "Planck-Konstante", 6.62607015e-34, "J·s"],
+    ["Nₐ", "Avogadro-Konstante", 6.02214076e23, "1/mol"]
+  ];
+  const FUN = { sin: 1, cos: 1, tan: 1, asin: 1, acos: 1, atan: 1, log: 1, ln: 1, sqrt: 1, cbrt: 1, tenx: 1, expx: 1 };
+
+  function fact(n) {
+    if (n < 0 || Math.abs(n - Math.round(n)) > 1e-12 || n > 170) throw new Error("Math-Fehler");
+    let r = 1; for (let i = 2; i <= Math.round(n); i++) r *= i; return r;
+  }
+  function evaluate(src, ans) {
+    // Tokenizer
+    const toks = []; let i = 0;
+    while (i < src.length) {
+      const rest = src.slice(i);
+      let m = /^(\d+\.?\d*|\.\d+)(E[+-]?\d+)?/.exec(rest);
+      if (m) { toks.push({ t: "n", v: parseFloat(m[0].replace("E", "e")) }); i += m[0].length; continue; }
+      m = /^(asin|acos|atan|sin|cos|tan|log|ln|sqrt|cbrt|tenx|expx|pi|Ans|X|Y)/.exec(rest);
+      if (m) { toks.push({ t: FUN[m[1]] ? "f" : "c", v: m[1] }); i += m[1].length; if (FUN[m[1]]) { if (src[i] === "(") i++; } continue; }
+      const ch = src[i];
+      if ("+-*/^~()!%e".includes(ch)) { toks.push({ t: ch === "e" ? "c" : "o", v: ch }); i++; continue; }
+      throw new Error("Syntax-Fehler");
+    }
+    let p = 0;
+    const peek = () => toks[p];
+    const toRad = x => (st.deg ? x * Math.PI / 180 : x);
+    const fromRad = x => (st.deg ? x * 180 / Math.PI : x);
+    function applyF(f, x) {
+      switch (f) {
+        case "sin": { const r = Math.sin(toRad(x)); return st.deg && Math.abs(x % 180) === 0 ? 0 : r; }
+        case "cos": return st.deg && Math.abs((x - 90) % 180) === 0 ? 0 : Math.cos(toRad(x));
+        case "tan": if (st.deg && Math.abs((x - 90) % 180) === 0) throw new Error("Math-Fehler"); return st.deg && x % 180 === 0 ? 0 : Math.tan(toRad(x));
+        case "asin": if (Math.abs(x) > 1) throw new Error("Math-Fehler"); return fromRad(Math.asin(x));
+        case "acos": if (Math.abs(x) > 1) throw new Error("Math-Fehler"); return fromRad(Math.acos(x));
+        case "atan": return fromRad(Math.atan(x));
+        case "log": if (x <= 0) throw new Error("Math-Fehler"); return Math.log10(x);
+        case "ln": if (x <= 0) throw new Error("Math-Fehler"); return Math.log(x);
+        case "sqrt": if (x < 0) throw new Error("Math-Fehler"); return Math.sqrt(x);
+        case "cbrt": return Math.cbrt(x);
+        case "tenx": return Math.pow(10, x);
+        case "expx": return Math.exp(x);
+      }
+    }
+    function expr() {
+      let v = term();
+      for (;;) {
+        const t = peek();
+        if (t && t.t === "o" && (t.v === "+" || t.v === "-")) { p++; const r = term(); v = t.v === "+" ? v + r : v - r; } else return v;
+      }
+    }
+    function startsFactor(t) { return t && (t.t === "n" || t.t === "c" || t.t === "f" || (t.t === "o" && t.v === "(")); }
+    function term() {
+      let v = unary();
+      for (;;) {
+        const t = peek();
+        if (t && t.t === "o" && (t.v === "*" || t.v === "/")) {
+          p++; const r = unary();
+          if (t.v === "/" && r === 0) throw new Error("Math-Fehler: Division durch 0");
+          v = t.v === "*" ? v * r : v / r;
+        } else if (startsFactor(t)) { v = v * unary(); } // 2π, 2(3), 3sin(…)
+        else return v;
+      }
+    }
+    function unary() {
+      const t = peek();
+      if (t && t.t === "o" && (t.v === "-" || t.v === "+")) { p++; const v = unary(); return t.v === "-" ? -v : v; }
+      return power();
+    }
+    function power() {
+      let b = postfix();
+      const t = peek();
+      if (t && t.t === "o" && t.v === "^") {
+        p++;
+        const e = unarySignedPower(); // rechtsassoziativ, erlaubt 2^-3
+        const r = Math.pow(b, e);
+        if (!isFinite(r) && isFinite(b) && isFinite(e)) throw new Error("Math-Fehler");
+        return r;
+      }
+      if (t && t.t === "o" && t.v === "~") { // n ˣ√ x  =  x^(1/n)
+        p++; const x = unarySignedPower();
+        if (b === 0) throw new Error("Math-Fehler");
+        if (x < 0 && Math.abs(b % 2) === 1) return -Math.pow(-x, 1 / b);
+        if (x < 0) throw new Error("Math-Fehler");
+        return Math.pow(x, 1 / b);
+      }
+      return b;
+    }
+    function unarySignedPower() {
+      const t = peek();
+      if (t && t.t === "o" && (t.v === "-" || t.v === "+")) { p++; const v = unarySignedPower(); return t.v === "-" ? -v : v; }
+      return power();
+    }
+    function postfix() {
+      let v = primary();
+      for (;;) {
+        const t = peek();
+        if (t && t.t === "o" && t.v === "!") { p++; v = fact(v); }
+        else if (t && t.t === "o" && t.v === "%") { p++; v = v / 100; }
+        else return v;
+      }
+    }
+    function primary() {
+      const t = toks[p++];
+      if (!t) throw new Error("Syntax-Fehler");
+      if (t.t === "n") return t.v;
+      if (t.t === "c") {
+        if (t.v === "pi") return Math.PI;
+        if (t.v === "e") return Math.E;
+        if (t.v === "Ans") return ans;
+        if (t.v === "X") return st.x == null ? 0 : st.x;
+        if (t.v === "Y") return st.y == null ? 0 : st.y;
+      }
+      if (t.t === "f") { const x = parenBody(); return applyF(t.v, x); }
+      if (t.t === "o" && t.v === "(") { const x = parenBody(); return x; }
+      throw new Error("Syntax-Fehler");
+    }
+    // Innenteil bis ")" – fehlende Klammern am Ende werden automatisch geschlossen
+    function parenBody() {
+      const v = expr();
+      const t = peek();
+      if (t && t.t === "o" && t.v === ")") p++;
+      return v;
+    }
+    const r = expr();
+    if (p < toks.length) throw new Error("Syntax-Fehler");
+    if (!isFinite(r) || isNaN(r)) throw new Error("Math-Fehler");
+    return r;
+  }
+
+  // ---------------------------------------------------------------- Format
+  const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  function sciParts(x, sig) {
+    const e = Math.floor(Math.log10(Math.abs(x)));
+    let m = x / Math.pow(10, e), ee = e;
+    let ms = m.toPrecision(sig);
+    if (Math.abs(parseFloat(ms)) >= 10) { ee++; ms = (m / 10).toPrecision(sig); }
+    return { m: ms.replace(/\.?0+$/, "").replace(".", ","), e: ee };
+  }
+  function fmt(x) { // liefert HTML
+    if (x === 0) return "0";
+    const a = Math.abs(x);
+    if (st.sci || a < 1e-4 || a >= 1e10) {
+      const q = sciParts(x, st.sci ? 4 : 10);
+      return q.m + "·10<sup>" + q.e + "</sup>";
+    }
+    let s = parseFloat(x.toPrecision(10)).toString();
+    if (s.includes("e")) { const q = sciParts(x, 10); return q.m + "·10<sup>" + q.e + "</sup>"; }
+    return s.replace(".", ",");
+  }
+  function plainNum(x) { // für Verlauf/Einfügen: Zahl als Eingabe-Zeichenfolge
+    const s = parseFloat(x.toPrecision(12)).toString();
+    return s.replace("e+", "E").replace("e-", "E-");
+  }
+
+  // ---------------------------------------------------------------- Zustand der Eingabe
+  // Jeder Token: { d: Anzeige (HTML), v: Wert für den Parser, k: Art }
+  let toks = [], justEvaluated = false, shift = false, lastAns = 0, resultHtml = "", errMsg = "", enabled = true, open = false;
+  const T = (d, v, k) => ({ d, v, k: k || "x" });
+  const FUNC_T = {
+    sin: T("sin(", "sin(", "f"), cos: T("cos(", "cos(", "f"), tan: T("tan(", "tan(", "f"),
+    asin: T("sin⁻¹(", "asin(", "f"), acos: T("cos⁻¹(", "acos(", "f"), atan: T("tan⁻¹(", "atan(", "f"),
+    log: T("log(", "log(", "f"), ln: T("ln(", "ln(", "f"), tenx: T("10<sup>(</sup>", "tenx(", "f"), expx: T("e<sup>(</sup>", "expx(", "f"),
+    sqrt: T("√(", "sqrt(", "f"), cbrt: T("³√(", "cbrt(", "f")
+  };
+  const isDigit = t => t && t.k === "d";
+  function renderExpr() {
+    let h = "", inExp = false, first = false;
+    toks.forEach(t => {
+      if (t.k === "E") { h += "·10"; inExp = true; first = true; return; }
+      if (inExp && (isDigit(t) || (first && t.v === "-"))) { h += "<sup>" + t.d + "</sup>"; first = false; return; }
+      inExp = false; h += t.d;
+    });
+    return h;
+  }
+
+  // ---------------------------------------------------------------- Oberfläche
+  const root = document.createElement("div");
+  root.id = "calc-root";
+  root.innerHTML =
+    '<button type="button" id="calc-fab" aria-label="Taschenrechner öffnen" aria-expanded="false" title="Taschenrechner (Taste C)">' +
+      '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="8" y="5.5" width="8" height="3.5" rx=".8" fill="currentColor"/><g fill="currentColor"><circle cx="8.8" cy="13" r="1.1"/><circle cx="12" cy="13" r="1.1"/><circle cx="15.2" cy="13" r="1.1"/><circle cx="8.8" cy="16.6" r="1.1"/><circle cx="12" cy="16.6" r="1.1"/><circle cx="15.2" cy="16.6" r="1.1"/></g></svg>' +
+    "</button>" +
+    '<section id="calc" role="dialog" aria-label="Taschenrechner" hidden>' +
+      '<header class="c-head" id="calc-drag">' +
+        '<span class="c-brand">PHYS<b>·</b>CALC <i>fx</i></span>' +
+        '<span class="c-solar" aria-hidden="true"></span>' +
+        '<button type="button" class="c-ic" data-act="hist" aria-label="Verlauf" title="Verlauf"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 7v5l3 2M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+        '<button type="button" class="c-ic" data-act="close" aria-label="Schließen" title="Schließen (Esc)"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>' +
+      "</header>" +
+      '<div class="c-lcd" aria-live="polite">' +
+        '<div class="c-flags"><span data-f="shift">2nd</span><span data-f="mode">DEG</span><span data-f="fmt">NORM</span><span data-f="mem">M</span></div>' +
+        '<div class="c-expr" id="c-expr"></div>' +
+        '<div class="c-res" id="c-res">0</div>' +
+      "</div>" +
+      '<div class="c-pop" id="c-pop" hidden></div>' +
+      '<div class="c-keys" id="c-keys"></div>' +
+    "</section>";
+  document.body.appendChild(root);
+  const $ = s => root.querySelector(s);
+  const panel = $("#calc"), fab = $("#calc-fab"), exprEl = $("#c-expr"), resEl = $("#c-res"), pop = $("#c-pop");
+
+  // Tasten: [Beschriftung, 2nd-Beschriftung, Aktion, 2nd-Aktion, Klasse]
+  const KEYS = [
+    ["2nd", "", "shift", "", "mode"], ["DEG", "", "deg", "", "mode"], ["NORM", "", "fmt", "", "mode"], ["π", "e", "pi", "e", "fn"], ["Konst", "", "const", "", "mode"],
+    ["sin", "sin⁻¹", "f:sin", "f:asin", "fn"], ["cos", "cos⁻¹", "f:cos", "f:acos", "fn"], ["tan", "tan⁻¹", "f:tan", "f:atan", "fn"], ["log", "10ˣ", "f:log", "f:tenx", "fn"], ["ln", "eˣ", "f:ln", "f:expx", "fn"],
+    ["x²", "x³", "t:^2", "t:^3", "fn"], ["xʸ", "ˣ√y", "t:^", "t:~", "fn"], ["√", "³√", "f:sqrt", "f:cbrt", "fn"], ["(", "", "t:(", "", "fn"], [")", "", "t:)", "", "fn"],
+    ["x⁻¹", "", "t:^-1", "", "fn"], ["n!", "", "t:!", "", "fn"], ["%", "", "t:%", "", "fn"], ["M+", "M−", "m+", "m-", "fn"], ["MR", "MC", "mr", "mc", "fn"],
+    ["7", "", "d:7", "", "num"], ["8", "", "d:8", "", "num"], ["9", "", "d:9", "", "num"], ["DEL", "", "del", "", "del"], ["AC", "", "ac", "", "del"],
+    ["4", "", "d:4", "", "num"], ["5", "", "d:5", "", "num"], ["6", "", "d:6", "", "num"], ["×", "", "o:*", "", "op"], ["÷", "", "o:/", "", "op"],
+    ["1", "", "d:1", "", "num"], ["2", "", "d:2", "", "num"], ["3", "", "d:3", "", "num"], ["+", "", "o:+", "", "op"], ["−", "", "o:-", "", "op"],
+    ["0", "", "d:0", "", "num"], [",", "", "d:.", "", "num"], ["×10ˣ", "", "exp", "", "fn"], ["Ans", "", "ans", "", "fn"], ["=", "", "eq", "", "eq"]
+  ];
+  $("#c-keys").innerHTML = KEYS.map((k, i) =>
+    '<button type="button" class="ck ' + k[4] + '" data-i="' + i + '">' + (k[1] ? '<small>' + k[1] + "</small>" : "") + "<span>" + k[0] + "</span></button>").join("");
+
+  function updateFlags() {
+    root.querySelector('[data-f="shift"]').classList.toggle("on", shift);
+    root.querySelector('[data-f="mode"]').textContent = st.deg ? "DEG" : "RAD";
+    root.querySelector('[data-f="fmt"]').textContent = st.sci ? "SCI" : "NORM";
+    root.querySelector('[data-f="mem"]').classList.toggle("on", !!st.mem);
+    const set = (i, txt) => { const b = root.querySelector('.ck[data-i="' + i + '"] span'); if (b) b.textContent = txt; };
+    set(1, st.deg ? "DEG" : "RAD"); set(2, st.sci ? "SCI" : "NORM");
+    root.querySelector('.ck[data-i="0"]').classList.toggle("act", shift);
+    root.querySelectorAll(".ck").forEach(b => b.classList.toggle("sh", shift));
+  }
+  function show() {
+    exprEl.innerHTML = renderExpr() || "&nbsp;";
+    if (errMsg) { resEl.textContent = errMsg; resEl.classList.add("err"); }
+    else { resEl.innerHTML = resultHtml || "0"; resEl.classList.remove("err"); }
+    exprEl.scrollLeft = exprEl.scrollWidth;
+    updateFlags();
+  }
+  function srcOf() { return toks.map(t => t.v).join(""); }
+  function liveCalc() { // Vorschau, solange man tippt
+    errMsg = "";
+    if (!toks.length) { resultHtml = justEvaluated ? resultHtml : ""; return; }
+    try { resultHtml = fmt(evaluate(srcOf(), lastAns)); } catch (e) { /* unvollständig: Ergebnis bleibt stehen */ }
+  }
+  function insertTok(t, startsNew) {
+    if (justEvaluated) {
+      justEvaluated = false;
+      if (!startsNew) toks = [T("Ans", "Ans", "c")]; // Rechnen mit dem letzten Ergebnis weiter
+      else toks = [];
+    }
+    errMsg = "";
+    toks.push(t);
+    liveCalc(); show();
+  }
+  function equals() {
+    if (!toks.length) return;
+    try {
+      const v = evaluate(srcOf(), lastAns);
+      const disp = renderExpr();
+      resultHtml = fmt(v);
+      st.hist.unshift({ e: disp, r: resultHtml, v: plainNum(v) });
+      st.hist = st.hist.slice(0, 30);
+      lastAns = v; justEvaluated = true; errMsg = "";
+      persist();
+    } catch (e) { errMsg = e.message || "Fehler"; }
+    show();
+  }
+  function setShift(v) { shift = v; updateFlags(); }
+  function memAdd(sign) {
+    let v;
+    try { v = toks.length ? evaluate(srcOf(), lastAns) : lastAns; } catch (e) { errMsg = "Math-Fehler"; show(); return; }
+    st.mem += sign * v; persist(); updateFlags();
+  }
+  function act(a) {
+    if (a === "shift") { setShift(!shift); return; }
+    const was = shift; setShift(false);
+    if (a === "deg") { st.deg = !st.deg; persist(); liveCalc(); show(); return; }
+    if (a === "fmt") { st.sci = !st.sci; persist(); if (justEvaluated) { try { resultHtml = fmt(lastAns); } catch (e) { /* */ } } else liveCalc(); show(); return; }
+    if (a === "const") { togglePop("const"); return; }
+    if (a === "pi") { insertTok(was ? T("e", "e", "c") : T("π", "pi", "c"), true); return; }
+    if (a === "e") { insertTok(T("e", "e", "c"), true); return; }
+    if (a === "ac") { toks = []; resultHtml = ""; errMsg = ""; justEvaluated = false; show(); return; }
+    if (a === "del") {
+      if (justEvaluated) { toks = []; resultHtml = ""; justEvaluated = false; show(); return; }
+      toks.pop(); errMsg = ""; resultHtml = ""; liveCalc(); show(); return;
+    }
+    if (a === "eq") { equals(); return; }
+    if (a === "ans") { insertTok(T("Ans", "Ans", "c"), true); return; }
+    if (a === "exp") {
+      const last = toks[toks.length - 1];
+      if (justEvaluated || !(last && (isDigit(last) || last.d === ")"))) insertTok(T("1", "1", "d"), true);
+      insertTok(T("·10", "E", "E"), false); return;
+    }
+    if (a === "m+") { memAdd(1); return; }
+    if (a === "m-") { memAdd(-1); return; }
+    if (a === "mc") { st.mem = 0; persist(); updateFlags(); return; }
+    if (a === "mr") { insertTok(T(esc(fmt(st.mem).replace(/<[^>]+>/g, "")), "(" + plainNum(st.mem) + ")", "c"), true); return; }
+    const [k, arg] = [a.slice(0, a.indexOf(":")), a.slice(a.indexOf(":") + 1)];
+    if (k === "d") { insertTok(T(arg === "." ? "," : arg, arg, "d"), true); return; }
+    if (k === "o") { // Operator: nach "=" mit Ans weiterrechnen
+      insertTok(T(arg === "*" ? "×" : arg === "/" ? "÷" : arg === "-" ? "−" : arg, arg, "o"), false); return;
+    }
+    if (k === "f") { insertTok(FUNC_T[arg], true); return; }
+    if (k === "t") {
+      const map = { "^2": ["<sup>2</sup>", "^2"], "^3": ["<sup>3</sup>", "^3"], "^-1": ["<sup>−1</sup>", "^(-1)"], "^": ["^", "^"], "~": ["ˣ√", "~"], "!": ["!", "!"], "%": ["%", "%"], "(": ["(", "("], ")": [")", ")"] };
+      const m = map[arg];
+      insertTok(T(m[0], m[1], "o"), arg === "(");
+      return;
+    }
+  }
+
+  $("#c-keys").addEventListener("click", e => {
+    const b = e.target.closest(".ck"); if (!b) return;
+    const k = KEYS[+b.dataset.i];
+    const a = shift && k[3] ? k[3] : k[2];
+    closePop();
+    act(a);
+  });
+
+  // Popups: Konstanten und Verlauf
+  function closePop() { pop.hidden = true; pop.dataset.kind = ""; }
+  function togglePop(kind) {
+    if (!pop.hidden && pop.dataset.kind === kind) { closePop(); return; }
+    pop.dataset.kind = kind; pop.hidden = false;
+    if (kind === "const") {
+      pop.innerHTML = '<div class="c-pop-h">Konstanten einfügen</div>' + CONST.map((c, i) =>
+        '<button type="button" class="c-row" data-const="' + i + '"><b>' + c[0] + "</b><span>" + c[1] + '</span><em>' + fmt(c[2]) + " " + c[3] + "</em></button>").join("");
+    } else {
+      pop.innerHTML = '<div class="c-pop-h">Verlauf <button type="button" class="c-clear" data-clear="1">Leeren</button></div>' +
+        (st.hist.length ? st.hist.map((h, i) => '<button type="button" class="c-row hist" data-hist="' + i + '"><span class="he">' + h.e + '</span><em>= ' + h.r + "</em></button>").join("") : '<p class="c-none">Noch nichts gerechnet.</p>');
+    }
+  }
+  pop.addEventListener("click", e => {
+    const c = e.target.closest("[data-const]");
+    if (c) { const k = CONST[+c.dataset.const]; insertTok(T(k[0], "(" + plainNum(k[2]) + ")", "c"), true); closePop(); return; }
+    const h = e.target.closest("[data-hist]");
+    if (h) { const x = st.hist[+h.dataset.hist]; insertTok(T(x.r, "(" + x.v + ")", "c"), true); closePop(); return; }
+    if (e.target.closest("[data-clear]")) { st.hist = []; persist(); togglePop("hist"); togglePop("hist"); }
+  });
+
+  // Öffnen, Schließen, Ziehen
+  function setOpen(v) {
+    open = v && enabled;
+    panel.hidden = !open;
+    fab.setAttribute("aria-expanded", String(open));
+    fab.classList.toggle("on", open);
+    if (!open) closePop();
+    if (open) show();
+  }
+  fab.addEventListener("click", () => setOpen(!open));
+  root.querySelector('[data-act="close"]').addEventListener("click", () => setOpen(false));
+  root.querySelector('[data-act="hist"]').addEventListener("click", () => togglePop("hist"));
+  exprEl.addEventListener("click", () => closePop());
+
+  // Verschieben am Kopf (Maus und Touch)
+  (function drag() {
+    const h = $("#calc-drag"); let sx, sy, ox, oy, on = false;
+    h.addEventListener("pointerdown", e => {
+      if (e.target.closest("button")) return;
+      const r = panel.getBoundingClientRect(); on = true; sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top;
+      h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener("pointermove", e => {
+      if (!on) return;
+      const w = panel.offsetWidth, hh = panel.offsetHeight;
+      const x = Math.min(Math.max(0, ox + e.clientX - sx), innerWidth - w);
+      const y = Math.min(Math.max(0, oy + e.clientY - sy), innerHeight - hh);
+      panel.style.left = x + "px"; panel.style.top = y + "px"; panel.style.right = "auto"; panel.style.bottom = "auto";
+    });
+    const end = () => { on = false; };
+    h.addEventListener("pointerup", end); h.addEventListener("pointercancel", end);
+  })();
+
+  // Tastatur (nur wenn kein Eingabefeld der Seite den Fokus hat)
+  document.addEventListener("keydown", e => {
+    const tg = e.target, typing = tg && (tg.tagName === "INPUT" || tg.tagName === "TEXTAREA" || tg.isContentEditable);
+    if (!enabled || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!open) { if (!typing && (e.key === "c" || e.key === "C") && !document.querySelector(".dlg:not([hidden])")) { setOpen(true); e.preventDefault(); } return; }
+    if (e.key === "Escape") { if (!pop.hidden) closePop(); else setOpen(false); return; }
+    if (typing && !panel.contains(tg)) return;
+    if (tg && tg.tagName === "BUTTON" && (e.key === "Enter" || e.key === " ")) return; // Taste auslösen lassen
+    const k = e.key; let a = null;
+    if (/^[0-9]$/.test(k)) a = "d:" + k;
+    else if (k === "." || k === ",") a = "d:.";
+    else if (k === "+") a = "o:+"; else if (k === "-") a = "o:-"; else if (k === "*") a = "o:*"; else if (k === "/") a = "o:/";
+    else if (k === "^") a = "t:^"; else if (k === "(") a = "t:("; else if (k === ")") a = "t:)"; else if (k === "!") a = "t:!"; else if (k === "%") a = "t:%";
+    else if (k === "Enter" || k === "=") a = "eq";
+    else if (k === "Backspace") a = "del";
+    else if (k === "Delete") a = "ac";
+    else if (k === "p" || k === "P") a = "pi";
+    if (a) { e.preventDefault(); closePop(); act(a); }
+  });
+
+  window.PHYS_CALC = {
+    enable(v) {
+      enabled = !!v;
+      root.hidden = !enabled;
+      if (!enabled) setOpen(false);
+    },
+    open: () => setOpen(true),
+    evaluate: (s, a) => evaluate(s, a || 0)
+  };
+  root.hidden = false;
+  updateFlags();
+})();
+
+;
 /* Physik-Lernapp: Karteikasten (Leitner, 5 Fächer), Lernrunden, Sync. */
 (function () {
   "use strict";
@@ -2252,7 +2746,7 @@ window.PHYS_SYNC = {
   const BOX_TAB = ["Neu", "Fach 1", "Fach 2", "Fach 3", "Fach 4", "Fach 5"];
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], tab: "learn", stats: {}, hidden: {}, ghidden: {} };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], calc: true, tab: "learn", stats: {}, hidden: {}, ghidden: {} };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -2428,6 +2922,8 @@ window.PHYS_SYNC = {
   function refreshFilters() {
     document.querySelectorAll("#chips-level .chip").forEach(b => b.setAttribute("aria-pressed", store.levels.includes(+b.dataset.lvl)));
     document.querySelectorAll("#chips-kind .chip").forEach(b => b.setAttribute("aria-pressed", store.kinds.includes(b.dataset.kind)));
+    document.querySelectorAll("#chips-calc .chip").forEach(b => b.setAttribute("aria-pressed", (b.dataset.calc === "1") === !!store.calc));
+    if (window.PHYS_CALC) window.PHYS_CALC.enable(!!store.calc);
     $("#topics-sel").textContent = "(" + store.sel.length + " von " + TOPICS.length + ")";
     const lv = store.levels.length === 3 ? "alle Stufen" : store.levels.map(l => LVL_NAME[l]).join(" + ");
     $("#filter-summary").textContent = lv;
@@ -2460,6 +2956,10 @@ window.PHYS_SYNC = {
   $("#chips-level").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
     store.levels = toggleIn(store.levels.slice(), +b.dataset.lvl).sort(); save(); renderTopics();
+  });
+  $("#chips-calc").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    store.calc = b.dataset.calc === "1"; save(); refreshFilters();
   });
   $("#chips-kind").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;

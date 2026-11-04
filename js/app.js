@@ -11,7 +11,7 @@
   const BOX_TAB = ["Neu", "Fach 1", "Fach 2", "Fach 3", "Fach 4", "Fach 5"];
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], tab: "learn", stats: {}, hidden: {}, ghidden: {} };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], calc: true, tab: "learn", stats: {}, hidden: {}, ghidden: {} };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -187,6 +187,8 @@
   function refreshFilters() {
     document.querySelectorAll("#chips-level .chip").forEach(b => b.setAttribute("aria-pressed", store.levels.includes(+b.dataset.lvl)));
     document.querySelectorAll("#chips-kind .chip").forEach(b => b.setAttribute("aria-pressed", store.kinds.includes(b.dataset.kind)));
+    document.querySelectorAll("#chips-calc .chip").forEach(b => b.setAttribute("aria-pressed", (b.dataset.calc === "1") === !!store.calc));
+    if (window.PHYS_CALC) window.PHYS_CALC.enable(!!store.calc);
     $("#topics-sel").textContent = "(" + store.sel.length + " von " + TOPICS.length + ")";
     const lv = store.levels.length === 3 ? "alle Stufen" : store.levels.map(l => LVL_NAME[l]).join(" + ");
     $("#filter-summary").textContent = lv;
@@ -219,6 +221,10 @@
   $("#chips-level").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
     store.levels = toggleIn(store.levels.slice(), +b.dataset.lvl).sort(); save(); renderTopics();
+  });
+  $("#chips-calc").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    store.calc = b.dataset.calc === "1"; save(); refreshFilters();
   });
   $("#chips-kind").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;

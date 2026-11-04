@@ -11,7 +11,7 @@
   const BOX_TAB = ["Neu", "Fach 1", "Fach 2", "Fach 3", "Fach 4", "Fach 5"];
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], calc: true, tab: "learn", stats: {}, hidden: {}, ghidden: {} };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], ask: "alles", calc: true, tab: "learn", stats: {}, hidden: {}, ghidden: {} };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -21,12 +21,25 @@
   function save() { persist(); if (store.sync && window.PHYS_SYNC) setTimeout(() => schedulePush(), 0); }
 
   const byId = {}; CARDS.forEach(c => { byId[c.id] = c; });
+  // Größenkarten "nur Formel" / "nur Einheit": eigene Varianten mit eigenem Fortschritt (ID + "~f" / "~u")
+  const ASK_SUFFIX = { formel: "~f", einheit: "~u" };
+  const VARIANT = { formel: {}, einheit: {} };
+  CARDS.filter(c => c.type === "size").forEach(c => {
+    Object.keys(ASK_SUFFIX).forEach(a => {
+      const v = Object.assign({}, c, { id: c.id + ASK_SUFFIX[a], base: c.id, ask: a });
+      VARIANT[a][c.id] = v; byId[v.id] = v;
+    });
+  });
+  const ASK_NAME = { alles: "Alles", formel: "nur Formel", einheit: "nur Einheit" };
   const topicTitle = {}, topicHue = {};
-  TOPICS.forEach((t, i) => { topicTitle[t.id] = t.title; topicHue[t.id] = (i * 31 + 205) % 360; });
+  // Farben in der ursprünglichen Reihenfolge, damit jedes Thema seine Farbe behält
+  const HUE_ORDER = ["groessen", "influenz", "polar", "feldlinien", "spitze", "kraft", "kondensator", "schaltung", "ladung", "millikan", "klausur"];
+  TOPICS.forEach((t, i) => { const k = HUE_ORDER.indexOf(t.id); topicTitle[t.id] = t.title; topicHue[t.id] = ((k < 0 ? i : k) * 31 + 205) % 360; });
   if (!Array.isArray(store.sel)) store.sel = TOPICS.map(t => t.id);
   store.sel = store.sel.filter(id => topicTitle[id]); // veraltete Themen entfernen
   if (!Array.isArray(store.levels) || !store.levels.length) store.levels = [1, 2, 3];
   if (!Array.isArray(store.kinds) || !store.kinds.length) store.kinds = ["abfrage", "rechnen"];
+  if (!ASK_NAME[store.ask]) store.ask = "alles";
   if (!store.stats || typeof store.stats !== "object") store.stats = {};
   if (!store.seen || typeof store.seen !== "object") store.seen = {};
   // Merkt sich, was schon einmal richtig gelöst wurde. true = erstes Mal (volle Punkte), false = Wiederholung (ein Viertel).
@@ -46,6 +59,8 @@
   const liveCards = () => CARDS.filter(c => !isHidden(c.id));
   // Ohne Taschenrechner: Rechenkarten ausblenden
   const availCards = () => liveCards().filter(c => store.calc || !c.calc);
+  // Karten im Karteikasten: Größenkarten je nach Einstellung als Formel- oder Einheiten-Variante
+  const deckCards = () => availCards().map(c => (c.type === "size" && VARIANT[store.ask] ? VARIANT[store.ask][c.id] : c));
   const plain = h => String(h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
     .replace(/\\cdot/g, "·").replace(/\\(?:mathrm|text|mu|varepsilon|sigma|tau)\b/g, m => ({ "\\mu": "µ", "\\varepsilon": "ε", "\\sigma": "σ", "\\tau": "τ" }[m] || ""))
     .replace(/\\[a-zA-Z]+/g, "").replace(/[${}]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
@@ -105,7 +120,7 @@
   });
 
   // ------------------------------------------------------------ Karteikasten
-  function selectedCards() { return availCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
+  function selectedCards() { return deckCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
   function counts(cards) {
     const n = [0, 0, 0, 0, 0, 0];
     cards.forEach(c => { n[boxOf(c.id)]++; });
@@ -133,7 +148,7 @@
   }
 
   function renderRing() {
-    const live = availCards();
+    const live = deckCards();
     const all = live.length || 1;
     const done = live.filter(c => boxOf(c.id) >= 4).length;
     const pct = Math.round(done / all * 100);
@@ -172,28 +187,43 @@
   $("#countdown").hidden = !$("#countdown").textContent;
 
   function renderTopics() {
-    const ul = $("#topic-list");
-    ul.innerHTML = "";
+    const box = $("#topic-list");
+    const groups = [];
     TOPICS.forEach(t => {
-      const cs = availCards().filter(c => c.topic === t.id);
-      const nc = cs.length || 1;
-      const g = cs.filter(c => boxOf(c.id) >= 4).length;
-      const y = cs.filter(c => boxOf(c.id) === 3).length;
-      const r = cs.filter(c => boxOf(c.id) === 1 || boxOf(c.id) === 2).length;
-      const li = document.createElement("li");
-      li.innerHTML =
-        '<label class="topic" style="--h:' + topicHue[t.id] + '">' +
-        '<input type="checkbox" data-topic="' + t.id + '"' + (store.sel.includes(t.id) ? " checked" : "") + ">" +
-        '<span class="t-name">' + t.title + "</span>" +
-        '<span class="t-stat">' + g + "/" + cs.length + "</span>" +
-        '<span class="t-sub">' + t.sub + "</span>" +
-        '<span class="t-bar"><span class="g" style="width:' + (g / nc * 100) + '%"></span>' +
-        '<span class="y" style="width:' + (y / nc * 100) + '%"></span>' +
-        '<span class="r" style="width:' + (r / nc * 100) + '%"></span></span>' +
-        "</label>";
-      ul.appendChild(li);
+      let g = groups.find(x => x.name === t.group);
+      if (!g) { g = { name: t.group || "Themen", items: [] }; groups.push(g); }
+      g.items.push(t);
     });
+    const cards = deckCards();
+    box.innerHTML = groups.map(g => {
+      const on = g.items.filter(t => store.sel.includes(t.id)).length;
+      const pills = g.items.map(t => {
+        const cs = cards.filter(c => c.topic === t.id);
+        const nc = cs.length || 1;
+        const gr = cs.filter(c => boxOf(c.id) >= 4).length;
+        const y = cs.filter(c => boxOf(c.id) === 3).length;
+        const r = cs.filter(c => boxOf(c.id) === 1 || boxOf(c.id) === 2).length;
+        const sel = store.sel.includes(t.id);
+        const name = (t.short || t.title) + (t.id === "groessen" && store.ask !== "alles" ? " (" + ASK_NAME[store.ask] + ")" : "");
+        return '<button type="button" class="tpill" data-topic="' + t.id + '" aria-pressed="' + sel + '" title="' + t.title + " – " + t.sub + '" style="--h:' + topicHue[t.id] + '">' +
+          '<span class="tp-check" aria-hidden="true"></span><span class="tp-name">' + name + '</span><span class="tp-n">' + gr + "/" + cs.length + "</span>" +
+          '<span class="tp-bar" aria-hidden="true"><i class="g" style="width:' + (gr / nc * 100) + '%"></i><i class="y" style="width:' + (y / nc * 100) +
+          '%"></i><i class="r" style="width:' + (r / nc * 100) + '%"></i></span></button>';
+      }).join("");
+      return '<div class="tgroup"><button type="button" class="tg-head" data-group="' + g.name + '" aria-pressed="' + (on === g.items.length) + '">' +
+        '<span class="tp-check" aria-hidden="true"></span>' + g.name + ' <span class="tg-n">' + on + "/" + g.items.length + "</span></button>" +
+        '<div class="tg-pills">' + pills + "</div></div>";
+    }).join("");
     refreshHome();
+  }
+
+  // Kurztext der gewählten Themen (für die Übersicht und den Karteikasten)
+  function topicsText() {
+    const n = store.sel.length;
+    if (n === 0) return "Kein Thema gewählt";
+    if (n === TOPICS.length) return "Alle " + n + " Themen";
+    const names = TOPICS.filter(t => store.sel.includes(t.id)).map(t => t.short || t.title);
+    return names.length <= 3 ? names.join(", ") : names.slice(0, 2).join(", ") + " und " + (names.length - 2) + " weitere";
   }
 
   function refreshFilters() {
@@ -201,8 +231,15 @@
     document.querySelectorAll("#chips-kind .chip").forEach(b => b.setAttribute("aria-pressed", store.kinds.includes(b.dataset.kind)));
     document.querySelectorAll("#chips-calc .chip").forEach(b => b.setAttribute("aria-pressed", (b.dataset.calc === "1") === !!store.calc));
     if (window.PHYS_CALC) window.PHYS_CALC.enable(!!store.calc);
-    $("#topics-sel").textContent = "(" + store.sel.length + " von " + TOPICS.length + ")";
-    const lv = store.levels.length === 3 ? "alle Stufen" : store.levels.map(l => LVL_NAME[l]).join(" + ");
+    const n = store.sel.length;
+    $("#topics-sel").innerHTML = n === 0 ? '<b class="warn">Tippe mindestens ein Thema an.</b>'
+      : "<b>" + n + " von " + TOPICS.length + "</b> Themen gewählt" + (n === TOPICS.length ? "" : ". Tippe ein Thema an, um es dazu- oder abzuwählen.");
+    const askTxt = store.ask !== "alles" && store.sel.includes("groessen") ? (n === 1 ? ": " : " · Größen ") + ASK_NAME[store.ask] : "";
+    $("#drawer-topics").innerHTML = '<span class="dt-k">Themen</span><span class="dt-v">' + topicsText() + askTxt + '</span><span class="dt-a">ändern</span>';
+    $("#drawer-topics").classList.toggle("partial", n < TOPICS.length);
+    document.querySelectorAll("#chips-ask .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.ask === store.ask));
+    let lv = store.levels.length === 3 ? "alle Stufen" : store.levels.map(l => LVL_NAME[l]).join(" + ");
+    if (store.ask !== "alles") lv += " · Größen " + ASK_NAME[store.ask];
     $("#filter-summary").textContent = lv;
   }
   function refreshHome() {
@@ -238,6 +275,16 @@
     const b = e.target.closest(".chip"); if (!b) return;
     store.calc = b.dataset.calc === "1"; save(); renderTopics(); if (window.PHYS_METHODS_REFRESH) window.PHYS_METHODS_REFRESH();
   });
+  $("#chips-ask").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    store.ask = b.dataset.ask; store.pick = null; save(); renderTopics();
+    if (store.ask !== "alles" && !store.sel.includes("groessen")) toast("Tipp: Wähle das Thema „Größen & Einheiten“, damit diese Karten drankommen.");
+  });
+  $("#drawer-topics").addEventListener("click", () => {
+    const p = $("#topics-panel");
+    p.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    p.classList.remove("flash"); void p.offsetWidth; p.classList.add("flash");
+  });
   $("#chips-kind").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
     store.kinds = toggleIn(store.kinds.slice(), b.dataset.kind); save(); renderTopics();
@@ -252,12 +299,17 @@
   }
   document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest(".tab-btn"); if (b) setTab(b.dataset.tab); });
 
-  $("#topic-list").addEventListener("change", e => {
-    const id = e.target.getAttribute("data-topic");
-    if (!id) return;
-    store.sel = store.sel.filter(x => x !== id);
-    if (e.target.checked) store.sel.push(id);
-    save(); refreshHome();
+  $("#topic-list").addEventListener("click", e => {
+    const p = e.target.closest(".tpill"), h = e.target.closest(".tg-head");
+    if (p) {
+      const id = p.dataset.topic;
+      store.sel = store.sel.includes(id) ? store.sel.filter(x => x !== id) : store.sel.concat(id);
+    } else if (h) {
+      const ids = TOPICS.filter(t => t.group === h.dataset.group).map(t => t.id);
+      const all = ids.every(id => store.sel.includes(id));
+      store.sel = store.sel.filter(x => !ids.includes(x)).concat(all ? [] : ids);
+    } else return;
+    save(); renderTopics();
   });
   $("#sel-all").addEventListener("click", () => { store.sel = TOPICS.map(t => t.id); save(); renderTopics(); });
   $("#sel-none").addEventListener("click", () => { store.sel = []; save(); renderTopics(); });
@@ -343,7 +395,19 @@
 
     const front = $("#front-body"), back = $("#back-body");
     front.classList.toggle("big", c.type === "size");
-    if (c.type === "size") {
+    if (c.type === "size" && c.ask === "formel") {
+      $("#front-tag").textContent = "Formel gesucht";
+      front.innerHTML = '<p class="ask-q">Wie lautet die Formel / Definition?</p>' + c.front + '<p class="ask-sym">' + c.symbol + "</p>";
+      $("#back-tag").textContent = c.front;
+      back.innerHTML = '<div class="formula-box big"><span class="k">Definition / Formel</span>' + c.formula + "</div>" +
+        (c.extra ? '<p class="extra">' + c.extra + "</p>" : "");
+    } else if (c.type === "size" && c.ask === "einheit") {
+      $("#front-tag").textContent = "Einheit gesucht";
+      front.innerHTML = '<p class="ask-q">Welche SI-Einheit hat …</p>' + c.front + '<p class="ask-sym">' + c.symbol + "</p>";
+      $("#back-tag").textContent = c.front;
+      back.innerHTML = '<div class="unit-answer"><span class="k">SI-Einheit</span><p class="v">' + c.unit + "</p>" +
+        '<div class="unit-info">' + c.unitInfo + "</div></div>";
+    } else if (c.type === "size") {
       $("#front-tag").textContent = "Physikalische Größe";
       front.innerHTML = c.front;
       $("#back-tag").textContent = c.front;
@@ -579,7 +643,8 @@
     const eff = (n, rep) => Math.max(0, n - rep) + rep / 4;
     const e = (k, n) => eff(g(k)[n] || 0, Math.min(g(k).okr || 0, g(k)[n] || 0));
     const parts = {
-      cards: live.reduce((a, c) => a + (BOX_PTS[boxOf(c.id)] || 0), 0),
+      cards: live.reduce((a, c) => a + (BOX_PTS[boxOf(c.id)] || 0) +
+        (c.type === "size" ? (BOX_PTS[boxOf(VARIANT.formel[c.id].id)] || 0) + (BOX_PTS[boxOf(VARIANT.einheit[c.id].id)] || 0) : 0), 0),
       mc: Math.min(e("mc", "ok"), 150),
       tr: 2 * Math.min(e("tr", "ok"), 75),
       label: 3 * Math.min(e("label", "ok"), 10),
@@ -933,9 +998,9 @@
 
   function delCurrent(scope) {
     if (!current) return;
-    const c = current;
-    hideItem(c.id, plain(c.front), scope, () => {
-      deck = deck.filter(x => x.id !== c.id);
+    const c = current, id = c.base || c.id;
+    hideItem(id, plain(c.front), scope, () => {
+      deck = deck.filter(x => (x.base || x.id) !== id);
       total = Math.max(deck.length, total - 1);
       renderDrawer($("#mini-drawer"), true);
       loadCard();

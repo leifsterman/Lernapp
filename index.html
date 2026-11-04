@@ -116,12 +116,13 @@
 
       <!-- Tab: Lernen -->
       <div class="tabpane" id="tab-learn">
-        <div class="panel topics-panel">
+        <div class="panel topics-panel" id="topics-panel">
           <div class="panel-head">
-            <h2>Themen <span class="fine nomargin" id="topics-sel"></span></h2>
+            <h2>Was willst du lernen?</h2>
             <span class="mini-actions"><button type="button" id="sel-all" class="link">Alle</button><button type="button" id="sel-none" class="link">Keine</button></span>
           </div>
-          <ul id="topic-list" class="topics"></ul>
+          <p class="topics-sum" id="topics-sel"></p>
+          <div id="topic-list" class="topic-groups"></div>
         </div>
 
         <div class="panel filter">
@@ -142,13 +143,21 @@
             </div>
           </div>
           <div class="frow">
+            <span class="flabel">Größen abfragen</span>
+            <div class="chips" id="chips-ask" role="group" aria-label="Was bei Größenkarten abgefragt wird">
+              <button type="button" class="chip" data-ask="alles" aria-pressed="true">Alles</button>
+              <button type="button" class="chip" data-ask="formel" aria-pressed="false">Nur Formel</button>
+              <button type="button" class="chip" data-ask="einheit" aria-pressed="false">Nur Einheit</button>
+            </div>
+          </div>
+          <div class="frow">
             <span class="flabel">Taschenrechner</span>
             <div class="chips" id="chips-calc" role="group" aria-label="Taschenrechner">
               <button type="button" class="chip" data-calc="1" aria-pressed="true">Mit</button>
               <button type="button" class="chip" data-calc="0" aria-pressed="false">Ohne</button>
             </div>
           </div>
-          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ gilt nur für den Karteikasten, der Rechentrainer rechnet immer. „Ohne“ blendet den Taschenrechner überall aus (wie in der Klausur ohne GTR).</p>
+          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ und „Größen abfragen“ gelten nur für den Karteikasten, der Rechentrainer rechnet immer. „Ohne“ blendet den Taschenrechner überall aus (wie in der Klausur ohne GTR).</p>
         </div>
 
         <div class="panel drawer-panel">
@@ -156,6 +165,7 @@
             <h2>Karteikasten</h2>
             <span class="fine nomargin" id="drawer-total"></span>
           </div>
+          <button type="button" class="drawer-topics" id="drawer-topics"></button>
           <div id="drawer" class="drawer"></div>
           <p id="drawer-info" class="drawer-info"></p>
           <div class="start-actions">

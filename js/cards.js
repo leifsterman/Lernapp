@@ -5,18 +5,19 @@
   const R = String.raw;
 
   // ---------------------------------------------------------------- Themen
+  // short = Name in der Themenauswahl, group = Gruppe in der Themenauswahl
   const TOPICS = [
-    { id: "groessen",   title: "Größen & Einheiten",              sub: "Symbol, SI-Einheit, Formel" },
-    { id: "influenz",   title: "Influenz",                        sub: "Ladungstrennung in Leitern" },
-    { id: "polar",      title: "Polarisation",                    sub: "Dielektrika, Dipole" },
-    { id: "feldlinien", title: "Feldlinienbilder",                sub: "Zeichnen & interpretieren" },
-    { id: "spitze",     title: "Spitzeneffekt & Faraday-Käfig",   sub: "Leiter im Feld" },
-    { id: "kraft",      title: "Feldstärke, Kraft & Coulomb",     sub: "F = E·Q, radialsymmetrisch" },
-    { id: "kondensator",title: "Kondensator & Plattenkondensator",sub: "E = U/d, Q = C·U, C = ε₀εᵣA/d" },
-    { id: "schaltung",  title: "Reihen- & Parallelschaltung",     sub: "Ersatzkapazität" },
-    { id: "ladung",     title: "Auf- und Entladung",              sub: "Differenzialgleichung, τ = R·C" },
-    { id: "millikan",   title: "Millikan-Versuch",                sub: "Schwebemethode, Elementarladung" },
-    { id: "klausur",    title: "Messwerte & Diagramme",           sub: "Tabelle, Mittelwert, Diagramm" }
+    { id: "groessen",   title: "Größen & Einheiten",              short: "Größen & Einheiten", group: "Grundlagen", sub: "Symbol, SI-Einheit, Formel" },
+    { id: "kraft",      title: "Feldstärke, Kraft & Coulomb",     short: "Feldstärke & Coulomb", group: "Grundlagen", sub: "F = E·Q, radialsymmetrisch" },
+    { id: "feldlinien", title: "Feldlinienbilder",                short: "Feldlinien",        group: "Grundlagen", sub: "Zeichnen & interpretieren" },
+    { id: "influenz",   title: "Influenz",                        short: "Influenz",          group: "Leiter & Isolatoren", sub: "Ladungstrennung in Leitern" },
+    { id: "polar",      title: "Polarisation",                    short: "Polarisation",      group: "Leiter & Isolatoren", sub: "Dielektrika, Dipole" },
+    { id: "spitze",     title: "Spitzeneffekt & Faraday-Käfig",   short: "Spitze & Faraday",  group: "Leiter & Isolatoren", sub: "Leiter im Feld" },
+    { id: "kondensator",title: "Kondensator & Plattenkondensator",short: "Kondensator",       group: "Kondensator", sub: "E = U/d, Q = C·U, C = ε₀εᵣA/d" },
+    { id: "schaltung",  title: "Reihen- & Parallelschaltung",     short: "Reihe & Parallel",  group: "Kondensator", sub: "Ersatzkapazität" },
+    { id: "ladung",     title: "Auf- und Entladung",              short: "Auf- & Entladung",  group: "Kondensator", sub: "Differenzialgleichung, τ = R·C" },
+    { id: "millikan",   title: "Millikan-Versuch",                short: "Millikan",          group: "Versuch & Auswertung", sub: "Schwebemethode, Elementarladung" },
+    { id: "klausur",    title: "Messwerte & Diagramme",           short: "Messwerte",         group: "Versuch & Auswertung", sub: "Tabelle, Mittelwert, Diagramm" }
   ];
 
   const cards = [];

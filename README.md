@@ -12,7 +12,8 @@ Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 
 ## Lernmethoden
 
-- **Karteikasten** (5 Fächer, Leitner), filterbar nach Schwierigkeit, Art (Abfrage/Rechnen) und Thema
+- **Karteikasten** (5 Fächer, Leitner), filterbar nach Schwierigkeit, Art (Abfrage/Rechnen) und Thema (Themen in 4 Gruppen, ganze Gruppe per Antippen der Überschrift)
+- **Größen abfragen**: Alles, nur Formel oder nur Einheit. Jede Variante hat ihren eigenen Fortschritt im Karteikasten
 - **Quiz**: Multiple Choice mit Erklärung (76 Fragen, davon 39 automatisch aus den Größenkarten)
 - **Rechentrainer**: 19 Aufgabentypen mit Zufallswerten, Eingabe mit 3 % Toleranz, Lösungsweg
 - **Zuordnen**: Größe mit Symbol, Einheit oder Formel verbinden

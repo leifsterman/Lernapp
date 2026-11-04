@@ -157,27 +157,47 @@ h2 { font-size: 1rem; margin: 0; }
 .mini .slot .tab { top: -11px; font-size: .56rem; padding: 2px 3px 1px; min-width: 52%; }
 .mini .slot.sel { transform: none; }
 
-.topics { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.topics li { min-width: 0; }
-.topic { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; align-items: center; padding: 10px 12px 10px 14px; cursor: pointer; --h: 210; height: 100%; box-sizing: border-box;
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color .15s, background .15s, opacity .15s; opacity: .62; }
-.topic::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: hsl(var(--h) 70% 58%); }
-.topic:hover { opacity: 1; }
-.topic:has(input:checked) { opacity: 1; border-color: hsl(var(--h) 70% 58%); background: color-mix(in srgb, hsl(var(--h) 70% 58%) 13%, var(--surface)); }
-.topic:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.topic input { position: absolute; opacity: 0; pointer-events: none; }
-.topic .t-name { grid-column: 1 / 3; font-weight: 700; font-size: .88rem; min-width: 0; line-height: 1.25; overflow-wrap: break-word; hyphens: auto; }
-.topic .t-name::after { content: "✓"; display: inline-block; width: 16px; height: 16px; margin-left: 4px; border-radius: 50%; font-size: .66rem; line-height: 16px; text-align: center; vertical-align: 1px; background: hsl(var(--h) 70% 52%); color: #fff; opacity: 0; }
-.topic:has(input:checked) .t-name::after { opacity: 1; }
-.topic .t-sub { grid-column: 1; grid-row: 2; color: var(--fg-dim); font-size: .76rem; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topic .t-stat { grid-column: 2; grid-row: 2; font-size: .78rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; text-align: right; }
-.topic .t-bar { grid-column: 1 / 3; grid-row: 3; height: 5px; background: color-mix(in srgb, var(--fg) 10%, transparent); border-radius: 3px; overflow: hidden; display: flex; margin-top: 2px; }
-.t-bar .g { background: var(--b5); }
-.t-bar .y { background: var(--b3); }
-.t-bar .r { background: var(--b1); }
-.topics-panel .panel-head h2 { display: flex; align-items: baseline; gap: 8px; }
+/* Themenauswahl: Gruppen mit Themen-Knöpfen */
+.topics-panel { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent); }
+.topics-panel.flash { animation: tflash 1.2s ease-out; }
+@keyframes tflash { 0%, 30% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 55%, transparent); } 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent); } }
+.topics-panel .panel-head { margin-bottom: 2px; }
 .topics-panel .mini-actions { display: flex; gap: 14px; }
-@media (min-width: 720px) { .topics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.topics-sum { margin: 0 0 12px; font-size: .85rem; color: var(--fg-dim); }
+.topics-sum b { color: var(--fg); }
+.topics-sum .warn { color: var(--b1); }
+.topic-groups { display: grid; gap: 12px; }
+.tgroup { min-width: 0; }
+.tg-head { appearance: none; background: none; border: 0; padding: 2px 0; margin: 0 0 6px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  color: var(--fg-dim); font: inherit; font-size: .74rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.tg-head .tg-n { font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; opacity: .8; }
+.tg-head:hover { color: var(--fg); }
+.tg-pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+@media (min-width: 600px) { .tg-pills { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tpill { --c: var(--accent); appearance: none; position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 7px; min-width: 0;
+  padding: 9px 10px 11px 10px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface-2); color: var(--fg-dim);
+  font: inherit; font-size: .84rem; line-height: 1.2; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s, color .15s; text-align: left; }
+.tpill:hover { border-color: color-mix(in srgb, var(--c) 60%, var(--border)); }
+.tpill[aria-pressed="true"] { color: var(--fg); border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--surface)); }
+.tpill:focus-visible, .tg-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tp-check { flex: none; width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid color-mix(in srgb, var(--fg-dim) 70%, transparent); box-sizing: border-box; position: relative; }
+.tpill[aria-pressed="true"] .tp-check { background: var(--c); border-color: var(--c); }
+.tg-head[aria-pressed="true"] .tp-check { background: var(--accent); border-color: var(--accent); }
+.tpill[aria-pressed="true"] .tp-check::after, .tg-head[aria-pressed="true"] .tp-check::after { content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.tp-name { min-width: 0; overflow-wrap: break-word; hyphens: auto; }
+.tp-n { font-size: .74rem; font-weight: 500; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+.tp-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; display: flex; background: color-mix(in srgb, var(--fg) 8%, transparent); }
+.tp-bar i { display: block; height: 100%; }
+.tp-bar .g { background: var(--b5); }
+.tp-bar .y { background: var(--b3); }
+.tp-bar .r { background: var(--b1); }
+/* Gewählte Themen direkt über dem Karteikasten */
+.drawer-topics { appearance: none; width: 100%; display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--fg); font: inherit; font-size: .88rem; text-align: left; cursor: pointer; }
+.drawer-topics.partial { border-color: color-mix(in srgb, var(--b3) 70%, var(--border)); background: color-mix(in srgb, var(--b3) 12%, var(--surface)); }
+.drawer-topics .dt-k { color: var(--fg-dim); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; flex: none; }
+.drawer-topics .dt-v { flex: 1; min-width: 0; font-weight: 600; }
+.drawer-topics .dt-a { flex: none; color: var(--accent); font-size: .85rem; }
 
 .start-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .btn { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; font-weight: 600; cursor: pointer; transition: transform .1s, border-color .15s, background .15s; }
@@ -239,6 +259,13 @@ h2 { font-size: 1rem; margin: 0; }
 .formula-box { background: var(--surface); border-radius: 10px; padding: 12px 14px; font-size: 1.25rem; margin-bottom: 10px; overflow-x: auto; }
 .formula-box .k { color: var(--fg-dim); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 4px; }
 .extra { color: var(--fg-dim); font-size: .92rem; margin: 0; }
+.front-body .ask-q { font-size: .9rem; font-weight: 600; color: var(--fg-dim); margin: 0 0 6px; letter-spacing: .02em; }
+.front-body .ask-sym { font-size: 1.1rem; color: var(--fg-dim); margin: 8px 0 0; }
+.formula-box.big { font-size: 1.35rem; padding: 16px; text-align: center; }
+.unit-answer { background: var(--surface); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; text-align: center; }
+.unit-answer .k { color: var(--fg-dim); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 4px; }
+.unit-answer .v { font-size: 1.6rem; font-weight: 700; margin: 0 0 6px; }
+.unit-answer .unit-info { background: var(--surface-2); }
 
 table.cmp { width: 100%; border-collapse: collapse; font-size: .92rem; margin-bottom: 8px; display: block; overflow-x: auto; }
 table.cmp th, table.cmp td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
@@ -786,12 +813,13 @@ html.nosync .cardtools { display: none; }
 
       <!-- Tab: Lernen -->
       <div class="tabpane" id="tab-learn">
-        <div class="panel topics-panel">
+        <div class="panel topics-panel" id="topics-panel">
           <div class="panel-head">
-            <h2>Themen <span class="fine nomargin" id="topics-sel"></span></h2>
+            <h2>Was willst du lernen?</h2>
             <span class="mini-actions"><button type="button" id="sel-all" class="link">Alle</button><button type="button" id="sel-none" class="link">Keine</button></span>
           </div>
-          <ul id="topic-list" class="topics"></ul>
+          <p class="topics-sum" id="topics-sel"></p>
+          <div id="topic-list" class="topic-groups"></div>
         </div>
 
         <div class="panel filter">
@@ -812,13 +840,21 @@ html.nosync .cardtools { display: none; }
             </div>
           </div>
           <div class="frow">
+            <span class="flabel">Größen abfragen</span>
+            <div class="chips" id="chips-ask" role="group" aria-label="Was bei Größenkarten abgefragt wird">
+              <button type="button" class="chip" data-ask="alles" aria-pressed="true">Alles</button>
+              <button type="button" class="chip" data-ask="formel" aria-pressed="false">Nur Formel</button>
+              <button type="button" class="chip" data-ask="einheit" aria-pressed="false">Nur Einheit</button>
+            </div>
+          </div>
+          <div class="frow">
             <span class="flabel">Taschenrechner</span>
             <div class="chips" id="chips-calc" role="group" aria-label="Taschenrechner">
               <button type="button" class="chip" data-calc="1" aria-pressed="true">Mit</button>
               <button type="button" class="chip" data-calc="0" aria-pressed="false">Ohne</button>
             </div>
           </div>
-          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ gilt nur für den Karteikasten, der Rechentrainer rechnet immer. „Ohne“ blendet den Taschenrechner überall aus (wie in der Klausur ohne GTR).</p>
+          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ und „Größen abfragen“ gelten nur für den Karteikasten, der Rechentrainer rechnet immer. „Ohne“ blendet den Taschenrechner überall aus (wie in der Klausur ohne GTR).</p>
         </div>
 
         <div class="panel drawer-panel">
@@ -826,6 +862,7 @@ html.nosync .cardtools { display: none; }
             <h2>Karteikasten</h2>
             <span class="fine nomargin" id="drawer-total"></span>
           </div>
+          <button type="button" class="drawer-topics" id="drawer-topics"></button>
           <div id="drawer" class="drawer"></div>
           <p id="drawer-info" class="drawer-info"></p>
           <div class="start-actions">
@@ -1162,18 +1199,19 @@ window.PHYS_SYNC = {
   const R = String.raw;
 
   // ---------------------------------------------------------------- Themen
+  // short = Name in der Themenauswahl, group = Gruppe in der Themenauswahl
   const TOPICS = [
-    { id: "groessen",   title: "Größen & Einheiten",              sub: "Symbol, SI-Einheit, Formel" },
-    { id: "influenz",   title: "Influenz",                        sub: "Ladungstrennung in Leitern" },
-    { id: "polar",      title: "Polarisation",                    sub: "Dielektrika, Dipole" },
-    { id: "feldlinien", title: "Feldlinienbilder",                sub: "Zeichnen & interpretieren" },
-    { id: "spitze",     title: "Spitzeneffekt & Faraday-Käfig",   sub: "Leiter im Feld" },
-    { id: "kraft",      title: "Feldstärke, Kraft & Coulomb",     sub: "F = E·Q, radialsymmetrisch" },
-    { id: "kondensator",title: "Kondensator & Plattenkondensator",sub: "E = U/d, Q = C·U, C = ε₀εᵣA/d" },
-    { id: "schaltung",  title: "Reihen- & Parallelschaltung",     sub: "Ersatzkapazität" },
-    { id: "ladung",     title: "Auf- und Entladung",              sub: "Differenzialgleichung, τ = R·C" },
-    { id: "millikan",   title: "Millikan-Versuch",                sub: "Schwebemethode, Elementarladung" },
-    { id: "klausur",    title: "Messwerte & Diagramme",           sub: "Tabelle, Mittelwert, Diagramm" }
+    { id: "groessen",   title: "Größen & Einheiten",              short: "Größen & Einheiten", group: "Grundlagen", sub: "Symbol, SI-Einheit, Formel" },
+    { id: "kraft",      title: "Feldstärke, Kraft & Coulomb",     short: "Feldstärke & Coulomb", group: "Grundlagen", sub: "F = E·Q, radialsymmetrisch" },
+    { id: "feldlinien", title: "Feldlinienbilder",                short: "Feldlinien",        group: "Grundlagen", sub: "Zeichnen & interpretieren" },
+    { id: "influenz",   title: "Influenz",                        short: "Influenz",          group: "Leiter & Isolatoren", sub: "Ladungstrennung in Leitern" },
+    { id: "polar",      title: "Polarisation",                    short: "Polarisation",      group: "Leiter & Isolatoren", sub: "Dielektrika, Dipole" },
+    { id: "spitze",     title: "Spitzeneffekt & Faraday-Käfig",   short: "Spitze & Faraday",  group: "Leiter & Isolatoren", sub: "Leiter im Feld" },
+    { id: "kondensator",title: "Kondensator & Plattenkondensator",short: "Kondensator",       group: "Kondensator", sub: "E = U/d, Q = C·U, C = ε₀εᵣA/d" },
+    { id: "schaltung",  title: "Reihen- & Parallelschaltung",     short: "Reihe & Parallel",  group: "Kondensator", sub: "Ersatzkapazität" },
+    { id: "ladung",     title: "Auf- und Entladung",              short: "Auf- & Entladung",  group: "Kondensator", sub: "Differenzialgleichung, τ = R·C" },
+    { id: "millikan",   title: "Millikan-Versuch",                short: "Millikan",          group: "Versuch & Auswertung", sub: "Schwebemethode, Elementarladung" },
+    { id: "klausur",    title: "Messwerte & Diagramme",           short: "Messwerte",         group: "Versuch & Auswertung", sub: "Tabelle, Mittelwert, Diagramm" }
   ];
 
   const cards = [];
@@ -2937,7 +2975,7 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
   const BOX_TAB = ["Neu", "Fach 1", "Fach 2", "Fach 3", "Fach 4", "Fach 5"];
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], calc: true, tab: "learn", stats: {}, hidden: {}, ghidden: {} };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null, pick: null, levels: [1, 2, 3], kinds: ["abfrage", "rechnen"], ask: "alles", calc: true, tab: "learn", stats: {}, hidden: {}, ghidden: {} };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -2947,12 +2985,25 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
   function save() { persist(); if (store.sync && window.PHYS_SYNC) setTimeout(() => schedulePush(), 0); }
 
   const byId = {}; CARDS.forEach(c => { byId[c.id] = c; });
+  // Größenkarten "nur Formel" / "nur Einheit": eigene Varianten mit eigenem Fortschritt (ID + "~f" / "~u")
+  const ASK_SUFFIX = { formel: "~f", einheit: "~u" };
+  const VARIANT = { formel: {}, einheit: {} };
+  CARDS.filter(c => c.type === "size").forEach(c => {
+    Object.keys(ASK_SUFFIX).forEach(a => {
+      const v = Object.assign({}, c, { id: c.id + ASK_SUFFIX[a], base: c.id, ask: a });
+      VARIANT[a][c.id] = v; byId[v.id] = v;
+    });
+  });
+  const ASK_NAME = { alles: "Alles", formel: "nur Formel", einheit: "nur Einheit" };
   const topicTitle = {}, topicHue = {};
-  TOPICS.forEach((t, i) => { topicTitle[t.id] = t.title; topicHue[t.id] = (i * 31 + 205) % 360; });
+  // Farben in der ursprünglichen Reihenfolge, damit jedes Thema seine Farbe behält
+  const HUE_ORDER = ["groessen", "influenz", "polar", "feldlinien", "spitze", "kraft", "kondensator", "schaltung", "ladung", "millikan", "klausur"];
+  TOPICS.forEach((t, i) => { const k = HUE_ORDER.indexOf(t.id); topicTitle[t.id] = t.title; topicHue[t.id] = ((k < 0 ? i : k) * 31 + 205) % 360; });
   if (!Array.isArray(store.sel)) store.sel = TOPICS.map(t => t.id);
   store.sel = store.sel.filter(id => topicTitle[id]); // veraltete Themen entfernen
   if (!Array.isArray(store.levels) || !store.levels.length) store.levels = [1, 2, 3];
   if (!Array.isArray(store.kinds) || !store.kinds.length) store.kinds = ["abfrage", "rechnen"];
+  if (!ASK_NAME[store.ask]) store.ask = "alles";
   if (!store.stats || typeof store.stats !== "object") store.stats = {};
   if (!store.seen || typeof store.seen !== "object") store.seen = {};
   // Merkt sich, was schon einmal richtig gelöst wurde. true = erstes Mal (volle Punkte), false = Wiederholung (ein Viertel).
@@ -2972,6 +3023,8 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
   const liveCards = () => CARDS.filter(c => !isHidden(c.id));
   // Ohne Taschenrechner: Rechenkarten ausblenden
   const availCards = () => liveCards().filter(c => store.calc || !c.calc);
+  // Karten im Karteikasten: Größenkarten je nach Einstellung als Formel- oder Einheiten-Variante
+  const deckCards = () => availCards().map(c => (c.type === "size" && VARIANT[store.ask] ? VARIANT[store.ask][c.id] : c));
   const plain = h => String(h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
     .replace(/\\cdot/g, "·").replace(/\\(?:mathrm|text|mu|varepsilon|sigma|tau)\b/g, m => ({ "\\mu": "µ", "\\varepsilon": "ε", "\\sigma": "σ", "\\tau": "τ" }[m] || ""))
     .replace(/\\[a-zA-Z]+/g, "").replace(/[${}]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
@@ -3031,7 +3084,7 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
   });
 
   // ------------------------------------------------------------ Karteikasten
-  function selectedCards() { return availCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
+  function selectedCards() { return deckCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
   function counts(cards) {
     const n = [0, 0, 0, 0, 0, 0];
     cards.forEach(c => { n[boxOf(c.id)]++; });
@@ -3059,7 +3112,7 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
   }
 
   function renderRing() {
-    const live = availCards();
+    const live = deckCards();
     const all = live.length || 1;
     const done = live.filter(c => boxOf(c.id) >= 4).length;
     const pct = Math.round(done / all * 100);
@@ -3098,28 +3151,43 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
   $("#countdown").hidden = !$("#countdown").textContent;
 
   function renderTopics() {
-    const ul = $("#topic-list");
-    ul.innerHTML = "";
+    const box = $("#topic-list");
+    const groups = [];
     TOPICS.forEach(t => {
-      const cs = availCards().filter(c => c.topic === t.id);
-      const nc = cs.length || 1;
-      const g = cs.filter(c => boxOf(c.id) >= 4).length;
-      const y = cs.filter(c => boxOf(c.id) === 3).length;
-      const r = cs.filter(c => boxOf(c.id) === 1 || boxOf(c.id) === 2).length;
-      const li = document.createElement("li");
-      li.innerHTML =
-        '<label class="topic" style="--h:' + topicHue[t.id] + '">' +
-        '<input type="checkbox" data-topic="' + t.id + '"' + (store.sel.includes(t.id) ? " checked" : "") + ">" +
-        '<span class="t-name">' + t.title + "</span>" +
-        '<span class="t-stat">' + g + "/" + cs.length + "</span>" +
-        '<span class="t-sub">' + t.sub + "</span>" +
-        '<span class="t-bar"><span class="g" style="width:' + (g / nc * 100) + '%"></span>' +
-        '<span class="y" style="width:' + (y / nc * 100) + '%"></span>' +
-        '<span class="r" style="width:' + (r / nc * 100) + '%"></span></span>' +
-        "</label>";
-      ul.appendChild(li);
+      let g = groups.find(x => x.name === t.group);
+      if (!g) { g = { name: t.group || "Themen", items: [] }; groups.push(g); }
+      g.items.push(t);
     });
+    const cards = deckCards();
+    box.innerHTML = groups.map(g => {
+      const on = g.items.filter(t => store.sel.includes(t.id)).length;
+      const pills = g.items.map(t => {
+        const cs = cards.filter(c => c.topic === t.id);
+        const nc = cs.length || 1;
+        const gr = cs.filter(c => boxOf(c.id) >= 4).length;
+        const y = cs.filter(c => boxOf(c.id) === 3).length;
+        const r = cs.filter(c => boxOf(c.id) === 1 || boxOf(c.id) === 2).length;
+        const sel = store.sel.includes(t.id);
+        const name = (t.short || t.title) + (t.id === "groessen" && store.ask !== "alles" ? " (" + ASK_NAME[store.ask] + ")" : "");
+        return '<button type="button" class="tpill" data-topic="' + t.id + '" aria-pressed="' + sel + '" title="' + t.title + " – " + t.sub + '" style="--h:' + topicHue[t.id] + '">' +
+          '<span class="tp-check" aria-hidden="true"></span><span class="tp-name">' + name + '</span><span class="tp-n">' + gr + "/" + cs.length + "</span>" +
+          '<span class="tp-bar" aria-hidden="true"><i class="g" style="width:' + (gr / nc * 100) + '%"></i><i class="y" style="width:' + (y / nc * 100) +
+          '%"></i><i class="r" style="width:' + (r / nc * 100) + '%"></i></span></button>';
+      }).join("");
+      return '<div class="tgroup"><button type="button" class="tg-head" data-group="' + g.name + '" aria-pressed="' + (on === g.items.length) + '">' +
+        '<span class="tp-check" aria-hidden="true"></span>' + g.name + ' <span class="tg-n">' + on + "/" + g.items.length + "</span></button>" +
+        '<div class="tg-pills">' + pills + "</div></div>";
+    }).join("");
     refreshHome();
+  }
+
+  // Kurztext der gewählten Themen (für die Übersicht und den Karteikasten)
+  function topicsText() {
+    const n = store.sel.length;
+    if (n === 0) return "Kein Thema gewählt";
+    if (n === TOPICS.length) return "Alle " + n + " Themen";
+    const names = TOPICS.filter(t => store.sel.includes(t.id)).map(t => t.short || t.title);
+    return names.length <= 3 ? names.join(", ") : names.slice(0, 2).join(", ") + " und " + (names.length - 2) + " weitere";
   }
 
   function refreshFilters() {
@@ -3127,8 +3195,15 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
     document.querySelectorAll("#chips-kind .chip").forEach(b => b.setAttribute("aria-pressed", store.kinds.includes(b.dataset.kind)));
     document.querySelectorAll("#chips-calc .chip").forEach(b => b.setAttribute("aria-pressed", (b.dataset.calc === "1") === !!store.calc));
     if (window.PHYS_CALC) window.PHYS_CALC.enable(!!store.calc);
-    $("#topics-sel").textContent = "(" + store.sel.length + " von " + TOPICS.length + ")";
-    const lv = store.levels.length === 3 ? "alle Stufen" : store.levels.map(l => LVL_NAME[l]).join(" + ");
+    const n = store.sel.length;
+    $("#topics-sel").innerHTML = n === 0 ? '<b class="warn">Tippe mindestens ein Thema an.</b>'
+      : "<b>" + n + " von " + TOPICS.length + "</b> Themen gewählt" + (n === TOPICS.length ? "" : ". Tippe ein Thema an, um es dazu- oder abzuwählen.");
+    const askTxt = store.ask !== "alles" && store.sel.includes("groessen") ? (n === 1 ? ": " : " · Größen ") + ASK_NAME[store.ask] : "";
+    $("#drawer-topics").innerHTML = '<span class="dt-k">Themen</span><span class="dt-v">' + topicsText() + askTxt + '</span><span class="dt-a">ändern</span>';
+    $("#drawer-topics").classList.toggle("partial", n < TOPICS.length);
+    document.querySelectorAll("#chips-ask .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.ask === store.ask));
+    let lv = store.levels.length === 3 ? "alle Stufen" : store.levels.map(l => LVL_NAME[l]).join(" + ");
+    if (store.ask !== "alles") lv += " · Größen " + ASK_NAME[store.ask];
     $("#filter-summary").textContent = lv;
   }
   function refreshHome() {
@@ -3164,6 +3239,16 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
     const b = e.target.closest(".chip"); if (!b) return;
     store.calc = b.dataset.calc === "1"; save(); renderTopics(); if (window.PHYS_METHODS_REFRESH) window.PHYS_METHODS_REFRESH();
   });
+  $("#chips-ask").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    store.ask = b.dataset.ask; store.pick = null; save(); renderTopics();
+    if (store.ask !== "alles" && !store.sel.includes("groessen")) toast("Tipp: Wähle das Thema „Größen & Einheiten“, damit diese Karten drankommen.");
+  });
+  $("#drawer-topics").addEventListener("click", () => {
+    const p = $("#topics-panel");
+    p.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    p.classList.remove("flash"); void p.offsetWidth; p.classList.add("flash");
+  });
   $("#chips-kind").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
     store.kinds = toggleIn(store.kinds.slice(), b.dataset.kind); save(); renderTopics();
@@ -3178,12 +3263,17 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
   }
   document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest(".tab-btn"); if (b) setTab(b.dataset.tab); });
 
-  $("#topic-list").addEventListener("change", e => {
-    const id = e.target.getAttribute("data-topic");
-    if (!id) return;
-    store.sel = store.sel.filter(x => x !== id);
-    if (e.target.checked) store.sel.push(id);
-    save(); refreshHome();
+  $("#topic-list").addEventListener("click", e => {
+    const p = e.target.closest(".tpill"), h = e.target.closest(".tg-head");
+    if (p) {
+      const id = p.dataset.topic;
+      store.sel = store.sel.includes(id) ? store.sel.filter(x => x !== id) : store.sel.concat(id);
+    } else if (h) {
+      const ids = TOPICS.filter(t => t.group === h.dataset.group).map(t => t.id);
+      const all = ids.every(id => store.sel.includes(id));
+      store.sel = store.sel.filter(x => !ids.includes(x)).concat(all ? [] : ids);
+    } else return;
+    save(); renderTopics();
   });
   $("#sel-all").addEventListener("click", () => { store.sel = TOPICS.map(t => t.id); save(); renderTopics(); });
   $("#sel-none").addEventListener("click", () => { store.sel = []; save(); renderTopics(); });
@@ -3269,7 +3359,19 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
 
     const front = $("#front-body"), back = $("#back-body");
     front.classList.toggle("big", c.type === "size");
-    if (c.type === "size") {
+    if (c.type === "size" && c.ask === "formel") {
+      $("#front-tag").textContent = "Formel gesucht";
+      front.innerHTML = '<p class="ask-q">Wie lautet die Formel / Definition?</p>' + c.front + '<p class="ask-sym">' + c.symbol + "</p>";
+      $("#back-tag").textContent = c.front;
+      back.innerHTML = '<div class="formula-box big"><span class="k">Definition / Formel</span>' + c.formula + "</div>" +
+        (c.extra ? '<p class="extra">' + c.extra + "</p>" : "");
+    } else if (c.type === "size" && c.ask === "einheit") {
+      $("#front-tag").textContent = "Einheit gesucht";
+      front.innerHTML = '<p class="ask-q">Welche SI-Einheit hat …</p>' + c.front + '<p class="ask-sym">' + c.symbol + "</p>";
+      $("#back-tag").textContent = c.front;
+      back.innerHTML = '<div class="unit-answer"><span class="k">SI-Einheit</span><p class="v">' + c.unit + "</p>" +
+        '<div class="unit-info">' + c.unitInfo + "</div></div>";
+    } else if (c.type === "size") {
       $("#front-tag").textContent = "Physikalische Größe";
       front.innerHTML = c.front;
       $("#back-tag").textContent = c.front;
@@ -3505,7 +3607,8 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
     const eff = (n, rep) => Math.max(0, n - rep) + rep / 4;
     const e = (k, n) => eff(g(k)[n] || 0, Math.min(g(k).okr || 0, g(k)[n] || 0));
     const parts = {
-      cards: live.reduce((a, c) => a + (BOX_PTS[boxOf(c.id)] || 0), 0),
+      cards: live.reduce((a, c) => a + (BOX_PTS[boxOf(c.id)] || 0) +
+        (c.type === "size" ? (BOX_PTS[boxOf(VARIANT.formel[c.id].id)] || 0) + (BOX_PTS[boxOf(VARIANT.einheit[c.id].id)] || 0) : 0), 0),
       mc: Math.min(e("mc", "ok"), 150),
       tr: 2 * Math.min(e("tr", "ok"), 75),
       label: 3 * Math.min(e("label", "ok"), 10),
@@ -3859,9 +3962,9 @@ $$I(t) = \dfrac{U_0}{R}\,e^{-t/\tau}$$</li>
 
   function delCurrent(scope) {
     if (!current) return;
-    const c = current;
-    hideItem(c.id, plain(c.front), scope, () => {
-      deck = deck.filter(x => x.id !== c.id);
+    const c = current, id = c.base || c.id;
+    hideItem(id, plain(c.front), scope, () => {
+      deck = deck.filter(x => (x.base || x.id) !== id);
       total = Math.max(deck.length, total - 1);
       renderDrawer($("#mini-drawer"), true);
       loadCard();

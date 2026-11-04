@@ -6,7 +6,7 @@
   const KEY = "physikq1.v2";
 
   // ------------------------------------------------------------ Speicher
-  let store = { progress: {}, sel: null, theme: null };
+  let store = { progress: {}, sel: null, theme: null, resetAt: 0, sync: null };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
@@ -16,7 +16,12 @@
   const byId = {}; CARDS.forEach(c => { byId[c.id] = c; });
   const topicTitle = {}; TOPICS.forEach(t => { topicTitle[t.id] = t.title; });
   if (!Array.isArray(store.sel)) store.sel = TOPICS.map(t => t.id);
-  const status = id => store.progress[id] || "new";
+  // Fortschritt je Karte: { s: "known" | "weak", t: Zeitstempel }; ältere Speicherstände (nur Text) umwandeln
+  Object.keys(store.progress).forEach(id => {
+    const v = store.progress[id];
+    if (typeof v === "string") store.progress[id] = { s: v, t: 1 };
+  });
+  const status = id => (store.progress[id] ? store.progress[id].s : "new");
 
   // ------------------------------------------------------------ Theme
   function applyTheme() {
@@ -96,7 +101,7 @@
   $("#sel-none").addEventListener("click", () => { store.sel = []; save(); renderTopics(); });
   $("#btn-reset").addEventListener("click", function () {
     if (this.dataset.armed === "1") {
-      store.progress = {}; save(); renderTopics();
+      store.progress = {}; store.resetAt = Date.now(); save(); renderTopics(); syncNow();
       this.textContent = "Lernfortschritt zurücksetzen"; this.dataset.armed = "";
     } else {
       this.dataset.armed = "1"; this.textContent = "Wirklich zurücksetzen? Nochmal tippen.";
@@ -208,10 +213,11 @@
       missed.add(c.id);
       deck.push(c); // ans Ende
     } else {
-      store.progress[c.id] = missed.has(c.id) ? "weak" : "known";
+      store.progress[c.id] = { s: missed.has(c.id) ? "weak" : "known", t: Date.now() };
     }
-    if (r !== "correct") store.progress[c.id] = "weak";
+    if (r !== "correct") store.progress[c.id] = { s: "weak", t: Date.now() };
     save();
+    schedulePush();
     loadCard();
   }
 
@@ -223,6 +229,7 @@
       (missed.size ? ", " + missed.size + " nochmal wiederholt." : ".");
     renderTopics();
     $("#btn-end-weak").hidden = weakCards().length === 0;
+    syncNow();
   }
 
   // Ereignisse
@@ -262,9 +269,119 @@
     else if (e.key === " " && flipped && tag !== "BUTTON") e.preventDefault();
   });
 
+
+  // ------------------------------------------------------------ Sync (Supabase, Lerncode)
+  const CFG = window.PHYS_SYNC;
+  const ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // ohne I, L, O, 0, 1
+  const fmtCode = c => c.slice(0, 4) + "-" + c.slice(4);
+  const normCode = s => (s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  function newCode() {
+    const buf = new Uint8Array(8);
+    crypto.getRandomValues(buf);
+    return Array.from(buf, b => ALPHA[b % ALPHA.length]).join("");
+  }
+  async function rpc(fn, body) {
+    const r = await fetch(CFG.url + "/rest/v1/rpc/" + fn, {
+      method: "POST", keepalive: true,
+      headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const t = await r.text();
+    return t ? JSON.parse(t) : null;
+  }
+  // Neuere Einträge gewinnen; ein Zurücksetzen (resetAt) löscht ältere Einträge auf allen Geräten
+  function mergeData(remote) {
+    if (!remote || typeof remote !== "object") return;
+    const reset = Math.max(store.resetAt || 0, remote.resetAt || 0);
+    const out = {};
+    const all = Object.assign({}, remote.progress || {}, store.progress);
+    Object.keys(all).forEach(id => {
+      if (!byId[id]) return;
+      const a = store.progress[id], b = remote.progress && remote.progress[id];
+      const pick = !a ? b : !b ? a : (b.t > a.t ? b : a);
+      if (pick && pick.t >= reset && (pick.s === "known" || pick.s === "weak")) out[id] = pick;
+    });
+    store.progress = out;
+    store.resetAt = reset;
+  }
+  function setStatus(msg, err) {
+    const el = $("#sync-status");
+    el.textContent = msg || "";
+    el.classList.toggle("err", !!err);
+  }
+  let syncing = false, again = false, pushTimer = null;
+  async function syncNow() {
+    if (!CFG || !store.sync) return;
+    if (syncing) { again = true; return; }
+    syncing = true;
+    clearTimeout(pushTimer);
+    try {
+      setStatus("Synchronisiere …");
+      const res = await rpc("lern_load", { p_code: store.sync.code });
+      if (res && res.data) mergeData(res.data);
+      save();
+      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: { progress: store.progress, resetAt: store.resetAt } });
+      const d = new Date();
+      setStatus("Synchronisiert um " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " Uhr");
+      if (!active) renderTopics();
+    } catch (e) {
+      setStatus("Gerade offline. Es wird später synchronisiert.", true);
+    }
+    syncing = false;
+    if (again) { again = false; syncNow(); }
+  }
+  function schedulePush() {
+    if (!CFG || !store.sync) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(syncNow, 2000);
+  }
+  function renderSync() {
+    const panel = $("#sync-panel");
+    if (!CFG) { panel.hidden = true; return; }
+    const on = !!store.sync;
+    $("#sync-off").hidden = on;
+    $("#sync-on").hidden = !on;
+    if (on) {
+      $("#sync-who").textContent = store.sync.name ? "Verbunden als " + store.sync.name : "Verbunden";
+      $("#sync-code-show").textContent = fmtCode(store.sync.code);
+    } else setStatus("");
+  }
+  $("#sync-create").addEventListener("click", async () => {
+    const name = $("#sync-name").value.trim();
+    if (!name) { setStatus("Bitte zuerst deinen Namen eintragen.", true); $("#sync-name").focus(); return; }
+    store.sync = { code: newCode(), name };
+    save(); renderSync(); await syncNow();
+  });
+  $("#sync-join").addEventListener("click", async () => {
+    const code = normCode($("#sync-code").value);
+    if (code.length !== 8) { setStatus("Der Code hat 8 Zeichen, z. B. K7M2-QX9P.", true); return; }
+    setStatus("Suche Code …");
+    try {
+      const res = await rpc("lern_load", { p_code: code });
+      if (!res) { setStatus("Diesen Code gibt es nicht. Tippfehler?", true); return; }
+      store.sync = { code, name: res.name || "" };
+      save(); renderSync(); await syncNow();
+    } catch (e) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
+  });
+  $("#sync-copy").addEventListener("click", () => {
+    const t = fmtCode(store.sync.code);
+    const done = () => setStatus("Code kopiert: " + t);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => setStatus("Code: " + t));
+    else setStatus("Code: " + t);
+  });
+  $("#sync-leave").addEventListener("click", () => {
+    store.sync = null; save(); renderSync();
+    setStatus("Getrennt. Dein Fortschritt bleibt auf diesem Gerät.");
+  });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") syncNow(); else if (!syncing) syncNow(); });
+  window.addEventListener("online", syncNow);
+
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (active) fitDisplays(); });
   renderTopics();
+  renderSync();
   show("start");
+  syncNow();
 
   // Offline-Fähigkeit (nur über https/localhost)
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {

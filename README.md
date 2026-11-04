@@ -7,7 +7,7 @@ Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 
 - 91 Karten in 12 Themen, Formeln mit KaTeX (lokal eingebunden, funktioniert offline)
 - Lernrunden wie bei Anki: „Wusste ich nicht“ kommt nach 3 Karten wieder, „Teilweise“ ans Ende
-- Fortschritt pro Karte wird im Browser gespeichert (kein Account, keine Cloud nötig)
+- Fortschritt pro Karte wird im Browser gespeichert und über einen persönlichen Lerncode (Supabase) zwischen Geräten und Personen getrennt synchronisiert
 - Dunkelmodus (Standard), Hellmodus per Knopf
 
 ## Lokal öffnen
@@ -26,3 +26,9 @@ Output directory `public`. Oder per Kommandozeile: `npx wrangler pages deploy pu
 
 Quellen: `index.html`, `css/`, `js/` (`cards.js` = alle Karten, `diagrams.js` = Feldlinien-Diagramme).
 Mit `node build.mjs` wird daraus `public/index.html` gebaut. Lokal testen: `python3 -m http.server` im Projektordner.
+
+## Synchronisation
+
+Beim ersten Start „Neuen Code erstellen“ (Name eintragen). Der Code (z. B. `K7M2-QX9P`) wird auf dem anderen Gerät unter „Verbinden“ eingegeben.
+Jede Person hat ihren eigenen Code. Die Tabelle ist per RLS gesperrt, Zugriff nur über zwei Funktionen (`supabase/schema.sql`),
+der Code ist das Geheimnis. Der Publishable-Key in `js/config.js` ist für den Browser gedacht.

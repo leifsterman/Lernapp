@@ -184,3 +184,12 @@ text.d-b { fill: var(--bad); }
 @media (max-width: 440px) {
   .back-body .katex-display { font-size: .92em; }
 }
+
+.fine.tight { margin: 4px 0 8px; }
+.row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.row input { flex: 1 1 180px; min-width: 0; background: var(--surface-2); color: var(--fg); border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; font: inherit; }
+.row input::placeholder { color: var(--fg-dim); }
+.sync-who { margin: 0; }
+.sync-code { margin: 0 0 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sync-code code { font: 700 1.3rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .08em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+#sync-status.err { color: var(--warn); }

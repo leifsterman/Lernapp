@@ -13,7 +13,7 @@ katexCss = katexCss.replace(/src:\s*url\(([^)]*?\.woff2)\)\s*format\("woff2"\)[^
   return `src:url(data:font/woff2;base64,${b64}) format("woff2")`;
 });
 const css = katexCss + "\n" + read("css/style.css");
-const js = ["vendor/katex/katex.min.js", "vendor/katex/auto-render.min.js", "js/cards.js", "js/diagrams.js", "js/app.js"]
+const js = ["vendor/katex/katex.min.js", "vendor/katex/auto-render.min.js", "js/config.js", "js/cards.js", "js/diagrams.js", "js/app.js"]
   .map(read).join("\n;\n")
   .replace(/<\/script/g, "<\\/script");
 
@@ -29,9 +29,10 @@ writeFileSync(new URL("public/index.html", import.meta.url),
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${title}</title><link rel="icon" href="icon.svg" type="image/svg+xml"><meta name="theme-color" content="#0e1117"><style>${css}</style></head><body>${body}<script>${noSw}</script></body></html>`);
 
+const noSync = noSw.replace(/window\.PHYS_SYNC = \{[\s\S]*?\};/, "window.PHYS_SYNC = null;");
 writeFileSync(new URL("dist/artifact.html", import.meta.url),
 `<meta name="claude:viewport-fit-sides" content="cover">
 <title>${title}</title>
 <style>${css}</style>
-${body}<script>${noSw}</script>`);
+${body}<script>${noSync}</script>`);
 console.log("fertig: public/index.html, dist/artifact.html");

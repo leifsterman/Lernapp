@@ -2738,6 +2738,8 @@ window.PHYS_SYNC = {
       if (res && res.data && typeof res.data.board === "boolean" && store.board == null) store.board = res.data.board;
       persist();
       await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: payload() });
+      // Punkte berechnet der Server (falls die Funktion schon eingerichtet ist), sonst lokal
+      try { const r = await rpc("lern_score", { p_code: store.sync.code }); srvScore = r && typeof r.score === "number" ? r : null; } catch (e) { srvScore = null; }
       const d = new Date();
       setStatus("Synchronisiert um " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " Uhr");
       if (!active) renderTopics();
@@ -2851,12 +2853,12 @@ window.PHYS_SYNC = {
   });
   $("#board-opt").addEventListener("change", e => { store.board = e.target.checked; persist(); syncNow(); });
   $("#sync-leave").addEventListener("click", () => {
-    store.sync = null; persist(); renderSync(); renderBoard();
+    store.sync = null; srvScore = null; persist(); renderSync(); renderBoard();
     setStatus("Abgemeldet. Dein Fortschritt bleibt auf diesem Gerät.");
   });
 
   // Rangliste
-  let board = null;
+  let board = null, srvScore = null;
   async function fetchBoard() {
     if (!CFG) { renderBoard(); return; }
     try { board = await rpc("lern_board", {}); } catch (e) { board = board || null; }
@@ -2879,7 +2881,7 @@ window.PHYS_SYNC = {
     renderPts();
   }
   function renderPts() {
-    const s = scoreInfo();
+    const s = store.sync && srvScore ? srvScore : scoreInfo();
     let t = s.score + " Punkte";
     if (board && store.sync && store.sync.user) {
       const i = board.findIndex(r => String(r.name).toLowerCase() === String(store.sync.name).toLowerCase());
@@ -3440,6 +3442,267 @@ window.PHYS_SYNC = {
 })();
 
 ;
+/* Grafik-Werkzeug für die Simulationen: einheitlicher Look (Laborpapier, Bauteile, glänzende Ladungen,
+   metallische Platten, fließende Feldlinien) und kleine Helfer für weiche Animationen. */
+(function () {
+  "use strict";
+  const TAU = Math.PI * 2;
+
+  // Hex-Farbe aufhellen/abdunkeln (amt -1 … 1)
+  function shade(hex, amt) {
+    const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex).trim());
+    if (!m) return hex;
+    const f = v => { v = parseInt(v, 16); v = amt >= 0 ? v + (255 - v) * amt : v * (1 + amt); return Math.round(Math.max(0, Math.min(255, v))); };
+    return "rgb(" + f(m[1]) + "," + f(m[2]) + "," + f(m[3]) + ")";
+  }
+  function alpha(hex, a) {
+    const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex).trim());
+    if (!m) return hex;
+    return "rgba(" + parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16) + "," + a + ")";
+  }
+  // weiches Annähern an einen Zielwert, unabhängig von der Bildrate
+  const ease = (cur, target, dt, speed) => cur + (target - cur) * (1 - Math.exp(-dt * (speed || 8)));
+  const isDark = c => { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(c.surf || ""); if (!m) return true; return (parseInt(m[1], 16) + parseInt(m[2], 16) + parseInt(m[3], 16)) < 380; };
+
+  function rr(x, x0, y0, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    x.beginPath(); x.moveTo(x0 + r, y0); x.arcTo(x0 + w, y0, x0 + w, y0 + h, r); x.arcTo(x0 + w, y0 + h, x0, y0 + h, r);
+    x.arcTo(x0, y0 + h, x0, y0, r); x.arcTo(x0, y0, x0 + w, y0, r); x.closePath();
+  }
+  function poly(x, pts) { x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); }
+
+  // Vorgezeichnete Bilder (Sprites) für häufig gezeichnete Kugeln: spart Farbverläufe in jedem Bild
+  const sprites = new Map();
+  function sprite(key, size, scale, paint) {
+    const k = key + "|" + scale.toFixed(2);
+    let sp = sprites.get(k);
+    if (!sp) {
+      if (sprites.size > 400) sprites.clear();
+      const cv = document.createElement("canvas"), px = Math.ceil(size * 2 * scale) + 2;
+      cv.width = cv.height = px;
+      const cx = cv.getContext("2d"); cx.setTransform(scale, 0, 0, scale, px / 2, px / 2);
+      paint(cx);
+      sp = { cv, px }; sprites.set(k, sp);
+    }
+    return sp;
+  }
+  function drawSprite(x, sp, px, py, a) {
+    const sc = x.getTransform().a || 1;
+    const prev = x.globalAlpha; if (a != null) x.globalAlpha = prev * a;
+    x.drawImage(sp.cv, px - sp.px / 2 / sc, py - sp.px / 2 / sc, sp.px / sc, sp.px / sc);
+    x.globalAlpha = prev;
+  }
+  const bgCache = new Map();
+
+  const G = {
+    shade, alpha, ease, rr, isDark, TAU,
+    // Hintergrund wie Millimeterpapier
+    bg(x, w, h, c, grid) {
+      G._dark = isDark(c);
+      const sc = x.getTransform().a || 1, key = [w, h, c.surf, c.surf2, c.border, grid !== false, sc.toFixed(2)].join("|");
+      let cv = bgCache.get(key);
+      if (!cv) {
+        if (bgCache.size > 20) bgCache.clear();
+        cv = document.createElement("canvas"); cv.width = Math.round(w * sc); cv.height = Math.round(h * sc);
+        const bx = cv.getContext("2d"); bx.setTransform(sc, 0, 0, sc, 0, 0);
+        G._bgPaint(bx, w, h, c, grid);
+        bgCache.set(key, cv);
+      }
+      x.drawImage(cv, 0, 0, w, h);
+    },
+    _bgPaint(x, w, h, c, grid) {
+      const g = x.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, c.surf); g.addColorStop(1, c.surf2);
+      x.fillStyle = g; x.fillRect(0, 0, w, h);
+      if (grid === false) return;
+      x.lineWidth = 1; x.strokeStyle = alpha(c.border.startsWith("#") ? c.border : "#808080", isDark(c) ? 0.45 : 0.6);
+      x.beginPath();
+      for (let i = 20; i < w; i += 20) { x.moveTo(i + 0.5, 0); x.lineTo(i + 0.5, h); }
+      for (let j = 20; j < h; j += 20) { x.moveTo(0, j + 0.5); x.lineTo(w, j + 0.5); }
+      x.stroke();
+    },
+    wire(x, c, pts, w, col) {
+      x.save(); x.lineCap = "round"; x.lineJoin = "round";
+      x.strokeStyle = col || c.fg; x.lineWidth = w || 2.4; poly(x, pts); x.stroke(); x.restore();
+    },
+    node(x, c, p, r) { x.fillStyle = c.fg; x.beginPath(); x.arc(p[0], p[1], r || 3.2, 0, TAU); x.fill(); },
+    terminal(x, c, p) { x.fillStyle = c.surf; x.strokeStyle = c.fg; x.lineWidth = 2; x.beginPath(); x.arc(p[0], p[1], 3.6, 0, TAU); x.fill(); x.stroke(); },
+    // Widerstand (Kasten nach DIN)
+    resistor(x, c, x0, x1, y, label, vertical) {
+      const w = x1 - x0, h = 20;
+      x.save();
+      const g = vertical ? x.createLinearGradient(y - h / 2, 0, y + h / 2, 0) : x.createLinearGradient(0, y - h / 2, 0, y + h / 2);
+      g.addColorStop(0, shade(c.surf2, isDark(c) ? 0.08 : -0.02)); g.addColorStop(1, shade(c.surf2, isDark(c) ? -0.12 : -0.08));
+      x.fillStyle = g; x.strokeStyle = c.fg; x.lineWidth = 2;
+      rr(x, x0, y - h / 2, w, h, 4); x.fill(); x.stroke();
+      if (label) { x.fillStyle = c.fg; x.font = "600 11px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(label, x0 + w / 2, y + 0.5); }
+      x.restore();
+    },
+    // Batterie senkrecht: langer Strich (+) oben, kurzer (−) unten
+    battery(x, c, bx, yTop, yBot, label) {
+      x.save(); x.lineCap = "round";
+      x.strokeStyle = c.fg; x.lineWidth = 3.4; poly(x, [[bx - 15, yTop], [bx + 15, yTop]]); x.stroke();
+      x.lineWidth = 5; poly(x, [[bx - 8, yBot], [bx + 8, yBot]]); x.stroke();
+      G.badge(x, c, "+", bx + 24, yTop - 1, c.pos); G.badge(x, c, "−", bx + 24, yBot + 1, c.neg);
+      if (label) { x.fillStyle = c.fg; x.font = "700 12px system-ui, sans-serif"; x.textAlign = "left"; x.textBaseline = "middle"; x.fillText(label, bx + 36, (yTop + yBot) / 2); }
+      x.restore();
+    },
+    badge(x, c, t, px, py, col) {
+      x.save(); x.fillStyle = alpha(col, 0.18); x.strokeStyle = col; x.lineWidth = 1.2;
+      x.beginPath(); x.arc(px, py, 7, 0, TAU); x.fill(); x.stroke();
+      x.fillStyle = col; x.font = "800 11px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(t, px, py + 0.5);
+      x.restore();
+    },
+    // Metallplatte (waagerecht oder senkrecht)
+    plate(x, c, x0, y0, x1, y1, glow) {
+      x.save();
+      const vertical = Math.abs(x1 - x0) < Math.abs(y1 - y0);
+      const t = 6;
+      const g = vertical ? x.createLinearGradient(x0 - t / 2, 0, x0 + t / 2, 0) : x.createLinearGradient(0, y0 - t / 2, 0, y0 + t / 2);
+      const base = isDark(c) ? "#9aa6b8" : "#7d8798";
+      g.addColorStop(0, shade(base, 0.45)); g.addColorStop(0.5, base); g.addColorStop(1, shade(base, -0.35));
+      if (glow) { // weicher Schein ohne teures shadowBlur
+        x.fillStyle = glow;
+        for (let k = 3; k >= 1; k--) { x.globalAlpha = 0.18 * (4 - k); if (vertical) rr(x, x0 - t / 2 - k * 2, Math.min(y0, y1) - k, t + k * 4, Math.abs(y1 - y0) + k * 2, 4); else rr(x, Math.min(x0, x1) - k, y0 - t / 2 - k * 2, Math.abs(x1 - x0) + k * 2, t + k * 4, 4); x.fill(); }
+        x.globalAlpha = 1;
+      }
+      x.fillStyle = g;
+      if (vertical) rr(x, x0 - t / 2, Math.min(y0, y1), t, Math.abs(y1 - y0), 2); else rr(x, Math.min(x0, x1), y0 - t / 2, Math.abs(x1 - x0), t, 2);
+      x.fill(); x.restore();
+    },
+    // glänzende Kugel (Ladung, Ion, Tröpfchen)
+    ball(x, px, py, r, col, sign, opts) {
+      if (!isFinite(px) || !isFinite(py)) return;
+      opts = opts || {};
+      if (!opts.glow) {
+        const sc = x.getTransform().a || 1;
+        const sp = sprite("b" + col + r + (sign || ""), r + 1, sc, cx => G._ballPaint(cx, 0, 0, r, col, sign));
+        drawSprite(x, sp, px, py, opts.alpha == null ? 1 : opts.alpha);
+        return;
+      }
+      x.save();
+      if (opts.glow) { x.shadowColor = alpha(col, 0.8); x.shadowBlur = opts.glow; }
+      const g = x.createRadialGradient(px - r * 0.35, py - r * 0.4, r * 0.15, px, py, r);
+      g.addColorStop(0, shade(col, 0.55)); g.addColorStop(0.55, col); g.addColorStop(1, shade(col, -0.35));
+      x.fillStyle = g; x.globalAlpha = opts.alpha == null ? 1 : opts.alpha;
+      x.beginPath(); x.arc(px, py, r, 0, TAU); x.fill();
+      x.shadowBlur = 0;
+      if (sign) {
+        x.strokeStyle = "#fff"; x.lineWidth = Math.max(1.4, r * 0.22); x.lineCap = "round";
+        const s = r * 0.48;
+        x.beginPath(); x.moveTo(px - s, py); x.lineTo(px + s, py);
+        if (sign === "+") { x.moveTo(px, py - s); x.lineTo(px, py + s); }
+        x.stroke();
+      }
+      x.restore();
+    },
+    electron(x, c, px, py, a) {
+      if (!isFinite(px) || !isFinite(py)) return;
+      const sc = x.getTransform().a || 1;
+      const sp = sprite("e" + c.neg, 7, sc, cx => G._elPaint(cx, c, 0, 0));
+      drawSprite(x, sp, px, py, a == null ? 1 : a);
+    },
+    _elPaint(x, c, px, py) {
+      x.save();
+      const g = x.createRadialGradient(px, py, 0, px, py, 6);
+      g.addColorStop(0, alpha(c.neg, 0.9)); g.addColorStop(0.45, alpha(c.neg, 0.55)); g.addColorStop(1, alpha(c.neg, 0));
+      x.fillStyle = g; x.beginPath(); x.arc(px, py, 6, 0, TAU); x.fill();
+      x.fillStyle = "#dbe6ff"; x.beginPath(); x.arc(px, py, 1.6, 0, TAU); x.fill();
+      x.restore();
+    },
+    _ballPaint(x, px, py, r, col, sign) {
+      const g = x.createRadialGradient(px - r * 0.35, py - r * 0.4, r * 0.15, px, py, r);
+      g.addColorStop(0, shade(col, 0.55)); g.addColorStop(0.55, col); g.addColorStop(1, shade(col, -0.35));
+      x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, TAU); x.fill();
+      if (sign) {
+        x.strokeStyle = "#fff"; x.lineWidth = Math.max(1.4, r * 0.22); x.lineCap = "round";
+        const s = r * 0.48;
+        x.beginPath(); x.moveTo(px - s, py); x.lineTo(px + s, py);
+        if (sign === "+") { x.moveTo(px, py - s); x.lineTo(px, py + s); }
+        x.stroke();
+      }
+    },
+    glow(x, px, py, r, col, a) {
+      if (!isFinite(px) || !isFinite(py) || !(r > 0)) return;
+      const g = x.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, alpha(col, a == null ? 0.45 : a)); g.addColorStop(1, alpha(col, 0));
+      x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, TAU); x.fill();
+    },
+    arrow(x, col, x1, y1, x2, y2, w, head) {
+      const len = Math.hypot(x2 - x1, y2 - y1); if (len < 1) return;
+      const a = Math.atan2(y2 - y1, x2 - x1), h = head || Math.max(7, (w || 2) * 3.2);
+      x.save(); x.strokeStyle = col; x.fillStyle = col; x.lineWidth = w || 2; x.lineCap = "round";
+      const ex = x2 - Math.cos(a) * h * 0.7, ey = y2 - Math.sin(a) * h * 0.7;
+      x.beginPath(); x.moveTo(x1, y1); x.lineTo(ex, ey); x.stroke();
+      x.beginPath(); x.moveTo(x2, y2); x.lineTo(x2 - h * Math.cos(a - 0.42), y2 - h * Math.sin(a - 0.42)); x.lineTo(x2 - h * Math.cos(a + 0.42), y2 - h * Math.sin(a + 0.42)); x.closePath(); x.fill();
+      x.restore();
+    },
+    // beschriftetes Etikett mit Hintergrund
+    pill(x, c, text, px, py, o) {
+      o = o || {};
+      x.save();
+      x.font = (o.bold === false ? "500 " : "700 ") + (o.size || 11) + "px system-ui, sans-serif";
+      const w = x.measureText(text).width + 12, h = (o.size || 11) + 8;
+      let left = o.align === "left" ? px : o.align === "right" ? px - w : px - w / 2;
+      if (o.clampW) left = Math.max(2, Math.min(o.clampW - w - 2, left));
+      x.fillStyle = o.bg || alpha(c.surf.startsWith("#") ? c.surf : "#ffffff", 0.92);
+      x.strokeStyle = o.col || c.border; x.lineWidth = 1.2;
+      rr(x, left, py - h / 2, w, h, h / 2); x.fill(); x.stroke();
+      x.fillStyle = o.col || c.fg; x.textAlign = "center"; x.textBaseline = "middle";
+      x.fillText(text, left + w / 2, py + 0.5);
+      x.restore();
+      return w;
+    },
+    text(x, col, t, px, py, o) {
+      o = o || {};
+      x.save(); x.fillStyle = col; x.font = (o.weight || 500) + " " + (o.size || 11) + "px system-ui, sans-serif";
+      x.textAlign = o.align || "center"; x.textBaseline = o.base || "middle"; x.fillText(t, px, py); x.restore();
+    },
+    // Feldlinie mit fließender Strichelung und Pfeilspitze (zeigt die Richtung)
+    flowLine(x, col, pts, phase, o) {
+      o = o || {};
+      if (pts.length < 2) return;
+      x.save(); x.strokeStyle = col; x.lineWidth = o.w || 1.5; x.lineCap = "round"; x.lineJoin = "round";
+      x.globalAlpha = o.alpha == null ? 0.9 : o.alpha;
+      poly(x, pts); x.stroke();
+      if (o.flow !== false) {
+        x.setLineDash([2, 12]); x.lineDashOffset = -phase; x.lineWidth = (o.w || 1.5) + 1.8; x.globalAlpha = 0.85;
+        x.strokeStyle = o.dot || (G._dark === false ? shade(col, -0.45) : "#ffffff");
+        poly(x, pts); x.stroke(); x.setLineDash([]);
+      }
+      x.restore();
+      if (o.head !== false) {
+        let i = Math.floor(pts.length * (o.at || 0.5)); i = Math.max(1, Math.min(pts.length - 1, i));
+        const p = pts[i - 1], q = pts[i];
+        const a = Math.atan2(q[1] - p[1], q[0] - p[0]);
+        x.save(); x.fillStyle = col; x.beginPath();
+        x.moveTo(q[0] + Math.cos(a) * 6, q[1] + Math.sin(a) * 6);
+        x.lineTo(q[0] + Math.cos(a + 2.5) * 6, q[1] + Math.sin(a + 2.5) * 6);
+        x.lineTo(q[0] + Math.cos(a - 2.5) * 6, q[1] + Math.sin(a - 2.5) * 6);
+        x.closePath(); x.fill(); x.restore();
+      }
+    },
+    // Erdungszeichen
+    ground(x, c, px, py) {
+      x.save(); x.strokeStyle = c.fg; x.lineWidth = 2.2; x.lineCap = "round";
+      [[14, 0], [9, 6], [4, 12]].forEach(([w, dy]) => { x.beginPath(); x.moveTo(px - w, py + dy); x.lineTo(px + w, py + dy); x.stroke(); });
+      x.restore();
+    },
+    // Abstandspfeil mit Beschriftung
+    dim(x, c, x1, y1, x2, y2, label) {
+      x.save(); x.strokeStyle = c.dim; x.fillStyle = c.dim; x.lineWidth = 1;
+      poly(x, [[x1, y1], [x2, y2]]); x.stroke();
+      const a = Math.atan2(y2 - y1, x2 - x1);
+      [[x1, y1, a + Math.PI], [x2, y2, a]].forEach(([px, py, aa]) => { x.beginPath(); x.moveTo(px, py); x.lineTo(px - 5 * Math.cos(aa - 0.5), py - 5 * Math.sin(aa - 0.5)); x.lineTo(px - 5 * Math.cos(aa + 0.5), py - 5 * Math.sin(aa + 0.5)); x.closePath(); x.fill(); });
+      x.restore();
+      if (label) G.pill(x, c, label, (x1 + x2) / 2, (y1 + y2) / 2, { size: 10, col: c.dim });
+    },
+    poly
+  };
+  window.PHYS_GFX = G;
+})();
+
+;
 /* Labor: interaktive Simulationen (Canvas) und die Übung „Schaltung beschriften“.
    Gerüst, RC-Schaltung, Euler-Verfahren. Weitere Simulationen stehen in sims2.js. */
 (function () {
@@ -3449,11 +3712,25 @@ window.PHYS_SYNC = {
   const S = A.store;
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
   const rnd = a => a[Math.floor(Math.random() * a.length)];
-  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const TEXT = Object.getOwnPropertyDescriptor(Node.prototype, "textContent");
+  const el = (tag, cls, html) => {
+    const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html;
+    if (cls === "sim-info") { // Infotexte werden jedes Bild gesetzt: nur bei Änderung ins DOM schreiben
+      let last = e.textContent;
+      Object.defineProperty(e, "textContent", { get: () => last, set: v => { if (v !== last) { last = v; TEXT.set.call(e, v); } } });
+    }
+    return e;
+  };
   const de = (x, n) => String(Number(x.toPrecision(n || 3))).replace(".", ",");
 
   // ------------------------------------------------------------ Farben aus dem Theme
+  let colCache = null, colKey = "";
   function colors() {
+    const key = (document.documentElement.getAttribute("data-theme") || "") + (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "d" : "l");
+    if (colCache && key === colKey) return colCache;
+    colKey = key; colCache = readColors(); return colCache;
+  }
+  function readColors() {
     const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
     return { fg: g("--fg"), dim: g("--fg-dim"), line: g("--line"), border: g("--border"), surf: g("--surface"), surf2: g("--surface-2"),
       pos: g("--pos"), neg: g("--neg"), ok: g("--ok"), bad: g("--bad"), warn: g("--warn"), accent: g("--accent") };
@@ -3514,7 +3791,8 @@ window.PHYS_SYNC = {
     const spans = {};
     keys.forEach(([k, label]) => { const d = el("div", "ro", '<span class="ro-l">' + label + '</span><span class="ro-v">–</span>'); spans[k] = d.querySelector(".ro-v"); box.append(d); });
     host.append(box);
-    return o => { for (const k in o) if (spans[k]) spans[k].textContent = o[k]; };
+    const last = {};
+    return o => { for (const k in o) if (spans[k] && last[k] !== o[k]) { last[k] = o[k]; spans[k].textContent = o[k]; } };
   }
 
   // ------------------------------------------------------------ Schleife
@@ -3522,7 +3800,7 @@ window.PHYS_SYNC = {
   let cur = null, raf = 0, last = 0;
   function loop(now) {
     raf = requestAnimationFrame(loop);
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = Math.max(last, now); // nie negativ (sonst NaN bei Zufallsbewegung)
     if (cur) { cur.step && cur.step(dt); cur.draw && cur.draw(); }
   }
   function startLoop(obj) { stopLoop(); cur = obj; last = performance.now(); raf = requestAnimationFrame(loop); }
@@ -3555,42 +3833,53 @@ window.PHYS_SYNC = {
     D: { x: 258, y: 40, t: "D" }, E: { x: 322, y: 110, t: "E" }, F: { x: 120, y: 230, t: "F" }
   };
   const L = (ctx, pts) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); };
-  function drawCircuit(ctx, c, o) {
-    ctx.lineWidth = 2.2; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = c.fg; ctx.fillStyle = c.fg;
-    ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
-    // Quelle links
-    L(ctx, [[G.bx, G.by1], [G.bx, G.topY], [G.r1[0], G.topY]]);
-    L(ctx, [[G.bx, G.by2], [G.bx, G.botY], [G.rx, G.botY], [G.rx, G.topY], [G.r2[1], G.topY]]);
-    ctx.lineWidth = 3; L(ctx, [[G.bx - 14, G.by1], [G.bx + 14, G.by1]]); ctx.lineWidth = 2; L(ctx, [[G.bx - 8, G.by2], [G.bx + 8, G.by2]]); ctx.lineWidth = 2.2;
-    ctx.fillText("+", G.bx + 24, G.by1 - 2); ctx.fillText("−", G.bx + 24, G.by2 + 11);
-    ctx.textAlign = "right"; ctx.fillText(o.U0lab || "U₀", G.bx - 18, (G.by1 + G.by2) / 2 + 4); ctx.textAlign = "center";
-    // Widerstände
-    [[G.r1, o.R1lab || "R₁"], [G.r2, o.R2lab || "R₂"]].forEach(([r, t]) => {
-      ctx.fillStyle = c.surf; ctx.fillRect(r[0], G.topY - 11, r[1] - r[0], 22); ctx.strokeRect(r[0], G.topY - 11, r[1] - r[0], 22);
-      ctx.fillStyle = c.fg; ctx.fillText(t, (r[0] + r[1]) / 2, G.topY + 4);
-    });
-    L(ctx, [[G.r1[1], G.topY], [G.cl[0], G.cl[1]]]);
-    L(ctx, [[G.cr[0], G.cr[1]], [G.r2[0], G.topY]]);
-    // Schalter
-    const blade = o.mode === "charge" ? [G.cl[0] + 2, G.cl[1] + 6] : o.mode === "discharge" ? [G.cr[0] - 2, G.cr[1] + 6] : [G.pv[0] + 18, G.pv[1] - 44];
-    ctx.lineWidth = 2.6; L(ctx, [G.pv, blade]); ctx.lineWidth = 2.2;
-    [G.cl, G.cr].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fillStyle = c.surf; ctx.fill(); ctx.stroke(); });
-    ctx.beginPath(); ctx.arc(G.pv[0], G.pv[1], 4, 0, 7); ctx.fillStyle = c.fg; ctx.fill();
-    // Kondensator, Leitungen
-    L(ctx, [G.pv, [G.pv[0], G.pt]]);
-    L(ctx, [[G.pv[0], G.pb], [G.pv[0], G.botY]]);
-    ctx.lineWidth = 3; L(ctx, [[170, G.pt], [250, G.pt]]); L(ctx, [[170, G.pb], [250, G.pb]]); ctx.lineWidth = 2.2;
-    ctx.fillStyle = c.dim; ctx.textAlign = "left"; ctx.fillText("C", 255, 164); ctx.textAlign = "center";
-    // Voltmeter
-    L(ctx, [[G.pv[0], 128], [G.vm[0], 128], [G.vm[0], G.vm[1] - 14]]);
-    L(ctx, [[G.vm[0], G.vm[1] + 14], [G.vm[0], G.botY]]);
-    ctx.beginPath(); ctx.arc(G.vm[0], G.vm[1], 14, 0, 7); ctx.fillStyle = c.surf; ctx.fill(); ctx.stroke();
-    ctx.fillStyle = c.fg; ctx.font = "bold 13px system-ui, sans-serif"; ctx.fillText("V", G.vm[0], G.vm[1] + 4.5); ctx.font = "12px system-ui, sans-serif";
-    // Knoten unten
-    [[G.pv[0], G.botY], [G.vm[0], G.botY]].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fill(); });
-    [[G.pv[0], 128]].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fill(); });
-    // Masse-Zeichen
-    ctx.fillStyle = c.dim; ctx.textAlign = "left"; ctx.fillText("0 V", 52, G.botY - 6); ctx.textAlign = "center";
+  const GX = window.PHYS_GFX;
+  const BLADE = { charge: [G.cl[0] + 3, G.cl[1] + 5], discharge: [G.cr[0] - 3, G.cr[1] + 5], open: [G.pv[0] + 20, G.pv[1] - 46] };
+  // Zeigermessgerät (Voltmeter) mit Skala; frac = Zeigerausschlag 0 … 1
+  function drawMeter(x, c, cx, cy, frac, unit) {
+    x.save();
+    const g = x.createRadialGradient(cx - 4, cy - 5, 2, cx, cy, 17);
+    g.addColorStop(0, GX.shade(c.surf, GX.isDark(c) ? 0.12 : 0)); g.addColorStop(1, GX.shade(c.surf2, GX.isDark(c) ? -0.1 : -0.06));
+    x.fillStyle = g; x.strokeStyle = c.fg; x.lineWidth = 2.2;
+    x.beginPath(); x.arc(cx, cy, 16, 0, GX.TAU); x.fill(); x.stroke();
+    x.strokeStyle = c.dim; x.lineWidth = 1;
+    for (let i = 0; i <= 6; i++) { const a = -Math.PI * 0.85 + (Math.PI * 0.7) * i / 6; x.beginPath(); x.moveTo(cx + Math.cos(a) * 11, cy + Math.sin(a) * 11 + 3); x.lineTo(cx + Math.cos(a) * 14, cy + Math.sin(a) * 14 + 3); x.stroke(); }
+    if (frac != null) {
+      const a = -Math.PI * 0.85 + Math.PI * 0.7 * Math.max(0, Math.min(1, frac));
+      x.strokeStyle = c.bad; x.lineWidth = 1.6; x.lineCap = "round";
+      x.beginPath(); x.moveTo(cx, cy + 3); x.lineTo(cx + Math.cos(a) * 13, cy + 3 + Math.sin(a) * 13); x.stroke();
+    }
+    x.fillStyle = c.fg; x.beginPath(); x.arc(cx, cy + 3, 1.8, 0, GX.TAU); x.fill();
+    GX.text(x, c.fg, unit || "V", cx, cy + 10, { weight: 800, size: 8 });
+    x.restore();
+  }
+  function drawCircuit(x, c, o) {
+    o = o || {};
+    // Leitungen
+    GX.wire(x, c, [[G.bx, G.by1 - 3], [G.bx, G.topY], [G.r1[0], G.topY]]);
+    GX.wire(x, c, [[G.bx, G.by2 + 3], [G.bx, G.botY], [G.rx, G.botY], [G.rx, G.topY], [G.r2[1], G.topY]]);
+    GX.wire(x, c, [[G.r1[1], G.topY], [G.cl[0], G.cl[1]]]);
+    GX.wire(x, c, [[G.cr[0], G.cr[1]], [G.r2[0], G.topY]]);
+    GX.wire(x, c, [G.pv, [G.pv[0], G.pt - 3]]);
+    GX.wire(x, c, [[G.pv[0], G.pb + 3], [G.pv[0], G.botY]]);
+    GX.wire(x, c, [[G.pv[0], 128], [G.vm[0], 128], [G.vm[0], G.vm[1] - 16]]);
+    GX.wire(x, c, [[G.vm[0], G.vm[1] + 16], [G.vm[0], G.botY]]);
+    // Bauteile
+    GX.battery(x, c, G.bx, G.by1, G.by2, o.U0lab || "U₀");
+    GX.resistor(x, c, G.r1[0], G.r1[1], G.topY, o.R1lab || "R₁");
+    GX.resistor(x, c, G.r2[0], G.r2[1], G.topY, o.R2lab || "R₂");
+    GX.plate(x, c, 170, G.pt, 250, G.pt, o.glow ? GX.alpha(c.pos, o.glow) : null);
+    GX.plate(x, c, 170, G.pb, 250, G.pb, o.glow ? GX.alpha(c.neg, o.glow) : null);
+    GX.text(x, c.dim, "C", 258, 160, { align: "left", weight: 700, size: 12 });
+    if (!o.noMeter) drawMeter(x, c, G.vm[0], G.vm[1], o.meter);
+    // Umschalter
+    GX.terminal(x, c, G.cl); GX.terminal(x, c, G.cr);
+    const b = o.blade || BLADE[o.mode || "open"];
+    x.save(); x.strokeStyle = c.fg; x.lineWidth = 3.4; x.lineCap = "round";
+    x.beginPath(); x.moveTo(G.pv[0], G.pv[1]); x.lineTo(b[0], b[1]); x.stroke(); x.restore();
+    GX.node(x, c, G.pv, 4.6);
+    [[G.pv[0], 128], [G.pv[0], G.botY], [G.vm[0], G.botY]].forEach(p => GX.node(x, c, p, 3.4));
+    GX.text(x, c.dim, "0 V", 56, G.botY - 10, { align: "left", size: 11 });
   }
   // Potenziale (Bezug: unterer Draht = 0 V) für Schalterstellung und Kondensatorspannung
   function potentials(mode, U0, Uc) {
@@ -3613,7 +3902,8 @@ window.PHYS_SYNC = {
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
       const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1 };
-      let mode = "open", Q = 0, t = 0, qty = "U", showTau = true, showPot = false, hist = [], histT = 0, ev = null, phase = 0;
+      let mode = "open", Q = 0, t = 0, qty = "U", showTau = true, showPot = false, hist = [], histT = 0, ev = null, phase = 0, fieldPhase = 0;
+      let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0;
       const tau = m => (m === "charge" ? P.R1 : P.R2) * P.C / 1000; // kΩ·µF = ms
       const Uc = () => Q / P.C;
       function setMode(m) {
@@ -3624,7 +3914,7 @@ window.PHYS_SYNC = {
       }
       host.append(st.c);
       const info = el("div", "sim-info"); host.append(info);
-      const segMode = seg(host, { label: "Schalter", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: "open", onChange: setMode });
+      const segMode = seg(host, { label: "Schalter (oder im Bild auf den Schalter tippen)", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: "open", onChange: setMode });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
       slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
       slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
@@ -3645,6 +3935,7 @@ window.PHYS_SYNC = {
         "Schalte auf <b>Entladen</b> und lies die Spannung nach genau $\\tau$ ab. Welchen Bruchteil von $U_0$ erwartest du?",
         "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen."
       ]);
+      function curI() { return mode === "charge" ? (P.U0 - Uc()) / P.R1 : mode === "discharge" ? -Uc() / P.R2 : 0; } // mA
 
       function step(dt) {
         const ds = dt * P.speed;
@@ -3656,82 +3947,89 @@ window.PHYS_SYNC = {
         histT += ds;
         while (histT >= 0.04) { histT -= 0.04; hist.push([t, Uc(), curI()]); if (hist.length > 5000) hist.shift(); }
         const I = Math.abs(curI());
-        phase += (I > 0.005 ? 30 + 16 * I : 0) * dt * Math.min(P.speed, 2) * 0.8;
+        phase += (I > 0.004 ? 18 + 22 * Math.sqrt(I) : 0) * dt;
+        fieldPhase += dt * 14;
+        const target = BLADE[mode];
+        blade[0] = GX.ease(blade[0], target[0], dt, 14); blade[1] = GX.ease(blade[1], target[1], dt, 14);
+        meter = GX.ease(meter, Uc() / 12, dt, 6);
+        glow = GX.ease(glow, Math.min(1, I / 2), dt, 6);
       }
-      function curI() { return mode === "charge" ? (P.U0 - Uc()) / P.R1 : mode === "discharge" ? -Uc() / P.R2 : 0; } // mA
+      const inRes = p => p[1] > G.topY - 12 && p[1] < G.topY + 12 && ((p[0] > G.r1[0] - 2 && p[0] < G.r1[1] + 2) || (p[0] > G.r2[0] - 2 && p[0] < G.r2[1] + 2));
 
       function draw() {
         const c = colors(), x = st.ctx;
-        st.fit();
-        // Elektronen (zuerst, damit Widerstände und Beschriftung darüber liegen)
+        st.fit(); GX.bg(x, 360, 250, c);
+        const f = clamp(Uc() / 12, 0, 1);
+        // Feld zwischen den Platten (fließt von + nach −)
+        if (f > 0.01) {
+          for (let i = 0; i < 5; i++) { const px = 182 + i * 14; GX.flowLine(x, c.line, [[px, G.pt + 4], [px, G.pb - 4]], fieldPhase, { alpha: 0.35 + 0.6 * f, head: false, w: 1.2 }); }
+        }
+        drawCircuit(x, c, { blade, meter, glow: f > 0.05 ? 0.35 * f : 0, R1lab: de(P.R1) + " kΩ", R2lab: de(P.R2) + " kΩ", U0lab: P.U0 + " V" });
+        // Elektronen auf den Leitungen (entgegen der technischen Stromrichtung)
         const paths = mode === "charge" ? P_CHARGE : mode === "discharge" ? P_DISCH : [];
-        paths.forEach(pts => {
-          const len = pathLen(pts), n = Math.max(4, Math.round(len / 22));
-          x.fillStyle = c.neg;
+        const I = Math.abs(curI());
+        if (I > 0.004) paths.forEach(pts => {
+          const len = pathLen(pts), n = Math.max(4, Math.round(len / 20));
           for (let i = 0; i < n; i++) {
             const d = (((i * len / n) - phase) % len + len) % len;
             const p = pointAt(pts, d);
-            x.beginPath(); x.arc(p[0], p[1], 2.6, 0, 7); x.fill();
+            if (!inRes(p)) GX.electron(x, c, p[0], p[1], Math.min(1, 0.35 + I / 1.2));
           }
         });
-        drawCircuit(x, c, { mode, R1lab: "R₁=" + de(P.R1) + "k", R2lab: "R₂=" + de(P.R2) + "k", U0lab: P.U0 + " V" });
-        // Platten: Ladungen und Feld
-        const f = clamp(Uc() / 12, 0, 1), n = Math.round(f * 8);
-        x.font = "bold 12px system-ui, sans-serif"; x.textAlign = "center";
-        for (let i = 0; i < n; i++) { const px = 176 + i * (68 / Math.max(7, n - 1)) + 3; x.fillStyle = c.pos; x.fillText("+", px, G.pt - 5); x.fillStyle = c.neg; x.fillText("−", px, G.pb + 13); }
-        x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.2;
-        const na = Math.round(f * 5);
-        for (let i = 0; i < na; i++) { const px = 182 + i * 15, len = 4 + 10 * f; L(x, [[px, G.pt + 3], [px, G.pb - 3]]); x.beginPath(); x.moveTo(px, G.pb - 3); x.lineTo(px - 3, G.pb - 8); x.lineTo(px + 3, G.pb - 8); x.fill(); }
-        x.lineWidth = 2.2;
-        // Voltmeter-Anzeige
-        x.fillStyle = c.accent; x.font = "bold 13px system-ui, sans-serif"; x.textAlign = "left";
-        x.textAlign = "center"; x.fillText(de(Uc(), 3) + " V", 250, 206); x.textAlign = "left";
+        // Ladungen auf den Platten, erscheinen nach und nach
+        for (let i = 0; i < 9; i++) {
+          const a = clamp(f * 9 - i, 0, 1); if (a <= 0) continue;
+          const px = 176 + i * 8.5;
+          GX.ball(x, px, G.pt - 9, 3.6, c.pos, "+", { alpha: a });
+          GX.ball(x, px, G.pb + 9, 3.6, c.neg, "−", { alpha: a });
+        }
+        // Stromstärke am aktiven Widerstand
+        if (I > 0.004) {
+          const r = mode === "charge" ? G.r1 : G.r2, xm = (r[0] + r[1]) / 2;
+          GX.pill(x, c, "I = " + de(I, 2) + " mA", xm, G.topY + 24, { col: c.bad, size: 10 });
+        }
+        // Spannungsanzeige
+        GX.pill(x, c, de(Uc(), 3) + " V", G.vm[0] + 2, 202, { col: c.accent, size: 12 });
         // Potenziale
         if (showPot) {
           const pot = potentials(mode, P.U0, Uc());
-          x.font = "bold 11px system-ui, sans-serif"; x.textAlign = "center";
-          Object.keys(NODES).forEach(k => {
-            const nd = NODES[k], v = pot[k], txt = k + ": " + de(v, 3) + " V";
-            const w = x.measureText(txt).width + 8;
-            x.fillStyle = c.surf; x.strokeStyle = c.accent; x.lineWidth = 1.2;
-            x.beginPath(); x.rect(nd.x - w / 2, nd.y - 16, w, 15); x.fill(); x.stroke();
-            x.fillStyle = c.accent; x.fillText(txt, nd.x, nd.y - 5);
-          });
-          x.lineWidth = 2.2;
+          Object.keys(NODES).forEach(k => { const nd = NODES[k]; GX.pill(x, c, k + ": " + de(pot[k], 3) + " V", nd.x, nd.y - 12, { col: c.accent, size: 10, clampW: 360 }); });
         }
-        // Zahlen
         ro({ u: de(Uc(), 3) + " V", i: de(curI(), 3) + " mA", q: de(Q, 3) + " µC", tau: de(tau(mode === "open" ? "charge" : mode), 3) + " s" });
-        info.textContent = mode === "charge" ? "Laden: Strom fließt über R₁ zur Platte. Elektronen (blau) wandern entgegen der technischen Stromrichtung."
+        info.textContent = mode === "charge" ? "Laden: Der Strom fließt über R₁ zur Platte. Die Elektronen (blau) wandern entgegen der technischen Stromrichtung."
           : mode === "discharge" ? "Entladen: Der Kondensator treibt den Strom über R₂. Die Spannung sinkt exponentiell."
           : "Schalter offen: keine Verbindung, die Ladung bleibt (ideal).";
-        drawPlot(c);
+        if ((frame = (frame + 1) % 2) === 0) drawPlot(c); // Diagramm reicht mit halber Bildrate
       }
 
-      function niceW(x) { const v = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200]; return v.find(a => a >= x) || 200; }
+      function niceW(v) { const a = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200]; return a.find(z => z >= v) || 200; }
       function drawPlot(c) {
-        pl.fit();
-        const x = pl.ctx, X0 = 44, X1 = 350, Y0 = 14, Y1 = 142;
+        pl.fit(); const x = pl.ctx;
+        GX.bg(x, 360, 175, c, false);
+        const X0 = 44, X1 = 350, Y0 = 16, Y1 = 142;
         const W = niceW(5.5 * Math.max(tau("charge"), tau("discharge")));
         const t0 = Math.max(0, t - W), t1 = t0 + W;
-        let ymin = 0, ymax, unit, key;
-        if (qty === "U") { ymax = Math.max(P.U0, 1) * 1.08; unit = "V"; key = 1; }
-        else if (qty === "I") { const m = P.U0 / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; unit = "mA"; key = 2; }
-        else { ymax = P.C * P.U0 * 1.08; unit = "µC"; key = 3; }
+        let ymin = 0, ymax, key, col;
+        if (qty === "U") { ymax = Math.max(P.U0, 1) * 1.08; key = 1; col = c.accent; }
+        else if (qty === "I") { const m = P.U0 / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; key = 2; col = c.bad; }
+        else { ymax = P.C * P.U0 * 1.08; key = 3; col = c.ok; }
         const sx = tt => X0 + (tt - t0) / W * (X1 - X0), sy = v => Y1 - (v - ymin) / (ymax - ymin) * (Y1 - Y0);
-        x.font = "11px system-ui, sans-serif"; x.lineWidth = 1; x.textAlign = "right";
-        // Gitter und Achsen
-        for (let i = 0; i <= 4; i++) {
-          const v = ymin + (ymax - ymin) * i / 4, yy = sy(v);
-          x.strokeStyle = c.border; L(x, [[X0, yy], [X1, yy]]);
-          x.fillStyle = c.dim; x.fillText(de(v, 2), X0 - 5, yy + 4);
-        }
-        x.textAlign = "center";
-        for (let i = 0; i <= 5; i++) { const tt = t0 + W * i / 5, xx = sx(tt); x.strokeStyle = c.border; L(x, [[xx, Y0], [xx, Y1]]); x.fillStyle = c.dim; x.fillText(de(tt, 3), xx, Y1 + 14); }
-        x.fillStyle = c.dim; x.textAlign = "left"; x.fillText(qty === "U" ? "Uc in V" : qty === "I" ? "I in mA" : "Q in µC", X0 + 6, 11);
-        x.textAlign = "right"; x.fillText("t in s", X1, Y1 + 28);
+        const val = h => key === 3 ? h[1] * P.C : h[key];
+        x.font = "11px system-ui, sans-serif"; x.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) { const v = ymin + (ymax - ymin) * i / 4, yy = sy(v); x.strokeStyle = c.border; L(x, [[X0, yy], [X1, yy]]); GX.text(x, c.dim, de(v, 2), X0 - 5, yy, { align: "right" }); }
+        for (let i = 0; i <= 5; i++) { const tt = t0 + W * i / 5, xx = sx(tt); x.strokeStyle = c.border; L(x, [[xx, Y0], [xx, Y1]]); GX.text(x, c.dim, de(tt, 3), xx, Y1 + 12); }
+        x.strokeStyle = c.fg; x.lineWidth = 1.4; L(x, [[X0, Y1], [X1, Y1]]); L(x, [[X0, Y1], [X0, Y0 - 6]]);
+        GX.text(x, c.dim, qty === "U" ? "Uc in V" : qty === "I" ? "I in mA" : "Q in µC", X0 + 6, 9, { align: "left" });
+        GX.text(x, c.dim, "t in s", X1, Y1 + 26, { align: "right" });
         if (qty === "I") { x.strokeStyle = c.dim; L(x, [[X0, sy(0)], [X1, sy(0)]]); }
-        x.save(); x.beginPath(); x.rect(X0, Y0 - 2, X1 - X0, Y1 - Y0 + 4); x.clip();
-        // ideale Kurve und τ-Marke (nur für Uc)
+        x.save(); x.beginPath(); x.rect(X0, Y0 - 4, X1 - X0, Y1 - Y0 + 8); x.clip();
+        const pts = hist.filter(h => h[0] >= t0 - 0.1).map(h => [sx(h[0]), sy(val(h))]);
+        if (pts.length > 1) {
+          // Fläche unter der Kurve
+          const g = x.createLinearGradient(0, Y0, 0, Y1); g.addColorStop(0, GX.alpha(col, 0.28)); g.addColorStop(1, GX.alpha(col, 0.02));
+          x.fillStyle = g; x.beginPath(); x.moveTo(pts[0][0], sy(Math.max(ymin, 0))); pts.forEach(p => x.lineTo(p[0], p[1])); x.lineTo(pts[pts.length - 1][0], sy(Math.max(ymin, 0))); x.closePath(); x.fill();
+          x.strokeStyle = col; x.lineWidth = 2.6; x.lineJoin = "round"; GX.poly(x, pts); x.stroke();
+        }
         if (showTau && ev && qty === "U") {
           x.strokeStyle = c.warn; x.fillStyle = c.warn; x.setLineDash([4, 4]); x.lineWidth = 1.4;
           x.beginPath();
@@ -3739,17 +4037,14 @@ window.PHYS_SYNC = {
           x.stroke();
           const tt = ev.t0 + ev.tau, v = ev.Uinf + (ev.Ustart - ev.Uinf) / Math.E;
           L(x, [[sx(tt), Y1], [sx(tt), sy(v)]]); L(x, [[X0, sy(v)], [sx(tt), sy(v)]]);
-          x.setLineDash([]); x.beginPath(); x.arc(sx(tt), sy(v), 3.5, 0, 7); x.fill();
-          x.font = "11px system-ui, sans-serif"; x.textAlign = "left"; x.fillText("τ", sx(tt) + 4, Y1 - 4);
+          x.setLineDash([]); GX.ball(x, sx(tt), sy(v), 4, c.warn);
+          GX.pill(x, c, "τ", sx(tt), Y1 - 10, { col: c.warn, size: 10 });
         }
-        x.setLineDash([]); x.lineWidth = 2.4; x.strokeStyle = qty === "U" ? c.accent : qty === "I" ? c.bad : c.ok;
-        x.beginPath(); let started = false;
-        for (let i = 0; i < hist.length; i++) { const h = hist[i]; if (h[0] < t0 - 0.1) continue; const px = sx(h[0]), py = sy(key === 3 ? h[1] * P.C : h[key]); started ? x.lineTo(px, py) : x.moveTo(px, py); started = true; }
-        x.stroke(); x.restore();
-        x.lineWidth = 1;
+        x.restore();
+        if (pts.length) { const p = pts[pts.length - 1]; GX.glow(x, p[0], p[1], 12, col, 0.5); GX.ball(x, p[0], p[1], 4.2, col); }
       }
-      // Klick auf den Schalter wechselt die Stellung
-      st.c.addEventListener("click", e => { const p = st.pos(e); if (p.y < 110 && p.x > 150 && p.x < 270) setMode(mode === "open" ? "charge" : mode === "charge" ? "discharge" : "open"); });
+      // Tippen auf den Schalter wechselt die Stellung
+      st.c.addEventListener("click", e => { const p = st.pos(e); if (p.y < 115 && p.x > 150 && p.x < 270) setMode(mode === "open" ? "charge" : mode === "charge" ? "discharge" : "open"); });
       return { step, draw };
     }
   });
@@ -3779,12 +4074,12 @@ window.PHYS_SYNC = {
       ]);
       const f = y => m === "dis" ? -y : 1 - y, ex = t => m === "dis" ? Math.exp(-t) : 1 - Math.exp(-t);
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 235, c, false);
         const X0 = 40, X1 = 350, Y0 = 14, Y1 = 195, sx = t => X0 + t / 5 * (X1 - X0), sy = y => Y1 - y * (Y1 - Y0);
         x.font = "11px system-ui, sans-serif"; x.lineWidth = 1;
         for (let i = 0; i <= 4; i++) { const y = i / 4; x.strokeStyle = c.border; L(x, [[X0, sy(y)], [X1, sy(y)]]); x.fillStyle = c.dim; x.textAlign = "right"; x.fillText(de(y, 2), X0 - 5, sy(y) + 4); }
         for (let i = 0; i <= 5; i++) { x.strokeStyle = c.border; L(x, [[sx(i), Y0], [sx(i), Y1]]); x.fillStyle = c.dim; x.textAlign = "center"; x.fillText(i + "τ", sx(i), Y1 + 14); }
-        x.textAlign = "left"; x.fillStyle = c.dim; x.fillText(m === "dis" ? "U / U₀" : "U / U₀", 4, 10);
+        x.textAlign = "left"; x.fillStyle = c.dim; x.fillText("U / U₀", X0 + 8, 10);
         // exakte Kurve
         x.lineWidth = 2.4; x.strokeStyle = c.accent; x.beginPath();
         for (let i = 0; i <= 100; i++) { const t = i / 20; i ? x.lineTo(sx(t), sy(ex(t))) : x.moveTo(sx(t), sy(ex(t))); } x.stroke();
@@ -3794,7 +4089,7 @@ window.PHYS_SYNC = {
         for (let i = 0; i < k; i++) { const ny = y + f(y) * dtau; pts.push([(i + 1) * dtau, ny]); y = ny; }
         x.lineWidth = 2; x.strokeStyle = c.warn; x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(sx(Math.min(p[0], 5.2)), sy(p[1])) : x.moveTo(sx(p[0]), sy(p[1]))); x.stroke();
         pts.forEach((p, i) => {
-          x.fillStyle = c.warn; x.beginPath(); x.arc(sx(p[0]), sy(p[1]), 3.4, 0, 7); x.fill();
+          GX.ball(x, sx(p[0]), sy(p[1]), 4, c.warn);
           if (i > 0) { x.strokeStyle = c.dim; x.setLineDash([2, 3]); x.lineWidth = 1; L(x, [[sx(p[0]), sy(p[1])], [sx(p[0]), sy(ex(p[0]))]]); x.setLineDash([]); }
         });
         // aktuelle Tangente (nächster Schritt)
@@ -3914,8 +4209,8 @@ window.PHYS_SYNC = {
     }
     paint();
     lab.draw = () => {
-      const c = colors(); cv.fit();
-      drawCircuit(cv.ctx, c, { mode: sc.mode, R1lab: "R₁", R2lab: "R₂", U0lab: "U₀" });
+      const c = colors(); cv.fit(); GX.bg(cv.ctx, 360, 250, c);
+      drawCircuit(cv.ctx, c, { mode: sc.mode, R1lab: "R₁", R2lab: "R₂", U0lab: "U₀", meter: null });
     };
   }
   function finishLabel() {
@@ -3944,41 +4239,52 @@ window.PHYS_SYNC = {
   origStat();
 
   // Öffentliche Schnittstelle für sims2.js
-  window.PHYS_SIMKIT = { labState: () => (lab ? lab.sc : null), potentials, A, S, $, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L, add: s => { SIMS.push(s); renderSimList(); }, G };
+  window.PHYS_SIMKIT = { GX, labState: () => (lab ? lab.sc : null), potentials, A, S, $, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L, add: s => { SIMS.push(s); renderSimList(); }, G };
   renderSimList();
 })();
 
 ;
-/* Labor, Teil 2: Kondensator, Polarisation und Influenz, Millikan, Feldlinien. */
+/* Labor, Teil 2: Kondensator-Labor, Influenz & Polarisation & Faraday-Käfig, Millikan, Feldlinien.
+   Grafik über PHYS_GFX (gfx.js), weiche Übergänge mit GX.ease. */
 (function () {
   "use strict";
   const K = window.PHYS_SIMKIT; if (!K) return;
-  const { A, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L } = K;
-  const E0 = 8.854e-12, QE = 1.602e-19, G = 9.81;
-  const arrow = (x, x1, y1, x2, y2, head) => {
-    x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke();
-    const a = Math.atan2(y2 - y1, x2 - x1), h = head || 6;
-    x.beginPath(); x.moveTo(x2, y2); x.lineTo(x2 - h * Math.cos(a - 0.45), y2 - h * Math.sin(a - 0.45)); x.lineTo(x2 - h * Math.cos(a + 0.45), y2 - h * Math.sin(a + 0.45)); x.closePath(); x.fill();
-  };
-  // deterministische Zufallszahlen für feste Anordnungen
+  const { A, el, clamp, de, colors, stage, slider, seg, button, notes, readouts, GX } = K;
+  const E0 = 8.854e-12, QE = 1.602e-19, G = 9.81, TAU = Math.PI * 2;
   const prng = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v); };
   const ICON = p => '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' + p + "</svg>";
+  const bez = (p0, p1, p2, p3, n) => { const out = []; for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; out.push([u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]); } return out; };
+
+  // Dipol (polares Molekül): + Ende zeigt in Richtung th
+  function dipole(x, c, px, py, th, len, a, r) {
+    r = r || 4.2;
+    const dx = Math.cos(th) * len, dy = Math.sin(th) * len;
+    x.save(); x.globalAlpha = a == null ? 1 : a;
+    x.strokeStyle = GX.alpha(c.dim.startsWith("#") ? c.dim : "#888888", 0.8); x.lineWidth = Math.max(1.6, r * 0.7); x.lineCap = "round";
+    x.beginPath(); x.moveTo(px - dx, py - dy); x.lineTo(px + dx, py + dy); x.stroke();
+    GX.ball(x, px + dx, py + dy, r, c.pos, r > 3 ? "+" : null);
+    GX.ball(x, px - dx, py - dy, r, c.neg, r > 3 ? "−" : null);
+    x.restore();
+  }
 
   // ============================================================ Kondensator-Labor
   K.add({
     id: "kond", title: "Kondensator-Labor", desc: "Abstand, Fläche und Dielektrikum verändern: C, Q, U, E live", sheet: "kondensator",
     icon: ICON('<path d="M4 9h16M4 15h16M12 3v6M12 15v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>'),
     make(host) {
-      const st = stage(360, 250);
+      const W = 360, H = 260, st = stage(W, H);
       const P = { d: 3, A: 150, er: 1, U: 9, connected: true };
-      let Q0 = 0; // feste Ladung im getrennten Zustand
+      const V = { d: 3, A: 150, er: 1, lever: 1, q: 0, e: 0 }; // angezeigte (weich nachgeführte) Werte
+      let Q0 = 0, phase = 0, t = 0;
+      const rd = prng(5), mol = Array.from({ length: 40 }, () => ({ u: rd(), v: rd(), th: rd() * TAU, ph: rd() * TAU }));
       const C = () => E0 * P.er * (P.A * 1e-4) / (P.d * 1e-3);
       const U = () => P.connected ? P.U : Q0 / C();
       const Q = () => P.connected ? C() * P.U : Q0;
       host.append(st.c);
       seg(host, { label: "Quelle", options: [{ v: true, t: "Angeschlossen (U fest)" }, { v: false, t: "Getrennt (Q fest)" }], value: true, onChange: v => { if (!v) Q0 = C() * P.U; P.connected = v; } });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
-      const sU = slider(ctl, { label: "Spannung U (Quelle)", min: 1, max: 12, step: 1, value: P.U, fmt: v => v + " V", onInput: v => { P.U = v; } });
+      slider(ctl, { label: "Spannung U (Quelle)", min: 1, max: 12, step: 1, value: P.U, fmt: v => v + " V", onInput: v => { P.U = v; } });
       slider(ctl, { label: "Plattenabstand d", min: 1, max: 10, step: 0.5, value: P.d, fmt: v => de(v) + " mm", onInput: v => { P.d = v; } });
       slider(ctl, { label: "Plattenfläche A", min: 50, max: 400, step: 10, value: P.A, fmt: v => v + " cm²", onInput: v => { P.A = v; } });
       slider(ctl, { label: "Dielektrikum εᵣ", min: 1, max: 6, step: 0.5, value: P.er, fmt: v => v === 1 ? "Luft (1)" : de(v), onInput: v => { P.er = v; } });
@@ -3989,44 +4295,66 @@ window.PHYS_SYNC = {
         "Setze $\\varepsilon_r$ hoch (Dielektrikum): Wie ändert sich $C$ bei angeschlossener, wie $U$ bei getrennter Quelle?",
         "Prüfe $C = \\varepsilon_0\\varepsilon_r\\dfrac{A}{d}$ mit den angezeigten Werten."
       ]);
+      const QMAX = E0 * 6 * 0.04 * 12 / 1e-3, EMAX = 12 / 1e-3;
+      function step(dt) {
+        t += dt;
+        V.d = GX.ease(V.d, P.d, dt, 7); V.A = GX.ease(V.A, P.A, dt, 7); V.er = GX.ease(V.er, P.er, dt, 5);
+        V.lever = GX.ease(V.lever, P.connected ? 1 : 0, dt, 10);
+        V.q = GX.ease(V.q, clamp(Math.sqrt(Q() / QMAX), 0, 1), dt, 6); V.e = GX.ease(V.e, clamp(U() / (P.d * 1e-3) / EMAX, 0, 1), dt, 6);
+        phase += dt * (8 + 40 * V.e);
+        const a = clamp(V.e * 3, 0, 1) * (1 - 1 / V.er) / (1 - 1 / 6);
+        mol.forEach(m => { const target = Math.PI / 2; let d = ((target - m.th + Math.PI * 3) % TAU) - Math.PI; m.th += d * Math.min(1, dt * 5 * a) + gauss() * Math.sqrt(dt) * 1.6 * (1 - 0.9 * a); });
+      }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
-        const gap = 14 + P.d * 7, len = 40 + Math.sqrt(P.A) * 10, cx = 180, y0 = 135 - gap / 2, y1 = y0 + gap;
-        const xl = cx - len / 2, xr = cx + len / 2;
-        // Zuleitungen
-        x.lineWidth = 2.2; x.strokeStyle = c.fg; x.lineCap = "round";
-        if (P.connected) { L(x, [[cx, y0], [cx, 40]]); L(x, [[cx, y1], [cx, 230], [60, 230], [60, 76]]); L(x, [[60, 40], [cx, 40]]); L(x, [[48, 60], [72, 60]]); x.lineWidth = 3.4; L(x, [[52, 76], [68, 76]]); x.lineWidth = 2.2; x.fillStyle = c.fg; x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("+", 76, 58); x.fillText("−", 76, 86); L(x, [[60, 40], [60, 60]]); x.textAlign = "right"; x.fillText(P.U + " V", 40, 72); }
-        else { L(x, [[cx, y0], [cx, 70]]); L(x, [[cx, y1], [cx, 200]]); x.setLineDash([3, 4]); x.strokeStyle = c.dim; x.fillStyle = c.dim; x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("von der Quelle getrennt", cx + 8, 60); x.setLineDash([]); }
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
+        const gap = 18 + V.d * 8, len = 50 + Math.sqrt(V.A) * 10, cx = 210, cy = 140, yT = cy - gap / 2, yB = cy + gap / 2, xl = cx - len / 2, xr = cx + len / 2;
         // Dielektrikum
-        if (P.er > 1) {
-          x.fillStyle = "rgba(90,169,255," + (0.08 + 0.05 * P.er) + ")"; x.fillRect(xl, y0 + 2, len, gap - 4);
-          const a = clamp(U() / 12, 0, 1) * (1 - 1 / P.er) / (1 - 1 / 6) + 0.0; // Ausrichtung
-          x.lineWidth = 1.2;
-          const cols = Math.floor(len / 22), rows = Math.max(1, Math.floor((gap - 6) / 16));
-          for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
-            const px = xl + 12 + i * (len - 24) / Math.max(1, cols - 1), py = y0 + (gap) * (j + 0.5) / rows;
-            x.strokeStyle = c.dim; L(x, [[px, py - 3.5], [px, py + 3.5]]);
-            x.fillStyle = c.pos; x.beginPath(); x.arc(px, py + 4, 1.6, 0, 7); x.fill();
-            x.fillStyle = c.neg; x.beginPath(); x.arc(px, py - 4, 1.6, 0, 7); x.fill();
-          }
+        if (V.er > 1.02) {
+          const g = x.createLinearGradient(0, yT, 0, yB); g.addColorStop(0, GX.alpha(c.accent, 0.16 + 0.03 * V.er)); g.addColorStop(1, GX.alpha(c.accent, 0.06 + 0.02 * V.er));
+          x.fillStyle = g; GX.rr(x, xl + 2, yT + 4, len - 4, gap - 8, 4); x.fill();
+          const vis = clamp((V.er - 1) * 2, 0, 1);
+          const cols = Math.max(3, Math.floor((len - 16) / 22)), rows = Math.max(1, Math.floor((gap - 10) / 18));
+          mol.slice(0, cols * rows).forEach((m, i) => { const ci = i % cols, ri = Math.floor(i / cols); const px = xl + 12 + (ci + 0.5) * (len - 24) / cols, py = yT + 5 + (ri + 0.5) * (gap - 10) / rows; dipole(x, c, px, py, m.th, 4, 0.9 * vis, 2.6); });
         }
-        // Platten
-        x.lineWidth = 4; x.strokeStyle = c.fg; L(x, [[xl, y0], [xr, y0]]); L(x, [[xl, y1], [xr, y1]]); x.lineWidth = 1;
-        // Ladungen und Feld
-        const E = U() / (P.d * 1e-3), Qmax = E0 * 1 * 0.04 * 12 / 1e-3;
-        const nq = Math.round(clamp(Q() / Qmax, 0, 1) * 14), ne = Math.round(clamp(E / 12000, 0, 1) * 12) + (E > 0 ? 1 : 0);
-        x.font = "bold 13px system-ui"; x.textAlign = "center";
-        for (let i = 0; i < nq; i++) { const px = xl + 8 + i * (len - 16) / Math.max(13, nq - 1); x.fillStyle = c.pos; x.fillText("+", px, y0 - 6); x.fillStyle = c.neg; x.fillText("−", px, y1 + 14); }
-        x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4;
-        for (let i = 0; i < ne; i++) { const px = xl + 10 + i * (len - 20) / Math.max(1, ne - 1); arrow(x, px, y0 + 2, px, y1 - 2, 5); }
+        // Feldlinien: homogen innen, Streufeld am Rand
+        const nE = 2 + V.e * 11, nl = Math.ceil(nE);
+        for (let i = 0; i < nl; i++) {
+          const a = clamp(nE - i, 0, 1) * (0.25 + 0.75 * clamp(V.e * 6, 0, 1));
+          const px = xl + 10 + (i + 0.5) * (len - 20) / nl;
+          GX.flowLine(x, c.line, [[px, yT + 4], [px, yB - 4]], phase, { alpha: a, w: 1.4, head: gap > 34 });
+        }
+        if (V.e > 0.01) {
+          [[xl, -1], [xr, 1]].forEach(([ex, s]) => {
+            const pts = bez([ex + s * 2, yT + 3], [ex + s * gap * 0.55, yT + gap * 0.05], [ex + s * gap * 0.55, yB - gap * 0.05], [ex + s * 2, yB - 3], 24);
+            GX.flowLine(x, c.line, pts, phase, { alpha: 0.45, w: 1.2, head: false });
+          });
+        }
+        // Leitungen, Schalter, Batterie
+        const bx = 40, b1 = 128, b2 = 150;
+        GX.wire(x, c, [[bx, b1 - 3], [bx, 40], [104, 40]]);
+        GX.wire(x, c, [[146, 40], [cx, 40], [cx, yT - 3]]);
+        GX.wire(x, c, [[bx, b2 + 3], [bx, 236], [cx, 236], [cx, yB + 3]]);
+        GX.battery(x, c, bx, b1, b2, P.U + " V");
+        GX.terminal(x, c, [104, 40]); GX.terminal(x, c, [146, 40]);
+        const ang = (1 - V.lever) * -0.75;
+        x.save(); x.strokeStyle = c.fg; x.lineWidth = 3.2; x.lineCap = "round"; x.beginPath(); x.moveTo(104, 40); x.lineTo(104 + Math.cos(ang) * 42, 40 + Math.sin(ang) * 42); x.stroke(); x.restore();
+        GX.text(x, c.dim, P.connected ? "geschlossen" : "offen", 125, 56, { size: 10 });
+        // Platten mit Ladungen
+        GX.plate(x, c, xl, yT, xr, yT, V.q > 0.05 ? GX.alpha(c.pos, 0.35 * V.q) : null);
+        GX.plate(x, c, xl, yB, xr, yB, V.q > 0.05 ? GX.alpha(c.neg, 0.35 * V.q) : null);
+        const nq = 1 + V.q * 20, nn = Math.ceil(nq);
+        for (let i = 0; i < nn; i++) {
+          const a = clamp(nq - i, 0, 1), px = xl + 6 + (i + 0.5) * (len - 12) / Math.max(nn, 8);
+          GX.ball(x, px, yT - 9, 3.6, c.pos, "+", { alpha: a }); GX.ball(x, px, yB + 9, 3.6, c.neg, "−", { alpha: a });
+        }
         // Maße
-        x.strokeStyle = c.dim; x.fillStyle = c.dim; x.lineWidth = 1; x.font = "11px system-ui"; x.textAlign = "left";
-        L(x, [[xr + 12, y0], [xr + 12, y1]]); x.fillText("d", xr + 18, 138);
-        x.textAlign = "center"; L(x, [[xl, y1 + 26], [xr, y1 + 26]]); x.fillText("A", cx, y1 + 40);
-        const cc = C(), qq = Q(), uu = U();
+        GX.dim(x, c, xr + 34, yT, xr + 34, yB, null);
+        GX.pill(x, c, "d = " + de(P.d) + " mm", Math.min(W - 4, xr + 34), yT - 16, { align: "right", size: 10, col: c.dim });
+        GX.text(x, c.dim, "A = " + P.A + " cm²" + (P.er > 1 ? "   εᵣ = " + de(P.er) : ""), cx, yB + 28, { size: 11, weight: 600 });
+        const cc = C(), qq = Q(), uu = U(), E = uu / (P.d * 1e-3);
         ro({ c: de(cc * 1e12, 3) + " pF", q: de(qq * 1e9, 3) + " nC", u: de(uu, 3) + " V", e: de(E / 1e3, 3) + " kV/m", w: de(0.5 * qq * uu * 1e9, 3) + " nJ" });
       }
-      return { draw };
+      return { step, draw };
     }
   });
 
@@ -4036,65 +4364,81 @@ window.PHYS_SYNC = {
     icon: ICON('<circle cx="9" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17 8v8M20 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     make(host) {
       let tab = "inf";
-      const tabs = seg(host, { options: [{ v: "inf", t: "Influenz" }, { v: "pol", t: "Polarisation" }, { v: "far", t: "Faraday-Käfig" }], value: "inf", onChange: v => { tab = v; build(); } });
+      seg(host, { options: [{ v: "inf", t: "Influenz" }, { v: "pol", t: "Polarisation" }, { v: "far", t: "Faraday-Käfig" }], value: "inf", onChange: v => { tab = v; build(); } });
       const body = el("div", ""); host.append(body);
       let sim = null;
       function build() { body.innerHTML = ""; sim = tab === "inf" ? influenz(body) : tab === "pol" ? polar(body) : faraday(body); }
       build();
       return { step: dt => sim.step && sim.step(dt), draw: () => sim.draw() };
 
-      // ---- Influenz: Metallkugel und negativer Stab
+      // ---- Influenz: Metallkugel, negativer Stab (ziehbar), Erdung
       function influenz(h) {
-        const st = stage(360, 250); h.append(st.c);
-        const rd = prng(7), N = 28, pts = [];
-        for (let i = 0; i < N; i++) { const r = 46 * Math.sqrt((i + 0.5) / N), a = i * 2.39996; pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
-        void rd;
-        let gap = 80, grounded = false, shift = 0, removed = 0;
+        const W = 360, H = 250, st = stage(W, H, "touch-none"); h.append(st.c);
+        const CX = 245, CY = 115, R = 62, N = 26;
+        const homes = []; for (let i = 0; i < N; i++) { const r = 48 * Math.sqrt((i + 0.5) / N), a = i * 2.39996; homes.push([Math.cos(a) * r, Math.sin(a) * r]); }
+        const els = homes.map(p => ({ x: p[0], y: p[1], vx: 0, vy: 0 }));
+        let gap = 100, gapV = 100, grounded = false, removed = 0, flow = [], t = 0;
         const status = el("div", "sim-info"); h.append(status);
-        const s = slider(h, { label: "Abstand Stab ↔ Kugel", min: 0, max: 100, step: 1, value: 80, fmt: v => v < 15 ? "sehr nah" : v > 85 ? "weit weg" : v + " %", onInput: v => { gap = v; } });
+        const s = slider(h, { label: "Abstand Stab ↔ Kugel (oder Stab ziehen)", min: 0, max: 100, step: 1, value: 80, fmt: v => v < 15 ? "sehr nah" : v > 85 ? "weit weg" : v + " %", onInput: v => { gap = 6 + v * 1.2; } });
+        gap = 6 + 80 * 1.2;
         const acts = el("div", "sim-acts"); h.append(acts);
         const gb = button(acts, "Erden: aus", () => { grounded = !grounded; gb.textContent = "Erden: " + (grounded ? "an" : "aus"); });
-        button(acts, "Neu beginnen", () => { gap = 80; s.set(80); grounded = false; gb.textContent = "Erden: aus"; removed = 0; shift = 0; });
-        notes(h, "Aufgaben", ["Führe den negativen Stab an die Kugel heran. Wohin wandern die beweglichen Elektronen?",
+        button(acts, "Neu beginnen", () => { gap = 6 + 80 * 1.2; s.set(80); grounded = false; gb.textContent = "Erden: aus"; removed = 0; });
+        notes(h, "Aufgaben", ["Ziehe den negativen Stab an die Kugel heran. Wohin wandern die beweglichen Elektronen?",
           "Erde die Kugel (an), entferne dann die Erdung (aus) und erst danach den Stab. Wie ist die Kugel geladen?",
           "Warum bleibt die Kugel ohne Erdung insgesamt neutral?"]);
-        const CX = 235, CY = 125, R = 62;
+        let drag = false;
+        st.c.addEventListener("pointerdown", e => { const p = st.pos(e); const edge = CX - R - gapV; if (p.x < edge + 10 && p.x > edge - 110 && Math.abs(p.y - CY) < 34) { drag = true; st.c.setPointerCapture && st.c.setPointerCapture(e.pointerId); } });
+        st.c.addEventListener("pointermove", e => { if (!drag) return; const p = st.pos(e); const g = clamp(CX - R - (p.x + 45), 6, 126); gap = g; s.set(Math.round((g - 6) / 1.2)); });
+        const up = () => { drag = false; }; st.c.addEventListener("pointerup", up); st.c.addEventListener("pointercancel", up);
+        const k = () => clamp(1 - gapV / 135, 0, 1);
         function step(dt) {
-          const k = clamp(1 - (6 + gap * 1.2) / 135, 0, 1);
-          shift += (k * 26 - shift) * Math.min(1, dt * 6);
-          if (grounded) { const target = Math.round(k * 8); removed += Math.sign(target - removed) * Math.min(Math.abs(target - removed), dt * 5); }
+          t += dt; gapV = GX.ease(gapV, gap, dt, 10);
+          const kk = k();
+          const target = grounded ? Math.round(kk * 8) : removed;
+          const before = removed;
+          removed += Math.sign(target - removed) * Math.min(Math.abs(target - removed), dt * 4);
+          if (Math.floor(before) !== Math.floor(removed) || (removed !== before && Math.random() < dt * 6)) flow.push({ y: 0, dir: removed > before ? 1 : -1 });
+          flow.forEach(f => { f.y += dt * 90; }); flow = flow.filter(f => f.y < 1.2 * 50);
+          // Elektronen: Feder zur verschobenen Ruhelage + Zittern
+          els.forEach((e, i) => {
+            let tx = homes[i][0] + kk * 30 * (1 - 0.25 * Math.abs(homes[i][1]) / R), ty = homes[i][1];
+            const d = Math.hypot(tx, ty), lim = R - 9; if (d > lim) { tx *= lim / d; ty *= lim / d; }
+            e.vx += ((tx - e.x) * 30 - e.vx * 8) * dt + gauss() * 14 * Math.sqrt(dt);
+            e.vy += ((ty - e.y) * 30 - e.vy * 8) * dt + gauss() * 14 * Math.sqrt(dt);
+            e.x += e.vx * dt; e.y += e.vy * dt;
+            const dd = Math.hypot(e.x, e.y); if (dd > lim) { e.x *= lim / dd; e.y *= lim / dd; }
+          });
         }
         function draw() {
-          const c = colors(), x = st.ctx; st.fit();
-          const k = clamp(1 - (6 + gap * 1.2) / 135, 0, 1), edge = CX - R - (6 + gap * 1.2);
-          // Kugel
-          x.fillStyle = c.surf2; x.strokeStyle = c.fg; x.lineWidth = 2.4; x.beginPath(); x.arc(CX, CY, R, 0, 7); x.fill(); x.stroke();
-          const nRemoved = Math.round(removed);
-          const order = pts.map((p, i) => i).sort((a, b) => pts[b][0] - pts[a][0]);
-          const gone = new Set(order.slice(0, nRemoved));
-          x.font = "bold 12px system-ui"; x.textAlign = "center";
-          pts.forEach((p, i) => {
-            x.fillStyle = c.pos; x.fillText("+", CX + p[0], CY + p[1] + 4);
-            if (gone.has(i)) return;
-            let ex = p[0] + shift, ey = p[1]; const d = Math.hypot(ex, ey), lim = R - 9; if (d > lim) { ex *= lim / d; ey *= lim / d; }
-            x.fillStyle = c.neg; x.beginPath(); x.arc(CX + ex, CY + ey, 4.4, 0, 7); x.fill();
-            x.fillStyle = "#fff"; x.fillRect(CX + ex - 2.2, CY + ey - 0.5, 4.4, 1.1);
-          });
-          // Stab
-          x.fillStyle = c.surf; x.strokeStyle = c.neg; x.lineWidth = 2.4; x.beginPath(); x.rect(edge - 100, CY - 22, 100, 44); x.fill(); x.stroke();
-          x.fillStyle = c.neg; x.font = "bold 16px system-ui";
-          for (let i = 0; i < 5; i++) x.fillText("−", edge - 90 + i * 20, CY + 6);
+          const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
+          const kk = k(), edge = CX - R - gapV;
           // Erdung
           if (grounded) {
-            x.strokeStyle = c.fg; x.lineWidth = 2; L(x, [[CX, CY + R], [CX, 225]]); L(x, [[CX - 14, 225], [CX + 14, 225]]); L(x, [[CX - 9, 232], [CX + 9, 232]]); L(x, [[CX - 4, 239], [CX + 4, 239]]);
-            if (Math.abs(removed - Math.round(removed)) > 0.01 || Math.abs(Math.round(k * 8) - removed) > 0.05) { x.fillStyle = c.neg; for (let i = 0; i < 3; i++) { const yy = CY + R + ((performance.now() / 12 + i * 22) % 66); x.beginPath(); x.arc(CX, yy, 3, 0, 7); x.fill(); } }
+            GX.wire(x, c, [[CX, CY + R], [CX, 214]]); GX.ground(x, c, CX, 216);
+            flow.forEach(f => GX.electron(x, c, CX, f.dir > 0 ? CY + R + f.y : 214 - f.y));
           }
+          // Kugel (Metall)
+          x.save(); const g = x.createRadialGradient(CX - 20, CY - 24, 8, CX, CY, R);
+          g.addColorStop(0, GX.shade(c.surf2, 0.25)); g.addColorStop(1, GX.shade(c.surf2, GX.isDark(c) ? -0.25 : -0.12));
+          x.fillStyle = g; x.strokeStyle = c.fg; x.lineWidth = 2.4; x.beginPath(); x.arc(CX, CY, R, 0, TAU); x.fill(); x.stroke(); x.restore();
+          // Ionen und Elektronen
+          homes.forEach(p => GX.ball(x, CX + p[0], CY + p[1], 3.2, c.pos, "+", { alpha: 0.85 }));
+          const order = els.map((e, i) => i).sort((a, b) => els[b].x - els[a].x);
+          const gone = new Set(order.slice(0, Math.round(removed)));
+          els.forEach((e, i) => { if (!gone.has(i)) GX.ball(x, CX + e.x, CY + e.y, 4.4, c.neg, "−"); });
+          // Stab (ziehbar)
+          x.save(); const rg = x.createLinearGradient(0, CY - 20, 0, CY + 20); rg.addColorStop(0, GX.shade(c.neg, 0.35)); rg.addColorStop(1, GX.shade(c.neg, -0.3));
+          x.fillStyle = rg; x.shadowColor = GX.alpha(c.neg, 0.5); x.shadowBlur = 10; GX.rr(x, edge - 104, CY - 18, 104, 36, 10); x.fill(); x.restore();
+          for (let i = 0; i < 5; i++) GX.ball(x, edge - 88 + i * 18, CY, 5, GX.shade(c.neg, 0.15), "−");
+          GX.text(x, c.dim, "⟷ ziehen", edge - 52, CY + 30, { size: 10 });
           const net = Math.round(removed);
-          const farAndFree = !grounded && gap > 70;
+          GX.pill(x, c, "Gesamtladung der Kugel: " + (net > 0 ? "+" + net + " e" : "0"), CX, 18, { col: net > 0 ? c.pos : c.dim, size: 10, clampW: W });
+          const farAndFree = !grounded && gap > 90;
           status.textContent = net > 0 && farAndFree ? "Die Kugel ist jetzt positiv geladen: " + net + " Elektronen fehlen (Aufladung durch Influenz)."
-            : net > 0 && !grounded ? "Elektronen sind abgeflossen. Entferne den Stab, um die Ladung zu verteilen."
-            : grounded && k > 0.1 ? "Erdung: Die abgestoßenen Elektronen fließen zur Erde ab."
-            : k > 0.15 ? "Influenz: Die beweglichen Elektronen werden vom negativen Stab abgestoßen. Die Kugel ist insgesamt neutral."
+            : net > 0 && !grounded ? "Elektronen sind abgeflossen. Entferne jetzt den Stab, dann verteilt sich die positive Ladung."
+            : grounded && kk > 0.1 ? "Erdung: Die abgestoßenen Elektronen fließen zur Erde ab."
+            : kk > 0.15 ? "Influenz: Die beweglichen Elektronen werden vom negativen Stab abgestoßen. Die Kugel ist insgesamt neutral."
             : "Der Stab ist weit weg: Die Ladungen sind gleichmäßig verteilt.";
         }
         return { step, draw };
@@ -4102,10 +4446,10 @@ window.PHYS_SYNC = {
 
       // ---- Polarisation: Dipole im Dielektrikum
       function polar(h) {
-        const st = stage(360, 250); h.append(st.c);
-        let kind = "or", Es = 0, er = 4, t = 0;
+        const W = 360, H = 250, st = stage(W, H); h.append(st.c);
+        let kind = "or", Es = 0, EsV = 0, er = 4, phase = 0;
         const rd = prng(11), mol = [];
-        for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) mol.push({ x: 108 + i * 28, y: 82 + j * 26, th: rd() * 6.28, ph: rd() * 6.28, w: (rd() - 0.5) * 2 });
+        for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) mol.push({ x: 112 + i * 27 + (rd() - 0.5) * 6, y: 84 + j * 25 + (rd() - 0.5) * 5, th: rd() * TAU });
         seg(h, { label: "Art", options: [{ v: "or", t: "Orientierung (polar, z. B. Wasser)" }, { v: "ve", t: "Verschiebung (Atome)" }], value: "or", onChange: v => { kind = v; } });
         const ctl = el("div", "sim-ctl"); h.append(ctl);
         slider(ctl, { label: "Feldstärke E₀", min: 0, max: 100, step: 1, value: 0, fmt: v => v + " %", onInput: v => { Es = v / 100; } });
@@ -4113,94 +4457,112 @@ window.PHYS_SYNC = {
         const info = el("div", "sim-info"); h.append(info);
         notes(h, "Aufgaben", ["Schalte das Feld ein. Was machen die Dipole bzw. Atome?", "Wo entstehen die <b>Polarisationsladungen</b>? Welches Vorzeichen haben sie oben und unten?",
           "Wie ändert sich das Feld im Dielektrikum? Vergleiche $E_0$ und $E_0/\\varepsilon_r$."]);
-        const align = () => Es * (1 - 1 / er) / (1 - 1 / 6);
+        const align = () => EsV * (1 - 1 / er) / (1 - 1 / 6);
         function step(dt) {
-          t += dt; const a = align();
-          mol.forEach(m => {
-            if (kind === "or") {
-              const target = Math.PI / 2; // Pluspol zeigt in Feldrichtung (nach unten)
-              let d = ((target - m.th + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-              m.th += d * Math.min(1, dt * 4 * a) + (Math.sin(t * 3 + m.ph) * 1.8 * (1 - 0.85 * a) + m.w * 0.6) * dt * (1 - a * 0.9);
-            }
-          });
+          EsV = GX.ease(EsV, Es, dt, 5); phase += dt * (6 + 40 * EsV);
+          const a = align();
+          mol.forEach(m => { let d = ((Math.PI / 2 - m.th + Math.PI * 3) % TAU) - Math.PI; m.th += d * Math.min(1, dt * 6 * a) + gauss() * Math.sqrt(dt) * 2.2 * (1 - 0.88 * a); });
         }
         function draw() {
-          const c = colors(), x = st.ctx; st.fit();
+          const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
           const a = align();
-          // Platten
-          x.fillStyle = c.fg; x.fillRect(60, 28, 240, 6); x.fillRect(60, 216, 240, 6);
-          x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillStyle = c.pos; for (let i = 0; i < 8; i++) x.fillText("+", 74 + i * 30, 24);
-          x.fillStyle = c.neg; for (let i = 0; i < 8; i++) x.fillText("−", 74 + i * 30, 238);
-          // Feldpfeile außerhalb des Blocks
-          x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4;
-          if (Es > 0) [74, 286].forEach(px => arrow(x, px, 38, px, 38 + 20 + 120 * Es * 0.4 + 14, 6));
+          GX.plate(x, c, 50, 30, 310, 30, EsV > 0.05 ? GX.alpha(c.pos, 0.4 * EsV) : null);
+          GX.plate(x, c, 50, 220, 310, 220, EsV > 0.05 ? GX.alpha(c.neg, 0.4 * EsV) : null);
+          const nq = 3 + EsV * 9;
+          for (let i = 0; i < Math.ceil(nq); i++) { const al = clamp(nq - i, 0, 1), px = 60 + i * 20; GX.ball(x, px, 18, 4, c.pos, "+", { alpha: al }); GX.ball(x, px, 233, 4, c.neg, "−", { alpha: al }); }
+          // Feld außerhalb des Blocks
+          if (EsV > 0.02) [[66, 1], [294, 1]].forEach(([px]) => GX.flowLine(x, c.line, [[px, 36], [px, 214]], phase, { alpha: 0.3 + 0.7 * EsV, w: 1.6 }));
           // Block
-          x.fillStyle = "rgba(90,169,255,.10)"; x.strokeStyle = c.dim; x.lineWidth = 1.5; x.fillRect(92, 62, 176, 116); x.strokeRect(92, 62, 176, 116);
-          // Moleküle
+          x.save(); const g = x.createLinearGradient(0, 62, 0, 180); g.addColorStop(0, GX.alpha(c.accent, 0.14)); g.addColorStop(1, GX.alpha(c.accent, 0.05));
+          x.fillStyle = g; x.strokeStyle = c.dim; x.lineWidth = 1.5; GX.rr(x, 92, 62, 176, 118, 8); x.fill(); x.stroke(); x.restore();
+          // Feld innen (abgeschwächt)
+          if (EsV > 0.02) { const ai = (0.3 + 0.7 * EsV) / (1 + a * (er - 1)); [130, 230].forEach(px => GX.flowLine(x, c.line, [[px, 66], [px, 176]], phase / (1 + a * (er - 1)), { alpha: clamp(ai, 0.15, 1), w: 1.2, head: false })); }
+          // Teilchen
           mol.forEach(m => {
-            if (kind === "or") {
-              const dx = Math.cos(m.th) * 9, dy = Math.sin(m.th) * 9;
-              x.strokeStyle = c.dim; x.lineWidth = 2; L(x, [[m.x - dx, m.y - dy], [m.x + dx, m.y + dy]]);
-              x.fillStyle = c.pos; x.beginPath(); x.arc(m.x + dx, m.y + dy, 3.6, 0, 7); x.fill();
-              x.fillStyle = c.neg; x.beginPath(); x.arc(m.x - dx, m.y - dy, 3.6, 0, 7); x.fill();
-            } else {
-              const sh = a * 7;
-              x.fillStyle = "rgba(62,123,255,.35)"; x.strokeStyle = c.neg; x.lineWidth = 1; x.beginPath(); x.arc(m.x, m.y - sh, 9.5, 0, 7); x.fill(); x.stroke();
-              x.fillStyle = c.pos; x.beginPath(); x.arc(m.x, m.y, 3.2, 0, 7); x.fill();
+            if (kind === "or") dipole(x, c, m.x, m.y, m.th, 7);
+            else {
+              const sh = a * 6;
+              x.save(); const cg = x.createRadialGradient(m.x, m.y - sh, 1, m.x, m.y - sh, 10);
+              cg.addColorStop(0, GX.alpha(c.neg, 0.55)); cg.addColorStop(1, GX.alpha(c.neg, 0.05));
+              x.fillStyle = cg; x.beginPath(); x.arc(m.x, m.y - sh, 10, 0, TAU); x.fill(); x.restore();
+              GX.ball(x, m.x, m.y, 3.2, c.pos);
             }
           });
-          // Polarisationsladungen an der Oberfläche
-          const n = Math.round(a * 8);
-          x.font = "bold 13px system-ui"; x.textAlign = "center";
-          for (let i = 0; i < n; i++) { const px = 104 + i * 22; x.fillStyle = c.neg; x.fillText("−", px, 58); x.fillStyle = c.pos; x.fillText("+", px, 196); }
-          // Feld im Inneren
-          if (Es > 0) { x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4; const len = 30 + 40 * Es * (1 / (1 + a * (er - 1) * 0.5)); arrow(x, 316, 70, 316, 70 + len, 6); x.font = "11px system-ui"; x.fillStyle = c.dim; x.textAlign = "left"; x.fillText("E", 322, 86); }
+          // gebundene Oberflächenladungen
+          const n = a * 9;
+          for (let i = 0; i < Math.ceil(n); i++) { const al = clamp(n - i, 0, 1), px = 104 + i * 19; GX.ball(x, px, 56, 3.6, c.neg, "−", { alpha: al }); GX.ball(x, px, 186, 3.6, c.pos, "+", { alpha: al }); }
+          if (EsV > 0.02) { GX.pill(x, c, "E₀", 294, 125, { col: c.line, size: 10 }); GX.pill(x, c, "E = E₀/εᵣ", 180, 200, { col: c.line, size: 10 }); }
           info.textContent = Es === 0 ? "Ohne Feld sind die Dipole ungeordnet bzw. die Atome unverformt."
-            : kind === "or" ? "Orientierungspolarisation: Die Dipole richten sich aus. Es entstehen gebundene Oberflächenladungen. E im Inneren: " + de(Es * 100) + " % von E₀ geteilt durch " + de(1 + a * (er - 1)) + "."
-            : "Verschiebungspolarisation: Die Elektronenhüllen verschieben sich gegen die Kerne. Es entstehen gebundene Oberflächenladungen. E im Inneren ist kleiner als E₀ (E = E₀/εᵣ).";
+            : kind === "or" ? "Orientierungspolarisation: Die Dipole richten sich gegen die Wärmebewegung aus. An der Oberfläche entstehen gebundene Ladungen, das Feld im Inneren wird schwächer."
+            : "Verschiebungspolarisation: Die Elektronenhüllen verschieben sich gegen die Kerne. An der Oberfläche entstehen gebundene Ladungen, das Feld im Inneren wird schwächer (E = E₀/εᵣ).";
         }
         return { step, draw };
       }
 
-      // ---- Faradayscher Käfig
+      // ---- Faradayscher Käfig: Feldlinien aus der Laplace-Gleichung
       function faraday(h) {
-        const st = stage(360, 250); h.append(st.c);
-        let cage = true, E = 0.6, t = 0;
+        const W = 360, H = 250, st = stage(W, H); h.append(st.c);
+        let cage = true, E = 0.6, phase = 0;
         seg(h, { label: "Käfig", options: [{ v: true, t: "Mit Käfig" }, { v: false, t: "Ohne Käfig" }], value: true, onChange: v => { cage = v; } });
         slider(h, { label: "Feldstärke E", min: 10, max: 100, step: 1, value: 60, fmt: v => v + " %", onInput: v => { E = v / 100; } });
         const info = el("div", "sim-info"); h.append(info);
-        notes(h, "Aufgaben", ["Schalte den Käfig ein. Was passiert mit dem Feld im Inneren?", "Wo sitzen die Influenzladungen auf dem Käfig und welches Vorzeichen haben sie?",
-          "Warum ist man in einem Auto bei Blitzschlag geschützt?"]);
-        const bx0 = 130, bx1 = 230, by0 = 85, by1 = 175;
-        function step(dt) { t += dt * (0.4 + 1.6 * E); }
-        function draw() {
-          const c = colors(), x = st.ctx; st.fit();
-          // Platten links (+) und rechts (−)
-          x.fillStyle = c.fg; x.fillRect(22, 30, 6, 190); x.fillRect(332, 30, 6, 190);
-          x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillStyle = c.pos; for (let i = 0; i < 6; i++) x.fillText("+", 14, 46 + i * 30);
-          x.fillStyle = c.neg; for (let i = 0; i < 6; i++) x.fillText("−", 346, 46 + i * 30);
-          // Feldlinien (animierte Pfeilspitzen)
-          x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.6;
-          const ys = [45, 65, 85, 105, 125, 145, 165, 185, 205];
-          ys.forEach(y => {
-            const inside = cage && y > by0 && y < by1;
-            const segs = inside ? [[30, bx0], [bx1, 330]] : [[30, 330]];
-            segs.forEach(sg => {
-              L(x, [[sg[0], y], [sg[1], y]]);
-              const sp = 40, off = (t * 40) % sp;
-              for (let px = sg[0] + off; px < sg[1] - 4; px += sp) { x.beginPath(); x.moveTo(px + 6, y); x.lineTo(px, y - 3.5); x.lineTo(px, y + 3.5); x.fill(); }
-            });
-          });
-          if (cage) {
-            x.setLineDash([7, 4]); x.strokeStyle = c.fg; x.lineWidth = 3; x.fillStyle = c.surf2; x.fillRect(bx0, by0, bx1 - bx0, by1 - by0); x.strokeRect(bx0, by0, bx1 - bx0, by1 - by0); x.setLineDash([]);
-            const n = Math.round(2 + 6 * E); x.font = "bold 13px system-ui"; x.textAlign = "center";
-            for (let i = 0; i < n; i++) { const yy = by0 + 10 + i * (by1 - by0 - 20) / Math.max(1, n - 1); x.fillStyle = c.neg; x.fillText("−", bx0 + 9, yy + 4); x.fillStyle = c.pos; x.fillText("+", bx1 - 9, yy + 4); }
-            x.fillStyle = c.fg; x.font = "bold 14px system-ui"; x.fillText("E = 0", (bx0 + bx1) / 2, 133);
-          } else {
-            x.fillStyle = c.pos; x.beginPath(); x.arc(180, 130, 7, 0, 7); x.fill(); x.fillStyle = "#fff"; x.font = "bold 11px system-ui"; x.textAlign = "center"; x.fillText("+", 180, 134);
-            x.strokeStyle = c.warn; x.fillStyle = c.warn; x.lineWidth = 2.6; arrow(x, 190, 130, 190 + 50 * E, 130, 8); x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("F = E·Q", 190, 150);
+        notes(h, "Aufgaben", ["Schalte den Käfig ein. Was passiert mit dem Feld im Inneren?", "Wie treffen die Feldlinien auf die Käfigwand? (Achte auf den Winkel.)",
+          "Wo sitzen die Influenzladungen und welches Vorzeichen haben sie?", "Warum ist man in einem Auto bei Blitzschlag geschützt?"]);
+        const BX0 = 132, BX1 = 228, BY0 = 84, BY1 = 172, PL = 26, PR = 334;
+        const cache = {};
+        function solve(withCage) {
+          const cs = 4, nx = Math.round(W / cs) + 1, ny = Math.round(H / cs) + 1, phi = new Float32Array(nx * ny), fixed = new Uint8Array(nx * ny);
+          const id = (i, j) => j * nx + i;
+          for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+            const X = i * cs, Y = j * cs;
+            if (X <= PL) { phi[id(i, j)] = 1; fixed[id(i, j)] = 1; }
+            else if (X >= PR) { phi[id(i, j)] = 0; fixed[id(i, j)] = 1; }
+            else if (withCage && X >= BX0 && X <= BX1 && Y >= BY0 && Y <= BY1) { phi[id(i, j)] = 0.5; fixed[id(i, j)] = 1; }
+            else phi[id(i, j)] = 1 - (X - PL) / (PR - PL);
           }
-          info.textContent = cage ? "Die Influenzladungen auf dem Käfig erzeugen ein Gegenfeld. Im Inneren heben sich beide Felder auf: E = 0, es wirkt keine Kraft."
+          if (withCage) for (let it = 0; it < 500; it++) for (let j = 0; j < ny; j++) for (let i = 1; i < nx - 1; i++) {
+            const k = id(i, j); if (fixed[k]) continue;
+            const up = j > 0 ? phi[id(i, j - 1)] : phi[id(i, j + 1)], dn = j < ny - 1 ? phi[id(i, j + 1)] : phi[id(i, j - 1)];
+            phi[k] += 1.9 * ((phi[k - 1] + phi[k + 1] + up + dn) / 4 - phi[k]);
+          }
+          const at = (X, Y) => { const fi = clamp(X / cs, 0, nx - 1.001), fj = clamp(Y / cs, 0, ny - 1.001), i = Math.floor(fi), j = Math.floor(fj), u = fi - i, v = fj - j;
+            return phi[id(i, j)] * (1 - u) * (1 - v) + phi[id(i + 1, j)] * u * (1 - v) + phi[id(i, j + 1)] * (1 - u) * v + phi[id(i + 1, j + 1)] * u * v; };
+          const grad = (X, Y) => [-(at(X + 2, Y) - at(X - 2, Y)), -(at(X, Y + 2) - at(X, Y - 2))];
+          const inside = (X, Y) => withCage && X >= BX0 - 1 && X <= BX1 + 1 && Y >= BY0 - 1 && Y <= BY1 + 1;
+          function trace(X, Y) {
+            const pts = [[X, Y]];
+            for (let s = 0; s < 400; s++) {
+              const g = grad(X, Y), m = Math.hypot(g[0], g[1]) || 1e-9; X += g[0] / m * 3; Y += g[1] / m * 3;
+              if (X >= PR - 2 || X < PL || Y < 2 || Y > H - 2) { pts.push([Math.min(X, PR - 3), Y]); break; }
+              if (inside(X, Y)) { pts.push([X, Y]); break; }
+              pts.push([X, Y]);
+            }
+            return pts;
+          }
+          const lines = [];
+          for (let y = 22; y <= H - 22; y += 17) lines.push(trace(PL + 3, y));
+          if (withCage) for (let y = BY0 + 8; y <= BY1 - 6; y += 17) lines.push(trace(BX1 + 3, y));
+          return lines;
+        }
+        function step(dt) { phase += dt * (8 + 40 * E); }
+        function draw() {
+          const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
+          const key = cage ? "c" : "n"; if (!cache[key]) cache[key] = solve(cage);
+          cache[key].forEach(l => GX.flowLine(x, c.line, l, phase, { alpha: 0.35 + 0.6 * E, w: 1.5, at: 0.35 }));
+          GX.plate(x, c, PL - 4, 18, PL - 4, H - 18, GX.alpha(c.pos, 0.3 * E)); GX.plate(x, c, PR + 4, 18, PR + 4, H - 18, GX.alpha(c.neg, 0.3 * E));
+          for (let i = 0; i < 7; i++) { GX.ball(x, PL - 14, 30 + i * 32, 4, c.pos, "+"); GX.ball(x, PR + 14, 30 + i * 32, 4, c.neg, "−"); }
+          if (cage) {
+            x.save(); x.fillStyle = GX.alpha(c.surf2.startsWith("#") ? c.surf2 : "#888888", 0.92); x.strokeStyle = c.fg; x.lineWidth = 3; x.setLineDash([8, 4]);
+            GX.rr(x, BX0, BY0, BX1 - BX0, BY1 - BY0, 4); x.fill(); x.stroke(); x.restore();
+            const n = Math.round(3 + 5 * E);
+            for (let i = 0; i < n; i++) { const yy = BY0 + 10 + i * (BY1 - BY0 - 20) / Math.max(1, n - 1); GX.ball(x, BX0 + 8, yy, 3.8, c.neg, "−"); GX.ball(x, BX1 - 8, yy, 3.8, c.pos, "+"); }
+            GX.pill(x, c, "E = 0", (BX0 + BX1) / 2, (BY0 + BY1) / 2, { col: c.ok, size: 12 });
+          } else {
+            GX.ball(x, 180, 128, 8, c.warn, "+", { glow: 8 });
+            GX.arrow(x, c.warn, 190, 128, 196 + 56 * E, 128, 3);
+            GX.pill(x, c, "F = E·Q", 196 + 28 * E, 148, { col: c.warn, size: 10 });
+          }
+          info.textContent = cage ? "Die Influenzladungen auf dem Käfig erzeugen ein Gegenfeld. Die Feldlinien enden senkrecht auf der Wand, im Inneren ist E = 0."
             : "Ohne Käfig wirkt auf die Probeladung die Kraft F = E·Q in Feldrichtung.";
         }
         return { step, draw };
@@ -4208,18 +4570,18 @@ window.PHYS_SYNC = {
     }
   });
 
-  // ============================================================ Millikan
+  // ============================================================ Millikan: Blick durchs Mikroskop
   K.add({
     id: "mill", title: "Millikan-Versuch", desc: "Schwebespannung finden, Ladung berechnen, Messreihe auswerten", sheet: "millikan",
     icon: ICON('<circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4 5h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     make(host) {
-      const st = stage(360, 260); host.append(st.c);
-      const d = 5e-3, eta = 1.8e-5, rho = 880, SPEED = 300; // Zeitraffer
-      let U = 0, drop, rows = [], y = 0.5, topPlus = true;
+      const W = 360, H = 270, st = stage(W, H); host.append(st.c);
+      const d = 5e-3, eta = 1.8e-5, rho = 880, SPEED = 6; // Zeitraffer: Fall durch die Platten in einigen Sekunden
+      let scope = null, stuck = 0, U = 0, drop, rows = [], y = 0.5, jx = 0, topPlus = true, fade = 1, respawn = 0, forces = true, Fv = { el: 0, g: 1 };
       function newDrop() {
         const r = (0.75 + Math.random() * 0.25) * 1e-6, n = 1 + Math.floor(Math.random() * 5);
         drop = { r, n, m: 4 / 3 * Math.PI * r ** 3 * rho, q: n * QE, neg: Math.random() < 0.7 };
-        y = 0.55; U = 0; sU.set(0);
+        y = 0.55; jx = 0; fade = 0; U = 0; sU.set(0);
       }
       seg(host, { label: "Polung der oberen Platte", options: [{ v: true, t: "oben +" }, { v: false, t: "oben −" }], value: true, onChange: v => { topPlus = v; } });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
@@ -4229,6 +4591,7 @@ window.PHYS_SYNC = {
       const acts2 = el("div", "sim-acts"); host.append(acts2);
       button(acts2, "Neues Tröpfchen", () => newDrop());
       button(acts2, "Schwebespannung notieren", () => record(), "primary");
+      const fb = button(acts2, "Kräfte: an", () => { forces = !forces; fb.textContent = "Kräfte: " + (forces ? "an" : "aus"); });
       const info = el("div", "sim-info"); host.append(info);
       const ro = readouts(host, [["m", "Masse m (bekannt)"], ["fel", "elektrische Kraft"], ["fg", "Gewichtskraft"], ["v", "Geschwindigkeit"]]);
       const tbl = el("div", "sim-table"); host.append(tbl);
@@ -4254,37 +4617,67 @@ window.PHYS_SYNC = {
       }
       newDrop();
       function step(dt) {
-        const v = net() / (6 * Math.PI * eta * drop.r); // m/s (positiv: nach oben)
+        fade = GX.ease(fade, respawn > 0 ? 0 : 1, dt, 6);
+        if (respawn > 0) { respawn -= dt; if (respawn <= 0) { y = 0.55; jx = 0; } return; }
+        const v = net() / (6 * Math.PI * eta * drop.r); // m/s, positiv: nach oben
         drop.v = v;
         y += v * dt * SPEED / d;
-        if (y > 0.97 || y < 0.03) y = 0.55;
+        jx += gauss() * Math.sqrt(dt) * 2.2 - jx * dt * 0.8; // Brownsche Bewegung (seitlich)
+        // am Rand des Sehfelds liegen bleiben; erst nach einer Weile kommt ein neues Tröpfchen
+        if (y > 0.95 || y < 0.05) { y = clamp(y, 0.05, 0.95); stuck += dt; if (stuck > 3) { stuck = 0; respawn = 0.45; } } else stuck = 0;
+        Fv.el = GX.ease(Fv.el, U > 0 ? dir() * drop.q * U / d / (drop.m * G) : 0, dt, 10); Fv.g = 1;
       }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
-        const top = 34, bot = 226, yy = bot - y * (bot - top);
-        x.fillStyle = c.fg; x.fillRect(60, top - 8, 240, 6); x.fillRect(60, bot + 2, 240, 6);
-        x.font = "bold 14px system-ui"; x.textAlign = "left";
-        x.fillStyle = topPlus ? c.pos : c.neg; x.fillText(topPlus ? "+" : "−", 308, top - 2); x.fillStyle = topPlus ? c.neg : c.pos; x.fillText(topPlus ? "−" : "+", 308, bot + 10);
-        // Feldlinien schwach (von + nach −)
-        x.strokeStyle = c.line; x.fillStyle = c.line; x.globalAlpha = 0.35; x.lineWidth = 1.2;
-        if (U > 0) for (let i = 0; i < 6; i++) topPlus ? arrow(x, 80 + i * 40, top, 80 + i * 40, bot, 5) : arrow(x, 80 + i * 40, bot, 80 + i * 40, top, 5);
-        x.globalAlpha = 1;
-        // Tröpfchen
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
+        const top = 28, bot = 242, cx = 180, cy = (top + bot) / 2, R = 100;
+        GX.plate(x, c, 40, top, 320, top, U > 0 ? GX.alpha(topPlus ? c.pos : c.neg, 0.4) : null);
+        GX.plate(x, c, 40, bot, 320, bot, U > 0 ? GX.alpha(topPlus ? c.neg : c.pos, 0.4) : null);
+        GX.badge(x, c, topPlus ? "+" : "−", 334, top, topPlus ? c.pos : c.neg); GX.badge(x, c, topPlus ? "−" : "+", 334, bot, topPlus ? c.neg : c.pos);
+        GX.dim(x, c, 24, top + 4, 24, bot - 4, null);
+        x.save(); x.translate(13, cy); x.rotate(-Math.PI / 2); GX.text(x, c.dim, "d = 5 mm", 0, 0, { size: 10, weight: 600 }); x.restore();
+        GX.pill(x, c, U + " V", 334, cy + 64, { col: c.accent, size: 11, clampW: W });
+        // Mikroskop-Sehfeld (Dunkelfeld)
+        const sc = x.getTransform().a || 1;
+        if (!scope || scope._sc !== sc) {
+          scope = document.createElement("canvas"); scope._sc = sc; scope.width = scope.height = Math.ceil(2 * R * sc);
+          const s2 = scope.getContext("2d"); s2.setTransform(sc, 0, 0, sc, R * sc, R * sc);
+          s2.beginPath(); s2.arc(0, 0, R, 0, TAU); s2.clip();
+          const g = s2.createRadialGradient(0, 0, 10, 0, 0, R); g.addColorStop(0, "#141a26"); g.addColorStop(1, "#05070b");
+          s2.fillStyle = g; s2.fillRect(-R, -R, 2 * R, 2 * R);
+          s2.strokeStyle = "rgba(160,190,230,.22)"; s2.lineWidth = 1;
+          for (let i = -4; i <= 4; i++) { s2.beginPath(); s2.moveTo(-R, i * 20); s2.lineTo(R, i * 20); s2.stroke(); }
+          s2.strokeStyle = "rgba(160,190,230,.45)"; s2.beginPath(); s2.moveTo(0, -R); s2.lineTo(0, R); s2.stroke();
+          for (let i = -8; i <= 8; i++) { s2.beginPath(); s2.moveTo(-4, i * 10); s2.lineTo(4, i * 10); s2.stroke(); }
+        }
+        x.save(); x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.clip();
+        x.drawImage(scope, cx - R, cy - R, 2 * R, 2 * R);
+        // Tröpfchen: hell im Streulicht
+        const py = bot - y * (bot - top), px = cx + jx * 6;
         const floating = U > 0 && dir() > 0 && Math.abs(net()) < 0.02 * drop.m * G;
-        const rr = 7 + (drop.r / 1e-6 - 0.75) * 16;
-        if (floating) { x.fillStyle = "rgba(63,181,122,.25)"; x.beginPath(); x.arc(180, yy, rr + 8, 0, 7); x.fill(); }
-        x.fillStyle = c.warn; x.beginPath(); x.arc(180, yy, rr, 0, 7); x.fill();
-        x.fillStyle = "#1a1300"; x.font = "bold 11px system-ui"; x.textAlign = "center"; x.fillText(drop.neg ? "−" : "+", 180, yy + 4);
+        x.globalAlpha = fade;
+        GX.glow(x, px, py, 22, floating ? "#3fb57a" : "#ffd28a", 0.55);
+        GX.glow(x, px, py, 7, "#fff6e0", 0.95);
+        x.fillStyle = "#fffdf5"; x.beginPath(); x.arc(px, py, 2.4, 0, TAU); x.fill();
+        x.globalAlpha = 1; x.restore();
+        x.strokeStyle = c.fg; x.lineWidth = 3; x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.stroke();
         // Kräfte
-        const fel = drop.q * U / d, fg = drop.m * G, sc = 46 / fg;
-        x.lineWidth = 2.6;
-        x.strokeStyle = c.ok; x.fillStyle = c.ok; if (fel > 0) arrow(x, 214, yy, 214, yy - dir() * Math.min(90, fel * sc), 7);
-        x.strokeStyle = c.bad; x.fillStyle = c.bad; arrow(x, 238, yy, 238, yy + 46, 7);
-        x.font = "11px system-ui"; x.textAlign = "left"; x.fillStyle = c.ok; if (fel > 0) x.fillText("F_el", 196, dir() > 0 ? top + 14 : bot - 6); x.fillStyle = c.bad; x.fillText("F_G", 244, yy + 30);
-        // Abstand
-        x.strokeStyle = c.dim; x.fillStyle = c.dim; x.lineWidth = 1; L(x, [[50, top], [50, bot]]); x.save(); x.translate(40, (top + bot) / 2); x.rotate(-Math.PI / 2); x.textAlign = "center"; x.font = "11px system-ui"; x.fillText("d = 5 mm", 0, 0); x.restore();
+        if (forces) {
+          // Kräftekasten rechts oben: Kräfte am Tröpfchen, maßstäblich (größte Kraft 44 px)
+          const fx = 334, fy = 122, big = Math.max(1, Math.abs(Fv.el)), sc = 34 / big;
+          x.save(); x.fillStyle = GX.alpha(c.surf.startsWith("#") ? c.surf : "#ffffff", 0.9); x.strokeStyle = c.border; x.lineWidth = 1;
+          GX.rr(x, fx - 21, fy - 58, 42, 116, 10); x.fill(); x.stroke(); x.restore();
+          if (Math.abs(Fv.el) > 0.02) GX.arrow(x, c.ok, fx - 6, fy, fx - 6, fy - Fv.el * sc, 2.6);
+          GX.arrow(x, c.bad, fx + 6, fy, fx + 6, fy + sc, 2.6);
+          GX.ball(x, fx, fy, 4, "#e8b04a");
+          GX.text(x, c.ok, "F_el", fx, Fv.el >= 0 ? fy - 48 : fy + 48, { size: 9, weight: 700 });
+          GX.text(x, c.bad, "F_G", fx, Fv.el >= 0 ? fy + 48 : fy - 48, { size: 9, weight: 700 });
+        }
+        const fel = drop.q * U / d, fg = drop.m * G;
         ro({ m: de(drop.m * 1e15, 3) + " · 10⁻¹⁵ kg", fel: de(fel * 1e15, 3) + " · 10⁻¹⁵ N", fg: de(fg * 1e15, 3) + " · 10⁻¹⁵ N", v: de((drop.v || 0) * 1e3, 2) + " mm/s" });
-        info.textContent = U > 0 && dir() < 0 ? "Die elektrische Kraft zeigt nach unten (" + (drop.neg ? "negatives" : "positives") + " Tröpfchen). Polung umkehren!" : floating ? "Das Tröpfchen schwebt: F_el = F_G. Jetzt Spannung ablesen und q berechnen." : net() > 0 ? "Die elektrische Kraft überwiegt: Das Tröpfchen steigt." : "Die Gewichtskraft überwiegt: Das Tröpfchen sinkt.";
+        info.textContent = stuck > 0.3 ? "Das Tröpfchen ist am Rand angekommen. Ändere die Spannung, sonst kommt gleich ein neues Tröpfchen."
+          : U > 0 && dir() < 0 ? "Die elektrische Kraft zeigt nach unten (" + (drop.neg ? "negatives" : "positives") + " Tröpfchen). Polung umkehren!"
+          : floating ? "Das Tröpfchen schwebt: F_el = F_G. Jetzt Spannung ablesen und q berechnen."
+          : net() > 0 ? "Die elektrische Kraft überwiegt: Das Tröpfchen steigt." : "Die Gewichtskraft überwiegt: Das Tröpfchen sinkt.";
       }
       return { step, draw };
     }
@@ -4296,13 +4689,13 @@ window.PHYS_SYNC = {
     icon: ICON('<circle cx="6" cy="12" r="2.5" fill="currentColor"/><circle cx="18" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 11c3-3 4-3 7 0M8.5 13c3 3 4 3 7 0" stroke="currentColor" stroke-width="1.6" fill="none"/>'),
     make(host) {
       const W = 360, H = 290, st = stage(W, H, "touch-none"); host.append(st.c);
-      let ch = [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: -1 }], mode = "+", probe = null, drag = null, dirty = true, lines = [], showProbe = true;
+      let ch = [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: -1 }], mode = "+", probe = null, drag = null, dirty = true, lines = [], phase = 0;
       seg(host, { label: "Modus", options: [{ v: "+", t: "+ setzen" }, { v: "-", t: "− setzen" }, { v: "m", t: "Verschieben" }, { v: "d", t: "Löschen" }, { v: "p", t: "Probeladung" }], value: "+", onChange: v => { mode = v; } });
       const acts = el("div", "sim-acts"); host.append(acts);
       const pre = {
         "Dipol": () => [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: -1 }],
         "Gleichnamig": () => [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: 1 }],
-        "Platten": () => { const a = []; for (let i = 0; i < 6; i++) { a.push({ x: 90 + i * 36, y: 60, q: 1 }); } for (let i = 0; i < 6; i++) { a.push({ x: 90 + i * 36, y: 230, q: -1 }); } return a; },
+        "Platten": () => { const a = []; for (let i = 0; i < 7; i++) a.push({ x: 72 + i * 36, y: 70, q: 1 }); for (let i = 0; i < 7; i++) a.push({ x: 72 + i * 36, y: 220, q: -1 }); return a; },
         "Einzeln": () => [{ x: 180, y: 145, q: 1 }]
       };
       Object.keys(pre).forEach(k => button(acts, k, () => { ch = pre[k](); probe = null; dirty = true; }));
@@ -4318,51 +4711,42 @@ window.PHYS_SYNC = {
         src.forEach(s => {
           const n = ch.length > 8 ? 6 : 14;
           for (let i = 0; i < n; i++) {
-            const a = (i + 0.5) / n * 6.2832; let px = s.x + 9 * Math.cos(a), py = s.y + 9 * Math.sin(a); const pts = [[px, py]];
-            for (let k = 0; k < 800; k++) {
-              const f = fieldAt(px, py), m = Math.hypot(f[0], f[1]) || 1; px += dir * f[0] / m * 3; py += dir * f[1] / m * 3;
+            const a = (i + 0.5) / n * TAU; let px = s.x + 10 * Math.cos(a), py = s.y + 10 * Math.sin(a); const pts = [[px, py]];
+            for (let k = 0; k < 900; k++) {
+              const f = fieldAt(px, py), m = Math.hypot(f[0], f[1]) || 1; px += dir * f[0] / m * 2.6; py += dir * f[1] / m * 2.6;
               if (px < 2 || px > W - 2 || py < 2 || py > H - 2) { pts.push([px, py]); break; }
-              let hit = false; for (const c of ch) if (Math.sign(c.q) !== Math.sign(s.q) && Math.hypot(px - c.x, py - c.y) < 9) { hit = true; break; }
-              pts.push([px, py]); if (hit) break;
+              let hit = false; for (const c of ch) if (Math.sign(c.q) !== Math.sign(s.q) && Math.hypot(px - c.x, py - c.y) < 10) { hit = true; break; }
+              if (k % 2 === 0 || hit) pts.push([px, py]); if (hit) break;
             }
-            lines.push({ pts, dir });
+            lines.push(dir > 0 ? pts : pts.slice().reverse());
           }
         });
       }
-      function pt(e) { return st.pos(e); }
       st.c.addEventListener("pointerdown", e => {
-        const p = pt(e); st.c.setPointerCapture && st.c.setPointerCapture(e.pointerId);
-        const near = () => { let b = null, bd = 22; ch.forEach(c => { const d = Math.hypot(c.x - p.x, c.y - p.y); if (d < bd) { bd = d; b = c; } }); return b; };
-        if (mode === "+" || mode === "-") { if (near()) { drag = near(); } else if (ch.length < 12) { ch.push({ x: p.x, y: p.y, q: mode === "+" ? 1 : -1 }); dirty = true; } }
+        const p = st.pos(e); st.c.setPointerCapture && st.c.setPointerCapture(e.pointerId);
+        const near = () => { let b = null, bd = 24; ch.forEach(c => { const d = Math.hypot(c.x - p.x, c.y - p.y); if (d < bd) { bd = d; b = c; } }); return b; };
+        if (mode === "+" || mode === "-") { const n = near(); if (n) drag = n; else if (ch.length < 14) { ch.push({ x: p.x, y: p.y, q: mode === "+" ? 1 : -1 }); dirty = true; } }
         else if (mode === "m") drag = near();
         else if (mode === "d") { const n = near(); if (n) { ch.splice(ch.indexOf(n), 1); dirty = true; } }
         else if (mode === "p") { probe = p; drag = "probe"; }
       });
-      st.c.addEventListener("pointermove", e => { if (!drag) return; const p = pt(e); if (drag === "probe") probe = p; else { drag.x = clamp(p.x, 8, W - 8); drag.y = clamp(p.y, 8, H - 8); dirty = true; } });
-      const up = () => { drag = null; };
-      st.c.addEventListener("pointerup", up); st.c.addEventListener("pointercancel", up);
+      st.c.addEventListener("pointermove", e => { if (!drag) return; const p = st.pos(e); if (drag === "probe") probe = p; else { drag.x = clamp(p.x, 10, W - 10); drag.y = clamp(p.y, 10, H - 10); dirty = true; } });
+      const up = () => { drag = null; }; st.c.addEventListener("pointerup", up); st.c.addEventListener("pointercancel", up);
+      function step(dt) { phase += dt * 22; }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
         if (dirty) { trace(); dirty = false; }
-        x.lineWidth = 1.4;
-        lines.forEach(l => {
-          x.strokeStyle = c.line; x.beginPath(); l.pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.stroke();
-          const mi = Math.floor(l.pts.length * 0.5);
-          if (mi > 1 && mi < l.pts.length - 1) {
-            const p = l.pts[mi], q = l.pts[mi + 1]; let a = Math.atan2(q[1] - p[1], q[0] - p[0]); if (l.dir < 0) a += Math.PI;
-            x.fillStyle = c.line; x.beginPath(); x.moveTo(p[0] + Math.cos(a) * 6, p[1] + Math.sin(a) * 6); x.lineTo(p[0] + Math.cos(a + 2.6) * 6, p[1] + Math.sin(a + 2.6) * 6); x.lineTo(p[0] + Math.cos(a - 2.6) * 6, p[1] + Math.sin(a - 2.6) * 6); x.fill();
-          }
-        });
-        ch.forEach(q => { x.fillStyle = q.q > 0 ? c.pos : c.neg; x.beginPath(); x.arc(q.x, q.y, 9, 0, 7); x.fill(); x.fillStyle = "#fff"; x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillText(q.q > 0 ? "+" : "−", q.x, q.y + 5); });
+        lines.forEach(l => GX.flowLine(x, c.line, l, phase, { w: 1.4, alpha: 0.85 }));
+        ch.forEach(q => GX.ball(x, q.x, q.y, 9.5, q.q > 0 ? c.pos : c.neg, q.q > 0 ? "+" : "−", { glow: 10 }));
         if (probe && ch.length) {
           const f = fieldAt(probe.x, probe.y), m = Math.hypot(f[0], f[1]);
-          x.fillStyle = c.warn; x.beginPath(); x.arc(probe.x, probe.y, 6, 0, 7); x.fill();
-          if (m > 1e-7) { const len = clamp(Math.log10(m * 2e4) * 22, 6, 70); x.strokeStyle = c.warn; x.lineWidth = 2.8; arrow(x, probe.x, probe.y, probe.x + f[0] / m * len, probe.y + f[1] / m * len, 8); }
-          x.font = "11px system-ui"; x.fillStyle = c.warn; x.textAlign = "left"; x.fillText(m < 2e-5 ? "E ≈ 0" : "E (relativ): " + de(m * 1e4, 2), 8, H - 8);
+          GX.ball(x, probe.x, probe.y, 6, c.warn, null, { glow: 8 });
+          if (m > 1e-7) { const len = clamp(Math.log10(m * 2e4) * 22, 8, 70); GX.arrow(x, c.warn, probe.x, probe.y, probe.x + f[0] / m * len, probe.y + f[1] / m * len, 3); }
+          GX.pill(x, c, m < 2e-5 ? "E ≈ 0" : "E (relativ): " + de(m * 1e4, 2), 8, H - 14, { align: "left", col: c.warn, size: 10 });
         }
-        if (!ch.length) { x.fillStyle = c.dim; x.font = "13px system-ui"; x.textAlign = "center"; x.fillText("Tippe hier, um eine Ladung zu setzen", W / 2, H / 2); }
+        if (!ch.length) GX.text(x, c.dim, "Tippe hier, um eine Ladung zu setzen", W / 2, H / 2, { size: 13 });
       }
-      return { draw };
+      return { step, draw };
     }
   });
 })();
@@ -4372,7 +4756,7 @@ window.PHYS_SYNC = {
 (function () {
   "use strict";
   const K = window.PHYS_SIMKIT; if (!K) return;
-  const { A, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L } = K;
+  const { A, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L, GX } = K;
   const QE = 1.602e-19;
   const ICON = p => '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' + p + "</svg>";
   const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
@@ -4404,7 +4788,7 @@ window.PHYS_SYNC = {
       const acts = el("div", "sim-acts"); host.append(acts);
       button(acts, "Laden und Q messen", () => {
         const Q = cap.C * U * (1 + 0.025 * gauss());
-        pts.push({ U, Q }); renderTable();
+        pts.push({ U, Q, a: 0 }); renderTable();
       }, "primary");
       const sb = button(acts, "Energie als Fläche: aus", () => { shade = !shade; sb.textContent = "Energie als Fläche: " + (shade ? "an" : "aus"); });
       button(acts, "Messreihe löschen", () => { pts = []; renderTable(); });
@@ -4428,30 +4812,43 @@ window.PHYS_SYNC = {
           (revealed ? " · tatsächlicher Wert: <b>" + cap.C + " µF</b> (Abweichung " + de(Math.abs(m - cap.C) / cap.C * 100, 2) + " %)" : "") + "</p>";
       }
       renderTable();
+      let shadeV = 0, lineV = 0;
+      function step(dt) {
+        pts.forEach(p => { p.a = Math.min(1, (p.a || 0) + dt * 3); });
+        shadeV = GX.ease(shadeV, shade ? 1 : 0, dt, 6);
+        const m = fit(); lineV = GX.ease(lineV, m && pts.length >= 2 ? 1 : 0, dt, 5);
+      }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
-        const ymax = Math.ceil(cap.C * 12 * 1.12 / 500) * 500, X0 = 52, X1 = 345, Y0 = 18, Y1 = 212;
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 250, c);
+        const ymax = Math.ceil(cap.C * 12 * 1.12 / 500) * 500, X0 = 52, X1 = 345, Y0 = 22, Y1 = 212;
         const sx = u => X0 + u / 12 * (X1 - X0), sy = q => Y1 - q / ymax * (Y1 - Y0);
         axes(x, c, { X0, X1, Y0, Y1, xmax: 12, ymax, xs: 6, ys: 5, xl: "U in V", yl: "Q in µC" });
         const m = fit();
         if (m && pts.length >= 2) {
-          if (shade) {
-            x.fillStyle = "rgba(63,181,122,.22)"; x.beginPath(); x.moveTo(sx(0), sy(0)); x.lineTo(sx(U), sy(m * U)); x.lineTo(sx(U), sy(0)); x.closePath(); x.fill();
-            x.fillStyle = c.ok; x.font = "bold 12px system-ui"; x.textAlign = "left";
-            x.fillText("W = ½QU = " + de(0.5 * m * U * U / 1000, 3) + " mJ", sx(U * 0.45), sy(m * U * 0.18) - 4);
+          if (shadeV > 0.01) {
+            x.save(); x.globalAlpha = shadeV;
+            const g = x.createLinearGradient(0, sy(m * U), 0, Y1); g.addColorStop(0, GX.alpha(c.ok, 0.35)); g.addColorStop(1, GX.alpha(c.ok, 0.08));
+            x.fillStyle = g; x.beginPath(); x.moveTo(sx(0), sy(0)); x.lineTo(sx(U), sy(m * U)); x.lineTo(sx(U), sy(0)); x.closePath(); x.fill(); x.restore();
+            GX.pill(x, c, "W = ½QU = " + de(0.5 * m * U * U / 1000, 3) + " mJ", sx(U * 0.62), sy(m * U * 0.2), { col: c.ok, size: 11, clampW: 360 });
           }
-          x.strokeStyle = c.accent; x.lineWidth = 2; L(x, [[sx(0), sy(0)], [sx(12), sy(m * 12)]]);
-          x.fillStyle = c.accent; x.font = "bold 12px system-ui"; x.textAlign = "left"; x.fillText("Steigung: C ≈ " + de(m, 3) + " µF", X0 + 10, Y0 + 14);
+          x.save(); x.strokeStyle = c.accent; x.lineWidth = 2.4; x.globalAlpha = lineV;
+          const xe = sx(12 * lineV); GX.poly(x, [[sx(0), sy(0)], [xe, sy(m * 12 * lineV)]]); x.stroke(); x.restore();
+          GX.pill(x, c, "Steigung: C ≈ " + de(m, 3) + " µF", X0 + 8, Y0 + 12, { align: "left", col: c.accent, size: 11 });
         }
-        // aktuelle Spannung
-        x.strokeStyle = c.warn; x.setLineDash([3, 4]); x.lineWidth = 1; L(x, [[sx(U), Y0], [sx(U), Y1]]); x.setLineDash([]);
-        // Messpunkte als Kreuze
-        x.strokeStyle = c.fg; x.lineWidth = 2;
-        pts.forEach(p => { const px = sx(p.U), py = sy(p.Q); L(x, [[px - 5, py - 5], [px + 5, py + 5]]); L(x, [[px - 5, py + 5], [px + 5, py - 5]]); });
+        // aktuelle Ladespannung
+        x.save(); x.strokeStyle = c.warn; x.setLineDash([3, 4]); x.lineWidth = 1.2; GX.poly(x, [[sx(U), Y0], [sx(U), Y1]]); x.stroke(); x.restore();
+        GX.pill(x, c, de(U) + " V", sx(U), Y1 - 12, { col: c.warn, size: 10, clampW: 360 });
+        // Messpunkte als Kreuze (erscheinen mit kurzem Aufleuchten)
+        pts.forEach(p => {
+          const px = sx(p.U), py = sy(p.Q), a = p.a || 0, s = 5 + (1 - a) * 8;
+          if (a < 1) GX.glow(x, px, py, 18, c.accent, 0.6 * (1 - a));
+          x.save(); x.globalAlpha = a; x.strokeStyle = c.fg; x.lineWidth = 2.2; x.lineCap = "round";
+          GX.poly(x, [[px - s, py - s], [px + s, py + s]]); x.stroke(); GX.poly(x, [[px - s, py + s], [px + s, py - s]]); x.stroke(); x.restore();
+        });
         info.textContent = pts.length < 2 ? "Miss bei mehreren Spannungen. Die Messpunkte werden als Kreuze eingetragen."
           : "Die Punkte liegen auf einer Ursprungsgeraden: Q ist proportional zu U. Die Steigung ist die Kapazität.";
       }
-      return { draw };
+      return { step, draw };
     }
   });
 
@@ -4479,47 +4876,61 @@ window.PHYS_SYNC = {
         if (mode === "par") { const cg = C1 + C2; return { cg, q1: C1 * U, q2: C2 * U, u1: U, u2: U, qg: cg * U }; }
         const cg = C1 * C2 / (C1 + C2), q = cg * U; return { cg, q1: q, q2: q, u1: q / C1, u2: q / C2, qg: q };
       }
+      const VV = { q1: 0, q2: 0, u1: 0, u2: 0 };
+      let phase = 0, flowAmt = 0;
+      function step(dt) {
+        const v = vals();
+        const dq = Math.abs(v.q1 - VV.q1) + Math.abs(v.q2 - VV.q2);
+        flowAmt = GX.ease(flowAmt, clamp(dq / 20, 0, 1), dt, 10);
+        VV.q1 = GX.ease(VV.q1, v.q1, dt, 3); VV.q2 = GX.ease(VV.q2, v.q2, dt, 3);
+        VV.u1 = GX.ease(VV.u1, v.u1, dt, 3); VV.u2 = GX.ease(VV.u2, v.u2, dt, 3);
+        phase += dt * 60;
+      }
+      // Kondensator mit Ladungen; horizontal: Platten senkrecht im waagerechten Draht
       function cap(x, c, cx, cy, Cv, Q, Uv, label, horizontal) {
-        const w = 18 + Cv * 2.2; // Plattengröße ~ C
-        x.strokeStyle = c.fg; x.lineWidth = 3.4;
-        if (horizontal) { L(x, [[cx - 6, cy - w / 2], [cx - 6, cy + w / 2]]); L(x, [[cx + 6, cy - w / 2], [cx + 6, cy + w / 2]]); }
-        else { L(x, [[cx - w / 2, cy - 6], [cx + w / 2, cy - 6]]); L(x, [[cx - w / 2, cy + 6], [cx + w / 2, cy + 6]]); }
-        const n = clamp(Math.round(Q / 240 * 10), 1, 10);
-        x.font = "bold 11px system-ui"; x.textAlign = "center";
+        const w = 22 + Cv * 2;
+        if (horizontal) { GX.plate(x, c, cx - 6, cy - w / 2, cx - 6, cy + w / 2); GX.plate(x, c, cx + 6, cy - w / 2, cx + 6, cy + w / 2); }
+        else { GX.plate(x, c, cx - w / 2, cy - 6, cx + w / 2, cy - 6); GX.plate(x, c, cx - w / 2, cy + 6, cx + w / 2, cy + 6); }
+        const nq = clamp(10 * Math.sqrt(Math.max(0, Q) / 240), 0, 10), n = Math.ceil(nq);
         for (let i = 0; i < n; i++) {
-          const t = (i + 0.5) / n - 0.5;
-          if (horizontal) { x.fillStyle = c.pos; x.fillText("+", cx - 14, cy + t * w + 4); x.fillStyle = c.neg; x.fillText("−", cx + 14, cy + t * w + 4); }
-          else { x.fillStyle = c.pos; x.fillText("+", cx + t * w, cy - 11); x.fillStyle = c.neg; x.fillText("−", cx + t * w, cy + 20); }
+          const a = clamp(nq - i, 0, 1), tt = (i + 0.5) / Math.max(n, 4) - 0.5;
+          if (horizontal) { GX.ball(x, cx - 15, cy + tt * w, 3.4, c.pos, "+", { alpha: a }); GX.ball(x, cx + 15, cy + tt * w, 3.4, c.neg, "−", { alpha: a }); }
+          else { GX.ball(x, cx + tt * w, cy - 15, 3.4, c.pos, "+", { alpha: a }); GX.ball(x, cx + tt * w, cy + 15, 3.4, c.neg, "−", { alpha: a }); }
         }
-        x.fillStyle = c.fg; x.font = "bold 12px system-ui";
-        if (horizontal) { x.fillText(label, cx, cy - w / 2 - 22); x.font = "11px system-ui"; x.fillStyle = c.accent; x.fillText(de(Uv, 3) + " V", cx, cy + w / 2 + 34); }
-        else { x.textAlign = "left"; x.fillText(label, cx + w / 2 + 8, cy + 4); x.font = "11px system-ui"; x.fillStyle = c.accent; x.fillText(de(Uv, 3) + " V", cx + w / 2 + 8, cy + 18); }
+        if (horizontal) { GX.text(x, c.fg, label, cx, cy - w / 2 - 12, { weight: 700, size: 11 }); GX.pill(x, c, de(Uv, 3) + " V", cx, cy + w / 2 + 16, { col: c.accent, size: 10 }); }
+        else { GX.text(x, c.fg, label, cx + w / 2 + 8, cy - 8, { align: "left", weight: 700, size: 11 }); GX.pill(x, c, de(Uv, 3) + " V", cx + w / 2 + 8, cy + 10, { align: "left", col: c.accent, size: 10 }); }
+      }
+      function flowDots(x, c, pts) {
+        if (flowAmt < 0.03) return;
+        let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        const n = Math.round(len / 22);
+        for (let k = 0; k < n; k++) {
+          let d = ((k * len / n + phase) % len + len) % len;
+          for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= l) { const t = d / l; GX.electron(x, c, pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t, flowAmt); break; } d -= l; }
+        }
       }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
-        const v = vals();
-        x.strokeStyle = c.fg; x.lineWidth = 2.2; x.lineCap = "round";
-        // Quelle links
-        const yt = mode === "par" ? 30 : 70;
-        L(x, [[40, yt], [40, 106]]); L(x, [[40, 130], [40, 212]]);
-        x.lineWidth = 3.4; L(x, [[26, 106], [54, 106]]); x.lineWidth = 2.2; L(x, [[32, 130], [48, 130]]);
-        x.fillStyle = c.fg; x.font = "12px system-ui"; x.textAlign = "left"; x.fillText("+", 58, 104); x.fillText("−", 58, 140); x.textAlign = "right"; x.fillText(U + " V", 22, 122);
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 240, c);
+        const v = vals(), yt = mode === "par" ? 30 : 70;
         if (mode === "par") {
-          L(x, [[40, 30], [225, 30]]); L(x, [[40, 212], [225, 212]]);
-          L(x, [[120, 30], [120, 115]]); L(x, [[120, 127], [120, 212]]);
-          L(x, [[225, 30], [225, 115]]); L(x, [[225, 127], [225, 212]]);
-          cap(x, c, 120, 121, C1, v.q1, v.u1, "C₁ = " + C1 + " µF", false);
-          cap(x, c, 225, 121, C2, v.q2, v.u2, "C₂ = " + C2 + " µF", false);
+          GX.wire(x, c, [[40, 104], [40, yt], [225, yt], [225, 113]]); GX.wire(x, c, [[120, yt], [120, 113]]);
+          GX.wire(x, c, [[40, 134], [40, 212], [225, 212], [225, 129]]); GX.wire(x, c, [[120, 212], [120, 129]]);
+          flowDots(x, c, [[40, 212], [40, 134]]); flowDots(x, c, [[40, 104], [40, yt], [225, yt]]);
+          cap(x, c, 120, 121, C1, VV.q1, VV.u1, "C₁ = " + C1 + " µF", false);
+          cap(x, c, 225, 121, C2, VV.q2, VV.u2, "C₂ = " + C2 + " µF", false);
+          [[120, yt], [120, 212]].forEach(p => GX.node(x, c, p, 3.4));
         } else {
-          L(x, [[40, 70], [320, 70], [320, 212], [40, 212]]);
-          x.strokeStyle = c.surf; x.lineWidth = 6; L(x, [[124, 70], [136, 70]]); L(x, [[234, 70], [246, 70]]); x.strokeStyle = c.fg; x.lineWidth = 2.2;
-          cap(x, c, 130, 70, C1, v.q1, v.u1, "C₁ = " + C1 + " µF", true);
-          cap(x, c, 240, 70, C2, v.q2, v.u2, "C₂ = " + C2 + " µF", true);
-          // Spannungsbalken
-          const tot = 230, w1 = tot * v.u1 / U;
-          x.fillStyle = c.accent; x.globalAlpha = 0.85; x.fillRect(70, 160, w1, 14); x.fillStyle = c.warn; x.fillRect(70 + w1, 160, tot - w1, 14); x.globalAlpha = 1;
-          x.fillStyle = c.dim; x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("U₁ (blau) + U₂ (gelb) = " + U + " V", 70, 192);
+          GX.wire(x, c, [[40, 104], [40, yt], [124, yt]]); GX.wire(x, c, [[136, yt], [234, yt]]); GX.wire(x, c, [[246, yt], [320, yt], [320, 212], [40, 212], [40, 134]]);
+          flowDots(x, c, [[40, 104], [40, yt], [124, yt]]); flowDots(x, c, [[246, yt], [320, yt], [320, 212], [40, 212], [40, 134]]);
+          cap(x, c, 130, yt, C1, VV.q1, VV.u1, "C₁ = " + C1 + " µF", true);
+          cap(x, c, 240, yt, C2, VV.q2, VV.u2, "C₂ = " + C2 + " µF", true);
+          // Spannungsbalken U = U₁ + U₂
+          const tot = 230, w1 = tot * VV.u1 / Math.max(U, 1e-6);
+          x.save(); GX.rr(x, 70, 160, tot, 16, 8); x.clip();
+          x.fillStyle = c.accent; x.fillRect(70, 160, w1, 16); x.fillStyle = c.warn; x.fillRect(70 + w1, 160, tot - w1, 16); x.restore();
+          GX.text(x, c.dim, "U₁ (blau) + U₂ (gelb) = " + U + " V", 70, 192, { align: "left", size: 11 });
         }
+        GX.battery(x, c, 40, 104, 134, U + " V");
         ro({ cg: de(v.cg, 3) + " µF", q1: de(v.q1, 3) + " µC", q2: de(v.q2, 3) + " µC", u1: de(v.u1, 3) + " V", u2: de(v.u2, 3) + " V", qg: de(v.qg, 3) + " µC" });
         const key = mode;
         if (formula._k !== key) {
@@ -4530,7 +4941,7 @@ window.PHYS_SYNC = {
           A.render(formula);
         }
       }
-      return { draw };
+      return { step, draw };
     }
   });
 
@@ -4540,13 +4951,13 @@ window.PHYS_SYNC = {
     icon: ICON('<path d="M4 20h16M6 20v-4M9 20v-9M12 20v-2M15 20v-12M18 20v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     make(host) {
       const st = stage(360, 230); host.append(st.c);
-      let qs = [], guess = 1.0, noise = 0.04;
+      let qs = [], anim = [], guess = 1.0, noise = 0.04;
       const info = el("div", "sim-info"); host.append(info);
       const acts = el("div", "sim-acts"); host.append(acts);
-      const measure = k => { for (let i = 0; i < k; i++) { const n = 1 + Math.floor(Math.random() * Math.random() * 7); qs.push(n * QE * (1 + noise * gauss()) * 1e19); } renderTable(); };
+      const measure = k => { for (let i = 0; i < k; i++) { const n = 1 + Math.floor(Math.random() * Math.random() * 7); qs.push(n * QE * (1 + noise * gauss()) * 1e19); anim.push(-i * 0.12); } renderTable(); };
       button(acts, "1 Tröpfchen messen", () => measure(1));
       button(acts, "10 Tröpfchen messen", () => measure(10), "primary");
-      button(acts, "Neu", () => { qs = []; renderTable(); });
+      button(acts, "Neu", () => { qs = []; anim = []; renderTable(); });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
       slider(ctl, { label: "Vermutete Elementarladung", min: 0.5, max: 3.5, step: 0.01, value: guess, fmt: v => de(v, 3) + "·10⁻¹⁹ C", onInput: v => { guess = v; renderTable(); } });
       slider(ctl, { label: "Messunsicherheit", min: 0, max: 10, step: 1, value: noise * 100, fmt: v => "± " + v + " %", onInput: v => { noise = v / 100; } });
@@ -4576,30 +4987,41 @@ window.PHYS_SYNC = {
           "</table>" + (qs.length > 8 ? "<p class='fine tight'>Angezeigt: die letzten 8 Messungen.</p>" : "");
       }
       renderTable();
+      let guessV = guess;
+      function step(dt) {
+        guessV = GX.ease(guessV, guess, dt, 10);
+        anim.forEach((a, i) => { anim[i] = a + dt * 2.4; });
+      }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 230, c);
         const X0 = 20, X1 = 345, base = 190, qmax = 12;
         const sx = q => X0 + q / qmax * (X1 - X0);
         // Raster der vermuteten Vielfachen
-        x.lineWidth = 1;
-        for (let k = 1; k * guess <= qmax; k++) {
-          x.strokeStyle = c.warn; x.globalAlpha = 0.55; x.setLineDash([4, 4]); L(x, [[sx(k * guess), 18], [sx(k * guess), base]]); x.setLineDash([]); x.globalAlpha = 1;
-          if (guess > 0.9 || k % 2 === 0) { x.fillStyle = c.warn; x.font = "10px system-ui"; x.textAlign = "center"; x.fillText(k + "e*", sx(k * guess), 14); }
+        const s = stats(), good = s && s.dev < 0.12;
+        for (let k = 1; k * guessV <= qmax; k++) {
+          x.save(); x.strokeStyle = good ? c.ok : c.warn; x.globalAlpha = 0.7; x.setLineDash([4, 4]); x.lineWidth = 1.3;
+          GX.poly(x, [[sx(k * guessV), 22], [sx(k * guessV), base]]); x.stroke(); x.restore();
+          if (guessV > 0.9 || k % 2 === 0) GX.text(x, good ? c.ok : c.warn, k + "e*", sx(k * guessV), 12, { size: 10, weight: 700 });
         }
         // Achse
-        x.strokeStyle = c.fg; x.lineWidth = 1.4; L(x, [[X0, base], [X1, base]]);
-        x.fillStyle = c.dim; x.font = "11px system-ui"; x.textAlign = "center";
-        for (let q = 0; q <= qmax; q += 2) { L(x, [[sx(q), base], [sx(q), base + 4]]); x.fillText(String(q), sx(q), base + 16); }
-        x.textAlign = "right"; x.fillText("q in 10⁻¹⁹ C", X1, base + 32);
-        // Punkte gestapelt (Histogramm in Klassen von 0,15)
+        x.save(); x.strokeStyle = c.fg; x.lineWidth = 1.6; GX.poly(x, [[X0, base], [X1, base]]); x.stroke();
+        for (let q = 0; q <= qmax; q += 2) { GX.poly(x, [[sx(q), base], [sx(q), base + 4]]); x.stroke(); GX.text(x, c.dim, String(q), sx(q), base + 14, { size: 11 }); }
+        x.restore();
+        GX.text(x, c.dim, "q in 10⁻¹⁹ C", X1, base + 30, { align: "right", size: 11 });
+        // Tröpfchen fallen in die Klassen (Breite 0,15)
         const bins = {};
-        qs.forEach(q => { const b = Math.round(q / 0.15); bins[b] = (bins[b] || 0) + 1; const yy = base - 6 - (bins[b] - 1) * 9; x.fillStyle = c.accent; x.beginPath(); x.arc(sx(q), Math.max(24, yy), 3.6, 0, 7); x.fill(); });
-        const s = stats();
+        qs.forEach((q, i) => {
+          const b = Math.round(q / 0.15); bins[b] = (bins[b] || 0) + 1;
+          const yEnd = Math.max(26, base - 6 - (bins[b] - 1) * 9), a = clamp(anim[i], 0, 1), e = 1 - Math.pow(1 - a, 3);
+          if (anim[i] < 0) return;
+          const yy = 20 + (yEnd - 20) * e;
+          GX.ball(x, sx(q), yy, 3.8, c.accent, null, { alpha: Math.min(1, a * 2), glow: a < 1 ? 8 : 0 });
+        });
         info.textContent = !qs.length ? "Jeder Punkt ist ein gemessenes Tröpfchen. Miss zuerst einige Tröpfchen."
-          : s.dev < 0.12 ? "Alle Ladungen liegen nahe bei ganzzahligen Vielfachen von e*. Die Ladung ist gequantelt."
+          : good ? "Alle Ladungen liegen nahe bei ganzzahligen Vielfachen von e*. Die Ladung ist gequantelt."
           : "Die Linien treffen die Häufungen nicht. Verschiebe die vermutete Elementarladung.";
       }
-      return { draw };
+      return { step, draw };
     }
   });
 })();

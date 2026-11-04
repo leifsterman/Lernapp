@@ -597,6 +597,8 @@
       if (res && res.data && typeof res.data.board === "boolean" && store.board == null) store.board = res.data.board;
       persist();
       await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: payload() });
+      // Punkte berechnet der Server (falls die Funktion schon eingerichtet ist), sonst lokal
+      try { const r = await rpc("lern_score", { p_code: store.sync.code }); srvScore = r && typeof r.score === "number" ? r : null; } catch (e) { srvScore = null; }
       const d = new Date();
       setStatus("Synchronisiert um " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " Uhr");
       if (!active) renderTopics();
@@ -710,12 +712,12 @@
   });
   $("#board-opt").addEventListener("change", e => { store.board = e.target.checked; persist(); syncNow(); });
   $("#sync-leave").addEventListener("click", () => {
-    store.sync = null; persist(); renderSync(); renderBoard();
+    store.sync = null; srvScore = null; persist(); renderSync(); renderBoard();
     setStatus("Abgemeldet. Dein Fortschritt bleibt auf diesem Gerät.");
   });
 
   // Rangliste
-  let board = null;
+  let board = null, srvScore = null;
   async function fetchBoard() {
     if (!CFG) { renderBoard(); return; }
     try { board = await rpc("lern_board", {}); } catch (e) { board = board || null; }
@@ -738,7 +740,7 @@
     renderPts();
   }
   function renderPts() {
-    const s = scoreInfo();
+    const s = store.sync && srvScore ? srvScore : scoreInfo();
     let t = s.score + " Punkte";
     if (board && store.sync && store.sync.user) {
       const i = board.findIndex(r => String(r.name).toLowerCase() === String(store.sync.name).toLowerCase());

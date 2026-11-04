@@ -1,33 +1,44 @@
-/* Labor, Teil 2: Kondensator, Polarisation und Influenz, Millikan, Feldlinien. */
+/* Labor, Teil 2: Kondensator-Labor, Influenz & Polarisation & Faraday-Käfig, Millikan, Feldlinien.
+   Grafik über PHYS_GFX (gfx.js), weiche Übergänge mit GX.ease. */
 (function () {
   "use strict";
   const K = window.PHYS_SIMKIT; if (!K) return;
-  const { A, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L } = K;
-  const E0 = 8.854e-12, QE = 1.602e-19, G = 9.81;
-  const arrow = (x, x1, y1, x2, y2, head) => {
-    x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke();
-    const a = Math.atan2(y2 - y1, x2 - x1), h = head || 6;
-    x.beginPath(); x.moveTo(x2, y2); x.lineTo(x2 - h * Math.cos(a - 0.45), y2 - h * Math.sin(a - 0.45)); x.lineTo(x2 - h * Math.cos(a + 0.45), y2 - h * Math.sin(a + 0.45)); x.closePath(); x.fill();
-  };
-  // deterministische Zufallszahlen für feste Anordnungen
+  const { A, el, clamp, de, colors, stage, slider, seg, button, notes, readouts, GX } = K;
+  const E0 = 8.854e-12, QE = 1.602e-19, G = 9.81, TAU = Math.PI * 2;
   const prng = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v); };
   const ICON = p => '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' + p + "</svg>";
+  const bez = (p0, p1, p2, p3, n) => { const out = []; for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; out.push([u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]); } return out; };
+
+  // Dipol (polares Molekül): + Ende zeigt in Richtung th
+  function dipole(x, c, px, py, th, len, a, r) {
+    r = r || 4.2;
+    const dx = Math.cos(th) * len, dy = Math.sin(th) * len;
+    x.save(); x.globalAlpha = a == null ? 1 : a;
+    x.strokeStyle = GX.alpha(c.dim.startsWith("#") ? c.dim : "#888888", 0.8); x.lineWidth = Math.max(1.6, r * 0.7); x.lineCap = "round";
+    x.beginPath(); x.moveTo(px - dx, py - dy); x.lineTo(px + dx, py + dy); x.stroke();
+    GX.ball(x, px + dx, py + dy, r, c.pos, r > 3 ? "+" : null);
+    GX.ball(x, px - dx, py - dy, r, c.neg, r > 3 ? "−" : null);
+    x.restore();
+  }
 
   // ============================================================ Kondensator-Labor
   K.add({
     id: "kond", title: "Kondensator-Labor", desc: "Abstand, Fläche und Dielektrikum verändern: C, Q, U, E live", sheet: "kondensator",
     icon: ICON('<path d="M4 9h16M4 15h16M12 3v6M12 15v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>'),
     make(host) {
-      const st = stage(360, 250);
+      const W = 360, H = 260, st = stage(W, H);
       const P = { d: 3, A: 150, er: 1, U: 9, connected: true };
-      let Q0 = 0; // feste Ladung im getrennten Zustand
+      const V = { d: 3, A: 150, er: 1, lever: 1, q: 0, e: 0 }; // angezeigte (weich nachgeführte) Werte
+      let Q0 = 0, phase = 0, t = 0;
+      const rd = prng(5), mol = Array.from({ length: 40 }, () => ({ u: rd(), v: rd(), th: rd() * TAU, ph: rd() * TAU }));
       const C = () => E0 * P.er * (P.A * 1e-4) / (P.d * 1e-3);
       const U = () => P.connected ? P.U : Q0 / C();
       const Q = () => P.connected ? C() * P.U : Q0;
       host.append(st.c);
       seg(host, { label: "Quelle", options: [{ v: true, t: "Angeschlossen (U fest)" }, { v: false, t: "Getrennt (Q fest)" }], value: true, onChange: v => { if (!v) Q0 = C() * P.U; P.connected = v; } });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
-      const sU = slider(ctl, { label: "Spannung U (Quelle)", min: 1, max: 12, step: 1, value: P.U, fmt: v => v + " V", onInput: v => { P.U = v; } });
+      slider(ctl, { label: "Spannung U (Quelle)", min: 1, max: 12, step: 1, value: P.U, fmt: v => v + " V", onInput: v => { P.U = v; } });
       slider(ctl, { label: "Plattenabstand d", min: 1, max: 10, step: 0.5, value: P.d, fmt: v => de(v) + " mm", onInput: v => { P.d = v; } });
       slider(ctl, { label: "Plattenfläche A", min: 50, max: 400, step: 10, value: P.A, fmt: v => v + " cm²", onInput: v => { P.A = v; } });
       slider(ctl, { label: "Dielektrikum εᵣ", min: 1, max: 6, step: 0.5, value: P.er, fmt: v => v === 1 ? "Luft (1)" : de(v), onInput: v => { P.er = v; } });
@@ -38,44 +49,66 @@
         "Setze $\\varepsilon_r$ hoch (Dielektrikum): Wie ändert sich $C$ bei angeschlossener, wie $U$ bei getrennter Quelle?",
         "Prüfe $C = \\varepsilon_0\\varepsilon_r\\dfrac{A}{d}$ mit den angezeigten Werten."
       ]);
+      const QMAX = E0 * 6 * 0.04 * 12 / 1e-3, EMAX = 12 / 1e-3;
+      function step(dt) {
+        t += dt;
+        V.d = GX.ease(V.d, P.d, dt, 7); V.A = GX.ease(V.A, P.A, dt, 7); V.er = GX.ease(V.er, P.er, dt, 5);
+        V.lever = GX.ease(V.lever, P.connected ? 1 : 0, dt, 10);
+        V.q = GX.ease(V.q, clamp(Math.sqrt(Q() / QMAX), 0, 1), dt, 6); V.e = GX.ease(V.e, clamp(U() / (P.d * 1e-3) / EMAX, 0, 1), dt, 6);
+        phase += dt * (8 + 40 * V.e);
+        const a = clamp(V.e * 3, 0, 1) * (1 - 1 / V.er) / (1 - 1 / 6);
+        mol.forEach(m => { const target = Math.PI / 2; let d = ((target - m.th + Math.PI * 3) % TAU) - Math.PI; m.th += d * Math.min(1, dt * 5 * a) + gauss() * Math.sqrt(dt) * 1.6 * (1 - 0.9 * a); });
+      }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
-        const gap = 14 + P.d * 7, len = 40 + Math.sqrt(P.A) * 10, cx = 180, y0 = 135 - gap / 2, y1 = y0 + gap;
-        const xl = cx - len / 2, xr = cx + len / 2;
-        // Zuleitungen
-        x.lineWidth = 2.2; x.strokeStyle = c.fg; x.lineCap = "round";
-        if (P.connected) { L(x, [[cx, y0], [cx, 40]]); L(x, [[cx, y1], [cx, 230], [60, 230], [60, 76]]); L(x, [[60, 40], [cx, 40]]); L(x, [[48, 60], [72, 60]]); x.lineWidth = 3.4; L(x, [[52, 76], [68, 76]]); x.lineWidth = 2.2; x.fillStyle = c.fg; x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("+", 76, 58); x.fillText("−", 76, 86); L(x, [[60, 40], [60, 60]]); x.textAlign = "right"; x.fillText(P.U + " V", 40, 72); }
-        else { L(x, [[cx, y0], [cx, 70]]); L(x, [[cx, y1], [cx, 200]]); x.setLineDash([3, 4]); x.strokeStyle = c.dim; x.fillStyle = c.dim; x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("von der Quelle getrennt", cx + 8, 60); x.setLineDash([]); }
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
+        const gap = 18 + V.d * 8, len = 50 + Math.sqrt(V.A) * 10, cx = 210, cy = 140, yT = cy - gap / 2, yB = cy + gap / 2, xl = cx - len / 2, xr = cx + len / 2;
         // Dielektrikum
-        if (P.er > 1) {
-          x.fillStyle = "rgba(90,169,255," + (0.08 + 0.05 * P.er) + ")"; x.fillRect(xl, y0 + 2, len, gap - 4);
-          const a = clamp(U() / 12, 0, 1) * (1 - 1 / P.er) / (1 - 1 / 6) + 0.0; // Ausrichtung
-          x.lineWidth = 1.2;
-          const cols = Math.floor(len / 22), rows = Math.max(1, Math.floor((gap - 6) / 16));
-          for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
-            const px = xl + 12 + i * (len - 24) / Math.max(1, cols - 1), py = y0 + (gap) * (j + 0.5) / rows;
-            x.strokeStyle = c.dim; L(x, [[px, py - 3.5], [px, py + 3.5]]);
-            x.fillStyle = c.pos; x.beginPath(); x.arc(px, py + 4, 1.6, 0, 7); x.fill();
-            x.fillStyle = c.neg; x.beginPath(); x.arc(px, py - 4, 1.6, 0, 7); x.fill();
-          }
+        if (V.er > 1.02) {
+          const g = x.createLinearGradient(0, yT, 0, yB); g.addColorStop(0, GX.alpha(c.accent, 0.16 + 0.03 * V.er)); g.addColorStop(1, GX.alpha(c.accent, 0.06 + 0.02 * V.er));
+          x.fillStyle = g; GX.rr(x, xl + 2, yT + 4, len - 4, gap - 8, 4); x.fill();
+          const vis = clamp((V.er - 1) * 2, 0, 1);
+          const cols = Math.max(3, Math.floor((len - 16) / 22)), rows = Math.max(1, Math.floor((gap - 10) / 18));
+          mol.slice(0, cols * rows).forEach((m, i) => { const ci = i % cols, ri = Math.floor(i / cols); const px = xl + 12 + (ci + 0.5) * (len - 24) / cols, py = yT + 5 + (ri + 0.5) * (gap - 10) / rows; dipole(x, c, px, py, m.th, 4, 0.9 * vis, 2.6); });
         }
-        // Platten
-        x.lineWidth = 4; x.strokeStyle = c.fg; L(x, [[xl, y0], [xr, y0]]); L(x, [[xl, y1], [xr, y1]]); x.lineWidth = 1;
-        // Ladungen und Feld
-        const E = U() / (P.d * 1e-3), Qmax = E0 * 1 * 0.04 * 12 / 1e-3;
-        const nq = Math.round(clamp(Q() / Qmax, 0, 1) * 14), ne = Math.round(clamp(E / 12000, 0, 1) * 12) + (E > 0 ? 1 : 0);
-        x.font = "bold 13px system-ui"; x.textAlign = "center";
-        for (let i = 0; i < nq; i++) { const px = xl + 8 + i * (len - 16) / Math.max(13, nq - 1); x.fillStyle = c.pos; x.fillText("+", px, y0 - 6); x.fillStyle = c.neg; x.fillText("−", px, y1 + 14); }
-        x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4;
-        for (let i = 0; i < ne; i++) { const px = xl + 10 + i * (len - 20) / Math.max(1, ne - 1); arrow(x, px, y0 + 2, px, y1 - 2, 5); }
+        // Feldlinien: homogen innen, Streufeld am Rand
+        const nE = 2 + V.e * 11, nl = Math.ceil(nE);
+        for (let i = 0; i < nl; i++) {
+          const a = clamp(nE - i, 0, 1) * (0.25 + 0.75 * clamp(V.e * 6, 0, 1));
+          const px = xl + 10 + (i + 0.5) * (len - 20) / nl;
+          GX.flowLine(x, c.line, [[px, yT + 4], [px, yB - 4]], phase, { alpha: a, w: 1.4, head: gap > 34 });
+        }
+        if (V.e > 0.01) {
+          [[xl, -1], [xr, 1]].forEach(([ex, s]) => {
+            const pts = bez([ex + s * 2, yT + 3], [ex + s * gap * 0.55, yT + gap * 0.05], [ex + s * gap * 0.55, yB - gap * 0.05], [ex + s * 2, yB - 3], 24);
+            GX.flowLine(x, c.line, pts, phase, { alpha: 0.45, w: 1.2, head: false });
+          });
+        }
+        // Leitungen, Schalter, Batterie
+        const bx = 40, b1 = 128, b2 = 150;
+        GX.wire(x, c, [[bx, b1 - 3], [bx, 40], [104, 40]]);
+        GX.wire(x, c, [[146, 40], [cx, 40], [cx, yT - 3]]);
+        GX.wire(x, c, [[bx, b2 + 3], [bx, 236], [cx, 236], [cx, yB + 3]]);
+        GX.battery(x, c, bx, b1, b2, P.U + " V");
+        GX.terminal(x, c, [104, 40]); GX.terminal(x, c, [146, 40]);
+        const ang = (1 - V.lever) * -0.75;
+        x.save(); x.strokeStyle = c.fg; x.lineWidth = 3.2; x.lineCap = "round"; x.beginPath(); x.moveTo(104, 40); x.lineTo(104 + Math.cos(ang) * 42, 40 + Math.sin(ang) * 42); x.stroke(); x.restore();
+        GX.text(x, c.dim, P.connected ? "geschlossen" : "offen", 125, 56, { size: 10 });
+        // Platten mit Ladungen
+        GX.plate(x, c, xl, yT, xr, yT, V.q > 0.05 ? GX.alpha(c.pos, 0.35 * V.q) : null);
+        GX.plate(x, c, xl, yB, xr, yB, V.q > 0.05 ? GX.alpha(c.neg, 0.35 * V.q) : null);
+        const nq = 1 + V.q * 20, nn = Math.ceil(nq);
+        for (let i = 0; i < nn; i++) {
+          const a = clamp(nq - i, 0, 1), px = xl + 6 + (i + 0.5) * (len - 12) / Math.max(nn, 8);
+          GX.ball(x, px, yT - 9, 3.6, c.pos, "+", { alpha: a }); GX.ball(x, px, yB + 9, 3.6, c.neg, "−", { alpha: a });
+        }
         // Maße
-        x.strokeStyle = c.dim; x.fillStyle = c.dim; x.lineWidth = 1; x.font = "11px system-ui"; x.textAlign = "left";
-        L(x, [[xr + 12, y0], [xr + 12, y1]]); x.fillText("d", xr + 18, 138);
-        x.textAlign = "center"; L(x, [[xl, y1 + 26], [xr, y1 + 26]]); x.fillText("A", cx, y1 + 40);
-        const cc = C(), qq = Q(), uu = U();
+        GX.dim(x, c, xr + 34, yT, xr + 34, yB, null);
+        GX.pill(x, c, "d = " + de(P.d) + " mm", Math.min(W - 4, xr + 34), yT - 16, { align: "right", size: 10, col: c.dim });
+        GX.text(x, c.dim, "A = " + P.A + " cm²" + (P.er > 1 ? "   εᵣ = " + de(P.er) : ""), cx, yB + 28, { size: 11, weight: 600 });
+        const cc = C(), qq = Q(), uu = U(), E = uu / (P.d * 1e-3);
         ro({ c: de(cc * 1e12, 3) + " pF", q: de(qq * 1e9, 3) + " nC", u: de(uu, 3) + " V", e: de(E / 1e3, 3) + " kV/m", w: de(0.5 * qq * uu * 1e9, 3) + " nJ" });
       }
-      return { draw };
+      return { step, draw };
     }
   });
 
@@ -85,65 +118,81 @@
     icon: ICON('<circle cx="9" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17 8v8M20 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     make(host) {
       let tab = "inf";
-      const tabs = seg(host, { options: [{ v: "inf", t: "Influenz" }, { v: "pol", t: "Polarisation" }, { v: "far", t: "Faraday-Käfig" }], value: "inf", onChange: v => { tab = v; build(); } });
+      seg(host, { options: [{ v: "inf", t: "Influenz" }, { v: "pol", t: "Polarisation" }, { v: "far", t: "Faraday-Käfig" }], value: "inf", onChange: v => { tab = v; build(); } });
       const body = el("div", ""); host.append(body);
       let sim = null;
       function build() { body.innerHTML = ""; sim = tab === "inf" ? influenz(body) : tab === "pol" ? polar(body) : faraday(body); }
       build();
       return { step: dt => sim.step && sim.step(dt), draw: () => sim.draw() };
 
-      // ---- Influenz: Metallkugel und negativer Stab
+      // ---- Influenz: Metallkugel, negativer Stab (ziehbar), Erdung
       function influenz(h) {
-        const st = stage(360, 250); h.append(st.c);
-        const rd = prng(7), N = 28, pts = [];
-        for (let i = 0; i < N; i++) { const r = 46 * Math.sqrt((i + 0.5) / N), a = i * 2.39996; pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
-        void rd;
-        let gap = 80, grounded = false, shift = 0, removed = 0;
+        const W = 360, H = 250, st = stage(W, H, "touch-none"); h.append(st.c);
+        const CX = 245, CY = 115, R = 62, N = 26;
+        const homes = []; for (let i = 0; i < N; i++) { const r = 48 * Math.sqrt((i + 0.5) / N), a = i * 2.39996; homes.push([Math.cos(a) * r, Math.sin(a) * r]); }
+        const els = homes.map(p => ({ x: p[0], y: p[1], vx: 0, vy: 0 }));
+        let gap = 100, gapV = 100, grounded = false, removed = 0, flow = [], t = 0;
         const status = el("div", "sim-info"); h.append(status);
-        const s = slider(h, { label: "Abstand Stab ↔ Kugel", min: 0, max: 100, step: 1, value: 80, fmt: v => v < 15 ? "sehr nah" : v > 85 ? "weit weg" : v + " %", onInput: v => { gap = v; } });
+        const s = slider(h, { label: "Abstand Stab ↔ Kugel (oder Stab ziehen)", min: 0, max: 100, step: 1, value: 80, fmt: v => v < 15 ? "sehr nah" : v > 85 ? "weit weg" : v + " %", onInput: v => { gap = 6 + v * 1.2; } });
+        gap = 6 + 80 * 1.2;
         const acts = el("div", "sim-acts"); h.append(acts);
         const gb = button(acts, "Erden: aus", () => { grounded = !grounded; gb.textContent = "Erden: " + (grounded ? "an" : "aus"); });
-        button(acts, "Neu beginnen", () => { gap = 80; s.set(80); grounded = false; gb.textContent = "Erden: aus"; removed = 0; shift = 0; });
-        notes(h, "Aufgaben", ["Führe den negativen Stab an die Kugel heran. Wohin wandern die beweglichen Elektronen?",
+        button(acts, "Neu beginnen", () => { gap = 6 + 80 * 1.2; s.set(80); grounded = false; gb.textContent = "Erden: aus"; removed = 0; });
+        notes(h, "Aufgaben", ["Ziehe den negativen Stab an die Kugel heran. Wohin wandern die beweglichen Elektronen?",
           "Erde die Kugel (an), entferne dann die Erdung (aus) und erst danach den Stab. Wie ist die Kugel geladen?",
           "Warum bleibt die Kugel ohne Erdung insgesamt neutral?"]);
-        const CX = 235, CY = 125, R = 62;
+        let drag = false;
+        st.c.addEventListener("pointerdown", e => { const p = st.pos(e); const edge = CX - R - gapV; if (p.x < edge + 10 && p.x > edge - 110 && Math.abs(p.y - CY) < 34) { drag = true; st.c.setPointerCapture && st.c.setPointerCapture(e.pointerId); } });
+        st.c.addEventListener("pointermove", e => { if (!drag) return; const p = st.pos(e); const g = clamp(CX - R - (p.x + 45), 6, 126); gap = g; s.set(Math.round((g - 6) / 1.2)); });
+        const up = () => { drag = false; }; st.c.addEventListener("pointerup", up); st.c.addEventListener("pointercancel", up);
+        const k = () => clamp(1 - gapV / 135, 0, 1);
         function step(dt) {
-          const k = clamp(1 - (6 + gap * 1.2) / 135, 0, 1);
-          shift += (k * 26 - shift) * Math.min(1, dt * 6);
-          if (grounded) { const target = Math.round(k * 8); removed += Math.sign(target - removed) * Math.min(Math.abs(target - removed), dt * 5); }
+          t += dt; gapV = GX.ease(gapV, gap, dt, 10);
+          const kk = k();
+          const target = grounded ? Math.round(kk * 8) : removed;
+          const before = removed;
+          removed += Math.sign(target - removed) * Math.min(Math.abs(target - removed), dt * 4);
+          if (Math.floor(before) !== Math.floor(removed) || (removed !== before && Math.random() < dt * 6)) flow.push({ y: 0, dir: removed > before ? 1 : -1 });
+          flow.forEach(f => { f.y += dt * 90; }); flow = flow.filter(f => f.y < 1.2 * 50);
+          // Elektronen: Feder zur verschobenen Ruhelage + Zittern
+          els.forEach((e, i) => {
+            let tx = homes[i][0] + kk * 30 * (1 - 0.25 * Math.abs(homes[i][1]) / R), ty = homes[i][1];
+            const d = Math.hypot(tx, ty), lim = R - 9; if (d > lim) { tx *= lim / d; ty *= lim / d; }
+            e.vx += ((tx - e.x) * 30 - e.vx * 8) * dt + gauss() * 14 * Math.sqrt(dt);
+            e.vy += ((ty - e.y) * 30 - e.vy * 8) * dt + gauss() * 14 * Math.sqrt(dt);
+            e.x += e.vx * dt; e.y += e.vy * dt;
+            const dd = Math.hypot(e.x, e.y); if (dd > lim) { e.x *= lim / dd; e.y *= lim / dd; }
+          });
         }
         function draw() {
-          const c = colors(), x = st.ctx; st.fit();
-          const k = clamp(1 - (6 + gap * 1.2) / 135, 0, 1), edge = CX - R - (6 + gap * 1.2);
-          // Kugel
-          x.fillStyle = c.surf2; x.strokeStyle = c.fg; x.lineWidth = 2.4; x.beginPath(); x.arc(CX, CY, R, 0, 7); x.fill(); x.stroke();
-          const nRemoved = Math.round(removed);
-          const order = pts.map((p, i) => i).sort((a, b) => pts[b][0] - pts[a][0]);
-          const gone = new Set(order.slice(0, nRemoved));
-          x.font = "bold 12px system-ui"; x.textAlign = "center";
-          pts.forEach((p, i) => {
-            x.fillStyle = c.pos; x.fillText("+", CX + p[0], CY + p[1] + 4);
-            if (gone.has(i)) return;
-            let ex = p[0] + shift, ey = p[1]; const d = Math.hypot(ex, ey), lim = R - 9; if (d > lim) { ex *= lim / d; ey *= lim / d; }
-            x.fillStyle = c.neg; x.beginPath(); x.arc(CX + ex, CY + ey, 4.4, 0, 7); x.fill();
-            x.fillStyle = "#fff"; x.fillRect(CX + ex - 2.2, CY + ey - 0.5, 4.4, 1.1);
-          });
-          // Stab
-          x.fillStyle = c.surf; x.strokeStyle = c.neg; x.lineWidth = 2.4; x.beginPath(); x.rect(edge - 100, CY - 22, 100, 44); x.fill(); x.stroke();
-          x.fillStyle = c.neg; x.font = "bold 16px system-ui";
-          for (let i = 0; i < 5; i++) x.fillText("−", edge - 90 + i * 20, CY + 6);
+          const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
+          const kk = k(), edge = CX - R - gapV;
           // Erdung
           if (grounded) {
-            x.strokeStyle = c.fg; x.lineWidth = 2; L(x, [[CX, CY + R], [CX, 225]]); L(x, [[CX - 14, 225], [CX + 14, 225]]); L(x, [[CX - 9, 232], [CX + 9, 232]]); L(x, [[CX - 4, 239], [CX + 4, 239]]);
-            if (Math.abs(removed - Math.round(removed)) > 0.01 || Math.abs(Math.round(k * 8) - removed) > 0.05) { x.fillStyle = c.neg; for (let i = 0; i < 3; i++) { const yy = CY + R + ((performance.now() / 12 + i * 22) % 66); x.beginPath(); x.arc(CX, yy, 3, 0, 7); x.fill(); } }
+            GX.wire(x, c, [[CX, CY + R], [CX, 214]]); GX.ground(x, c, CX, 216);
+            flow.forEach(f => GX.electron(x, c, CX, f.dir > 0 ? CY + R + f.y : 214 - f.y));
           }
+          // Kugel (Metall)
+          x.save(); const g = x.createRadialGradient(CX - 20, CY - 24, 8, CX, CY, R);
+          g.addColorStop(0, GX.shade(c.surf2, 0.25)); g.addColorStop(1, GX.shade(c.surf2, GX.isDark(c) ? -0.25 : -0.12));
+          x.fillStyle = g; x.strokeStyle = c.fg; x.lineWidth = 2.4; x.beginPath(); x.arc(CX, CY, R, 0, TAU); x.fill(); x.stroke(); x.restore();
+          // Ionen und Elektronen
+          homes.forEach(p => GX.ball(x, CX + p[0], CY + p[1], 3.2, c.pos, "+", { alpha: 0.85 }));
+          const order = els.map((e, i) => i).sort((a, b) => els[b].x - els[a].x);
+          const gone = new Set(order.slice(0, Math.round(removed)));
+          els.forEach((e, i) => { if (!gone.has(i)) GX.ball(x, CX + e.x, CY + e.y, 4.4, c.neg, "−"); });
+          // Stab (ziehbar)
+          x.save(); const rg = x.createLinearGradient(0, CY - 20, 0, CY + 20); rg.addColorStop(0, GX.shade(c.neg, 0.35)); rg.addColorStop(1, GX.shade(c.neg, -0.3));
+          x.fillStyle = rg; x.shadowColor = GX.alpha(c.neg, 0.5); x.shadowBlur = 10; GX.rr(x, edge - 104, CY - 18, 104, 36, 10); x.fill(); x.restore();
+          for (let i = 0; i < 5; i++) GX.ball(x, edge - 88 + i * 18, CY, 5, GX.shade(c.neg, 0.15), "−");
+          GX.text(x, c.dim, "⟷ ziehen", edge - 52, CY + 30, { size: 10 });
           const net = Math.round(removed);
-          const farAndFree = !grounded && gap > 70;
+          GX.pill(x, c, "Gesamtladung der Kugel: " + (net > 0 ? "+" + net + " e" : "0"), CX, 18, { col: net > 0 ? c.pos : c.dim, size: 10, clampW: W });
+          const farAndFree = !grounded && gap > 90;
           status.textContent = net > 0 && farAndFree ? "Die Kugel ist jetzt positiv geladen: " + net + " Elektronen fehlen (Aufladung durch Influenz)."
-            : net > 0 && !grounded ? "Elektronen sind abgeflossen. Entferne den Stab, um die Ladung zu verteilen."
-            : grounded && k > 0.1 ? "Erdung: Die abgestoßenen Elektronen fließen zur Erde ab."
-            : k > 0.15 ? "Influenz: Die beweglichen Elektronen werden vom negativen Stab abgestoßen. Die Kugel ist insgesamt neutral."
+            : net > 0 && !grounded ? "Elektronen sind abgeflossen. Entferne jetzt den Stab, dann verteilt sich die positive Ladung."
+            : grounded && kk > 0.1 ? "Erdung: Die abgestoßenen Elektronen fließen zur Erde ab."
+            : kk > 0.15 ? "Influenz: Die beweglichen Elektronen werden vom negativen Stab abgestoßen. Die Kugel ist insgesamt neutral."
             : "Der Stab ist weit weg: Die Ladungen sind gleichmäßig verteilt.";
         }
         return { step, draw };
@@ -151,10 +200,10 @@
 
       // ---- Polarisation: Dipole im Dielektrikum
       function polar(h) {
-        const st = stage(360, 250); h.append(st.c);
-        let kind = "or", Es = 0, er = 4, t = 0;
+        const W = 360, H = 250, st = stage(W, H); h.append(st.c);
+        let kind = "or", Es = 0, EsV = 0, er = 4, phase = 0;
         const rd = prng(11), mol = [];
-        for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) mol.push({ x: 108 + i * 28, y: 82 + j * 26, th: rd() * 6.28, ph: rd() * 6.28, w: (rd() - 0.5) * 2 });
+        for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) mol.push({ x: 112 + i * 27 + (rd() - 0.5) * 6, y: 84 + j * 25 + (rd() - 0.5) * 5, th: rd() * TAU });
         seg(h, { label: "Art", options: [{ v: "or", t: "Orientierung (polar, z. B. Wasser)" }, { v: "ve", t: "Verschiebung (Atome)" }], value: "or", onChange: v => { kind = v; } });
         const ctl = el("div", "sim-ctl"); h.append(ctl);
         slider(ctl, { label: "Feldstärke E₀", min: 0, max: 100, step: 1, value: 0, fmt: v => v + " %", onInput: v => { Es = v / 100; } });
@@ -162,94 +211,112 @@
         const info = el("div", "sim-info"); h.append(info);
         notes(h, "Aufgaben", ["Schalte das Feld ein. Was machen die Dipole bzw. Atome?", "Wo entstehen die <b>Polarisationsladungen</b>? Welches Vorzeichen haben sie oben und unten?",
           "Wie ändert sich das Feld im Dielektrikum? Vergleiche $E_0$ und $E_0/\\varepsilon_r$."]);
-        const align = () => Es * (1 - 1 / er) / (1 - 1 / 6);
+        const align = () => EsV * (1 - 1 / er) / (1 - 1 / 6);
         function step(dt) {
-          t += dt; const a = align();
-          mol.forEach(m => {
-            if (kind === "or") {
-              const target = Math.PI / 2; // Pluspol zeigt in Feldrichtung (nach unten)
-              let d = ((target - m.th + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-              m.th += d * Math.min(1, dt * 4 * a) + (Math.sin(t * 3 + m.ph) * 1.8 * (1 - 0.85 * a) + m.w * 0.6) * dt * (1 - a * 0.9);
-            }
-          });
+          EsV = GX.ease(EsV, Es, dt, 5); phase += dt * (6 + 40 * EsV);
+          const a = align();
+          mol.forEach(m => { let d = ((Math.PI / 2 - m.th + Math.PI * 3) % TAU) - Math.PI; m.th += d * Math.min(1, dt * 6 * a) + gauss() * Math.sqrt(dt) * 2.2 * (1 - 0.88 * a); });
         }
         function draw() {
-          const c = colors(), x = st.ctx; st.fit();
+          const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
           const a = align();
-          // Platten
-          x.fillStyle = c.fg; x.fillRect(60, 28, 240, 6); x.fillRect(60, 216, 240, 6);
-          x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillStyle = c.pos; for (let i = 0; i < 8; i++) x.fillText("+", 74 + i * 30, 24);
-          x.fillStyle = c.neg; for (let i = 0; i < 8; i++) x.fillText("−", 74 + i * 30, 238);
-          // Feldpfeile außerhalb des Blocks
-          x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4;
-          if (Es > 0) [74, 286].forEach(px => arrow(x, px, 38, px, 38 + 20 + 120 * Es * 0.4 + 14, 6));
+          GX.plate(x, c, 50, 30, 310, 30, EsV > 0.05 ? GX.alpha(c.pos, 0.4 * EsV) : null);
+          GX.plate(x, c, 50, 220, 310, 220, EsV > 0.05 ? GX.alpha(c.neg, 0.4 * EsV) : null);
+          const nq = 3 + EsV * 9;
+          for (let i = 0; i < Math.ceil(nq); i++) { const al = clamp(nq - i, 0, 1), px = 60 + i * 20; GX.ball(x, px, 18, 4, c.pos, "+", { alpha: al }); GX.ball(x, px, 233, 4, c.neg, "−", { alpha: al }); }
+          // Feld außerhalb des Blocks
+          if (EsV > 0.02) [[66, 1], [294, 1]].forEach(([px]) => GX.flowLine(x, c.line, [[px, 36], [px, 214]], phase, { alpha: 0.3 + 0.7 * EsV, w: 1.6 }));
           // Block
-          x.fillStyle = "rgba(90,169,255,.10)"; x.strokeStyle = c.dim; x.lineWidth = 1.5; x.fillRect(92, 62, 176, 116); x.strokeRect(92, 62, 176, 116);
-          // Moleküle
+          x.save(); const g = x.createLinearGradient(0, 62, 0, 180); g.addColorStop(0, GX.alpha(c.accent, 0.14)); g.addColorStop(1, GX.alpha(c.accent, 0.05));
+          x.fillStyle = g; x.strokeStyle = c.dim; x.lineWidth = 1.5; GX.rr(x, 92, 62, 176, 118, 8); x.fill(); x.stroke(); x.restore();
+          // Feld innen (abgeschwächt)
+          if (EsV > 0.02) { const ai = (0.3 + 0.7 * EsV) / (1 + a * (er - 1)); [130, 230].forEach(px => GX.flowLine(x, c.line, [[px, 66], [px, 176]], phase / (1 + a * (er - 1)), { alpha: clamp(ai, 0.15, 1), w: 1.2, head: false })); }
+          // Teilchen
           mol.forEach(m => {
-            if (kind === "or") {
-              const dx = Math.cos(m.th) * 9, dy = Math.sin(m.th) * 9;
-              x.strokeStyle = c.dim; x.lineWidth = 2; L(x, [[m.x - dx, m.y - dy], [m.x + dx, m.y + dy]]);
-              x.fillStyle = c.pos; x.beginPath(); x.arc(m.x + dx, m.y + dy, 3.6, 0, 7); x.fill();
-              x.fillStyle = c.neg; x.beginPath(); x.arc(m.x - dx, m.y - dy, 3.6, 0, 7); x.fill();
-            } else {
-              const sh = a * 7;
-              x.fillStyle = "rgba(62,123,255,.35)"; x.strokeStyle = c.neg; x.lineWidth = 1; x.beginPath(); x.arc(m.x, m.y - sh, 9.5, 0, 7); x.fill(); x.stroke();
-              x.fillStyle = c.pos; x.beginPath(); x.arc(m.x, m.y, 3.2, 0, 7); x.fill();
+            if (kind === "or") dipole(x, c, m.x, m.y, m.th, 7);
+            else {
+              const sh = a * 6;
+              x.save(); const cg = x.createRadialGradient(m.x, m.y - sh, 1, m.x, m.y - sh, 10);
+              cg.addColorStop(0, GX.alpha(c.neg, 0.55)); cg.addColorStop(1, GX.alpha(c.neg, 0.05));
+              x.fillStyle = cg; x.beginPath(); x.arc(m.x, m.y - sh, 10, 0, TAU); x.fill(); x.restore();
+              GX.ball(x, m.x, m.y, 3.2, c.pos);
             }
           });
-          // Polarisationsladungen an der Oberfläche
-          const n = Math.round(a * 8);
-          x.font = "bold 13px system-ui"; x.textAlign = "center";
-          for (let i = 0; i < n; i++) { const px = 104 + i * 22; x.fillStyle = c.neg; x.fillText("−", px, 58); x.fillStyle = c.pos; x.fillText("+", px, 196); }
-          // Feld im Inneren
-          if (Es > 0) { x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4; const len = 30 + 40 * Es * (1 / (1 + a * (er - 1) * 0.5)); arrow(x, 316, 70, 316, 70 + len, 6); x.font = "11px system-ui"; x.fillStyle = c.dim; x.textAlign = "left"; x.fillText("E", 322, 86); }
+          // gebundene Oberflächenladungen
+          const n = a * 9;
+          for (let i = 0; i < Math.ceil(n); i++) { const al = clamp(n - i, 0, 1), px = 104 + i * 19; GX.ball(x, px, 56, 3.6, c.neg, "−", { alpha: al }); GX.ball(x, px, 186, 3.6, c.pos, "+", { alpha: al }); }
+          if (EsV > 0.02) { GX.pill(x, c, "E₀", 294, 125, { col: c.line, size: 10 }); GX.pill(x, c, "E = E₀/εᵣ", 180, 200, { col: c.line, size: 10 }); }
           info.textContent = Es === 0 ? "Ohne Feld sind die Dipole ungeordnet bzw. die Atome unverformt."
-            : kind === "or" ? "Orientierungspolarisation: Die Dipole richten sich aus. Es entstehen gebundene Oberflächenladungen. E im Inneren: " + de(Es * 100) + " % von E₀ geteilt durch " + de(1 + a * (er - 1)) + "."
-            : "Verschiebungspolarisation: Die Elektronenhüllen verschieben sich gegen die Kerne. Es entstehen gebundene Oberflächenladungen. E im Inneren ist kleiner als E₀ (E = E₀/εᵣ).";
+            : kind === "or" ? "Orientierungspolarisation: Die Dipole richten sich gegen die Wärmebewegung aus. An der Oberfläche entstehen gebundene Ladungen, das Feld im Inneren wird schwächer."
+            : "Verschiebungspolarisation: Die Elektronenhüllen verschieben sich gegen die Kerne. An der Oberfläche entstehen gebundene Ladungen, das Feld im Inneren wird schwächer (E = E₀/εᵣ).";
         }
         return { step, draw };
       }
 
-      // ---- Faradayscher Käfig
+      // ---- Faradayscher Käfig: Feldlinien aus der Laplace-Gleichung
       function faraday(h) {
-        const st = stage(360, 250); h.append(st.c);
-        let cage = true, E = 0.6, t = 0;
+        const W = 360, H = 250, st = stage(W, H); h.append(st.c);
+        let cage = true, E = 0.6, phase = 0;
         seg(h, { label: "Käfig", options: [{ v: true, t: "Mit Käfig" }, { v: false, t: "Ohne Käfig" }], value: true, onChange: v => { cage = v; } });
         slider(h, { label: "Feldstärke E", min: 10, max: 100, step: 1, value: 60, fmt: v => v + " %", onInput: v => { E = v / 100; } });
         const info = el("div", "sim-info"); h.append(info);
-        notes(h, "Aufgaben", ["Schalte den Käfig ein. Was passiert mit dem Feld im Inneren?", "Wo sitzen die Influenzladungen auf dem Käfig und welches Vorzeichen haben sie?",
-          "Warum ist man in einem Auto bei Blitzschlag geschützt?"]);
-        const bx0 = 130, bx1 = 230, by0 = 85, by1 = 175;
-        function step(dt) { t += dt * (0.4 + 1.6 * E); }
-        function draw() {
-          const c = colors(), x = st.ctx; st.fit();
-          // Platten links (+) und rechts (−)
-          x.fillStyle = c.fg; x.fillRect(22, 30, 6, 190); x.fillRect(332, 30, 6, 190);
-          x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillStyle = c.pos; for (let i = 0; i < 6; i++) x.fillText("+", 14, 46 + i * 30);
-          x.fillStyle = c.neg; for (let i = 0; i < 6; i++) x.fillText("−", 346, 46 + i * 30);
-          // Feldlinien (animierte Pfeilspitzen)
-          x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.6;
-          const ys = [45, 65, 85, 105, 125, 145, 165, 185, 205];
-          ys.forEach(y => {
-            const inside = cage && y > by0 && y < by1;
-            const segs = inside ? [[30, bx0], [bx1, 330]] : [[30, 330]];
-            segs.forEach(sg => {
-              L(x, [[sg[0], y], [sg[1], y]]);
-              const sp = 40, off = (t * 40) % sp;
-              for (let px = sg[0] + off; px < sg[1] - 4; px += sp) { x.beginPath(); x.moveTo(px + 6, y); x.lineTo(px, y - 3.5); x.lineTo(px, y + 3.5); x.fill(); }
-            });
-          });
-          if (cage) {
-            x.setLineDash([7, 4]); x.strokeStyle = c.fg; x.lineWidth = 3; x.fillStyle = c.surf2; x.fillRect(bx0, by0, bx1 - bx0, by1 - by0); x.strokeRect(bx0, by0, bx1 - bx0, by1 - by0); x.setLineDash([]);
-            const n = Math.round(2 + 6 * E); x.font = "bold 13px system-ui"; x.textAlign = "center";
-            for (let i = 0; i < n; i++) { const yy = by0 + 10 + i * (by1 - by0 - 20) / Math.max(1, n - 1); x.fillStyle = c.neg; x.fillText("−", bx0 + 9, yy + 4); x.fillStyle = c.pos; x.fillText("+", bx1 - 9, yy + 4); }
-            x.fillStyle = c.fg; x.font = "bold 14px system-ui"; x.fillText("E = 0", (bx0 + bx1) / 2, 133);
-          } else {
-            x.fillStyle = c.pos; x.beginPath(); x.arc(180, 130, 7, 0, 7); x.fill(); x.fillStyle = "#fff"; x.font = "bold 11px system-ui"; x.textAlign = "center"; x.fillText("+", 180, 134);
-            x.strokeStyle = c.warn; x.fillStyle = c.warn; x.lineWidth = 2.6; arrow(x, 190, 130, 190 + 50 * E, 130, 8); x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("F = E·Q", 190, 150);
+        notes(h, "Aufgaben", ["Schalte den Käfig ein. Was passiert mit dem Feld im Inneren?", "Wie treffen die Feldlinien auf die Käfigwand? (Achte auf den Winkel.)",
+          "Wo sitzen die Influenzladungen und welches Vorzeichen haben sie?", "Warum ist man in einem Auto bei Blitzschlag geschützt?"]);
+        const BX0 = 132, BX1 = 228, BY0 = 84, BY1 = 172, PL = 26, PR = 334;
+        const cache = {};
+        function solve(withCage) {
+          const cs = 4, nx = Math.round(W / cs) + 1, ny = Math.round(H / cs) + 1, phi = new Float32Array(nx * ny), fixed = new Uint8Array(nx * ny);
+          const id = (i, j) => j * nx + i;
+          for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+            const X = i * cs, Y = j * cs;
+            if (X <= PL) { phi[id(i, j)] = 1; fixed[id(i, j)] = 1; }
+            else if (X >= PR) { phi[id(i, j)] = 0; fixed[id(i, j)] = 1; }
+            else if (withCage && X >= BX0 && X <= BX1 && Y >= BY0 && Y <= BY1) { phi[id(i, j)] = 0.5; fixed[id(i, j)] = 1; }
+            else phi[id(i, j)] = 1 - (X - PL) / (PR - PL);
           }
-          info.textContent = cage ? "Die Influenzladungen auf dem Käfig erzeugen ein Gegenfeld. Im Inneren heben sich beide Felder auf: E = 0, es wirkt keine Kraft."
+          if (withCage) for (let it = 0; it < 500; it++) for (let j = 0; j < ny; j++) for (let i = 1; i < nx - 1; i++) {
+            const k = id(i, j); if (fixed[k]) continue;
+            const up = j > 0 ? phi[id(i, j - 1)] : phi[id(i, j + 1)], dn = j < ny - 1 ? phi[id(i, j + 1)] : phi[id(i, j - 1)];
+            phi[k] += 1.9 * ((phi[k - 1] + phi[k + 1] + up + dn) / 4 - phi[k]);
+          }
+          const at = (X, Y) => { const fi = clamp(X / cs, 0, nx - 1.001), fj = clamp(Y / cs, 0, ny - 1.001), i = Math.floor(fi), j = Math.floor(fj), u = fi - i, v = fj - j;
+            return phi[id(i, j)] * (1 - u) * (1 - v) + phi[id(i + 1, j)] * u * (1 - v) + phi[id(i, j + 1)] * (1 - u) * v + phi[id(i + 1, j + 1)] * u * v; };
+          const grad = (X, Y) => [-(at(X + 2, Y) - at(X - 2, Y)), -(at(X, Y + 2) - at(X, Y - 2))];
+          const inside = (X, Y) => withCage && X >= BX0 - 1 && X <= BX1 + 1 && Y >= BY0 - 1 && Y <= BY1 + 1;
+          function trace(X, Y) {
+            const pts = [[X, Y]];
+            for (let s = 0; s < 400; s++) {
+              const g = grad(X, Y), m = Math.hypot(g[0], g[1]) || 1e-9; X += g[0] / m * 3; Y += g[1] / m * 3;
+              if (X >= PR - 2 || X < PL || Y < 2 || Y > H - 2) { pts.push([Math.min(X, PR - 3), Y]); break; }
+              if (inside(X, Y)) { pts.push([X, Y]); break; }
+              pts.push([X, Y]);
+            }
+            return pts;
+          }
+          const lines = [];
+          for (let y = 22; y <= H - 22; y += 17) lines.push(trace(PL + 3, y));
+          if (withCage) for (let y = BY0 + 8; y <= BY1 - 6; y += 17) lines.push(trace(BX1 + 3, y));
+          return lines;
+        }
+        function step(dt) { phase += dt * (8 + 40 * E); }
+        function draw() {
+          const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
+          const key = cage ? "c" : "n"; if (!cache[key]) cache[key] = solve(cage);
+          cache[key].forEach(l => GX.flowLine(x, c.line, l, phase, { alpha: 0.35 + 0.6 * E, w: 1.5, at: 0.35 }));
+          GX.plate(x, c, PL - 4, 18, PL - 4, H - 18, GX.alpha(c.pos, 0.3 * E)); GX.plate(x, c, PR + 4, 18, PR + 4, H - 18, GX.alpha(c.neg, 0.3 * E));
+          for (let i = 0; i < 7; i++) { GX.ball(x, PL - 14, 30 + i * 32, 4, c.pos, "+"); GX.ball(x, PR + 14, 30 + i * 32, 4, c.neg, "−"); }
+          if (cage) {
+            x.save(); x.fillStyle = GX.alpha(c.surf2.startsWith("#") ? c.surf2 : "#888888", 0.92); x.strokeStyle = c.fg; x.lineWidth = 3; x.setLineDash([8, 4]);
+            GX.rr(x, BX0, BY0, BX1 - BX0, BY1 - BY0, 4); x.fill(); x.stroke(); x.restore();
+            const n = Math.round(3 + 5 * E);
+            for (let i = 0; i < n; i++) { const yy = BY0 + 10 + i * (BY1 - BY0 - 20) / Math.max(1, n - 1); GX.ball(x, BX0 + 8, yy, 3.8, c.neg, "−"); GX.ball(x, BX1 - 8, yy, 3.8, c.pos, "+"); }
+            GX.pill(x, c, "E = 0", (BX0 + BX1) / 2, (BY0 + BY1) / 2, { col: c.ok, size: 12 });
+          } else {
+            GX.ball(x, 180, 128, 8, c.warn, "+", { glow: 8 });
+            GX.arrow(x, c.warn, 190, 128, 196 + 56 * E, 128, 3);
+            GX.pill(x, c, "F = E·Q", 196 + 28 * E, 148, { col: c.warn, size: 10 });
+          }
+          info.textContent = cage ? "Die Influenzladungen auf dem Käfig erzeugen ein Gegenfeld. Die Feldlinien enden senkrecht auf der Wand, im Inneren ist E = 0."
             : "Ohne Käfig wirkt auf die Probeladung die Kraft F = E·Q in Feldrichtung.";
         }
         return { step, draw };
@@ -257,18 +324,18 @@
     }
   });
 
-  // ============================================================ Millikan
+  // ============================================================ Millikan: Blick durchs Mikroskop
   K.add({
     id: "mill", title: "Millikan-Versuch", desc: "Schwebespannung finden, Ladung berechnen, Messreihe auswerten", sheet: "millikan",
     icon: ICON('<circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4 5h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     make(host) {
-      const st = stage(360, 260); host.append(st.c);
-      const d = 5e-3, eta = 1.8e-5, rho = 880, SPEED = 300; // Zeitraffer
-      let U = 0, drop, rows = [], y = 0.5, topPlus = true;
+      const W = 360, H = 270, st = stage(W, H); host.append(st.c);
+      const d = 5e-3, eta = 1.8e-5, rho = 880, SPEED = 6; // Zeitraffer: Fall durch die Platten in einigen Sekunden
+      let scope = null, stuck = 0, U = 0, drop, rows = [], y = 0.5, jx = 0, topPlus = true, fade = 1, respawn = 0, forces = true, Fv = { el: 0, g: 1 };
       function newDrop() {
         const r = (0.75 + Math.random() * 0.25) * 1e-6, n = 1 + Math.floor(Math.random() * 5);
         drop = { r, n, m: 4 / 3 * Math.PI * r ** 3 * rho, q: n * QE, neg: Math.random() < 0.7 };
-        y = 0.55; U = 0; sU.set(0);
+        y = 0.55; jx = 0; fade = 0; U = 0; sU.set(0);
       }
       seg(host, { label: "Polung der oberen Platte", options: [{ v: true, t: "oben +" }, { v: false, t: "oben −" }], value: true, onChange: v => { topPlus = v; } });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
@@ -278,6 +345,7 @@
       const acts2 = el("div", "sim-acts"); host.append(acts2);
       button(acts2, "Neues Tröpfchen", () => newDrop());
       button(acts2, "Schwebespannung notieren", () => record(), "primary");
+      const fb = button(acts2, "Kräfte: an", () => { forces = !forces; fb.textContent = "Kräfte: " + (forces ? "an" : "aus"); });
       const info = el("div", "sim-info"); host.append(info);
       const ro = readouts(host, [["m", "Masse m (bekannt)"], ["fel", "elektrische Kraft"], ["fg", "Gewichtskraft"], ["v", "Geschwindigkeit"]]);
       const tbl = el("div", "sim-table"); host.append(tbl);
@@ -303,37 +371,67 @@
       }
       newDrop();
       function step(dt) {
-        const v = net() / (6 * Math.PI * eta * drop.r); // m/s (positiv: nach oben)
+        fade = GX.ease(fade, respawn > 0 ? 0 : 1, dt, 6);
+        if (respawn > 0) { respawn -= dt; if (respawn <= 0) { y = 0.55; jx = 0; } return; }
+        const v = net() / (6 * Math.PI * eta * drop.r); // m/s, positiv: nach oben
         drop.v = v;
         y += v * dt * SPEED / d;
-        if (y > 0.97 || y < 0.03) y = 0.55;
+        jx += gauss() * Math.sqrt(dt) * 2.2 - jx * dt * 0.8; // Brownsche Bewegung (seitlich)
+        // am Rand des Sehfelds liegen bleiben; erst nach einer Weile kommt ein neues Tröpfchen
+        if (y > 0.95 || y < 0.05) { y = clamp(y, 0.05, 0.95); stuck += dt; if (stuck > 3) { stuck = 0; respawn = 0.45; } } else stuck = 0;
+        Fv.el = GX.ease(Fv.el, U > 0 ? dir() * drop.q * U / d / (drop.m * G) : 0, dt, 10); Fv.g = 1;
       }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
-        const top = 34, bot = 226, yy = bot - y * (bot - top);
-        x.fillStyle = c.fg; x.fillRect(60, top - 8, 240, 6); x.fillRect(60, bot + 2, 240, 6);
-        x.font = "bold 14px system-ui"; x.textAlign = "left";
-        x.fillStyle = topPlus ? c.pos : c.neg; x.fillText(topPlus ? "+" : "−", 308, top - 2); x.fillStyle = topPlus ? c.neg : c.pos; x.fillText(topPlus ? "−" : "+", 308, bot + 10);
-        // Feldlinien schwach (von + nach −)
-        x.strokeStyle = c.line; x.fillStyle = c.line; x.globalAlpha = 0.35; x.lineWidth = 1.2;
-        if (U > 0) for (let i = 0; i < 6; i++) topPlus ? arrow(x, 80 + i * 40, top, 80 + i * 40, bot, 5) : arrow(x, 80 + i * 40, bot, 80 + i * 40, top, 5);
-        x.globalAlpha = 1;
-        // Tröpfchen
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
+        const top = 28, bot = 242, cx = 180, cy = (top + bot) / 2, R = 100;
+        GX.plate(x, c, 40, top, 320, top, U > 0 ? GX.alpha(topPlus ? c.pos : c.neg, 0.4) : null);
+        GX.plate(x, c, 40, bot, 320, bot, U > 0 ? GX.alpha(topPlus ? c.neg : c.pos, 0.4) : null);
+        GX.badge(x, c, topPlus ? "+" : "−", 334, top, topPlus ? c.pos : c.neg); GX.badge(x, c, topPlus ? "−" : "+", 334, bot, topPlus ? c.neg : c.pos);
+        GX.dim(x, c, 24, top + 4, 24, bot - 4, null);
+        x.save(); x.translate(13, cy); x.rotate(-Math.PI / 2); GX.text(x, c.dim, "d = 5 mm", 0, 0, { size: 10, weight: 600 }); x.restore();
+        GX.pill(x, c, U + " V", 334, cy + 64, { col: c.accent, size: 11, clampW: W });
+        // Mikroskop-Sehfeld (Dunkelfeld)
+        const sc = x.getTransform().a || 1;
+        if (!scope || scope._sc !== sc) {
+          scope = document.createElement("canvas"); scope._sc = sc; scope.width = scope.height = Math.ceil(2 * R * sc);
+          const s2 = scope.getContext("2d"); s2.setTransform(sc, 0, 0, sc, R * sc, R * sc);
+          s2.beginPath(); s2.arc(0, 0, R, 0, TAU); s2.clip();
+          const g = s2.createRadialGradient(0, 0, 10, 0, 0, R); g.addColorStop(0, "#141a26"); g.addColorStop(1, "#05070b");
+          s2.fillStyle = g; s2.fillRect(-R, -R, 2 * R, 2 * R);
+          s2.strokeStyle = "rgba(160,190,230,.22)"; s2.lineWidth = 1;
+          for (let i = -4; i <= 4; i++) { s2.beginPath(); s2.moveTo(-R, i * 20); s2.lineTo(R, i * 20); s2.stroke(); }
+          s2.strokeStyle = "rgba(160,190,230,.45)"; s2.beginPath(); s2.moveTo(0, -R); s2.lineTo(0, R); s2.stroke();
+          for (let i = -8; i <= 8; i++) { s2.beginPath(); s2.moveTo(-4, i * 10); s2.lineTo(4, i * 10); s2.stroke(); }
+        }
+        x.save(); x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.clip();
+        x.drawImage(scope, cx - R, cy - R, 2 * R, 2 * R);
+        // Tröpfchen: hell im Streulicht
+        const py = bot - y * (bot - top), px = cx + jx * 6;
         const floating = U > 0 && dir() > 0 && Math.abs(net()) < 0.02 * drop.m * G;
-        const rr = 7 + (drop.r / 1e-6 - 0.75) * 16;
-        if (floating) { x.fillStyle = "rgba(63,181,122,.25)"; x.beginPath(); x.arc(180, yy, rr + 8, 0, 7); x.fill(); }
-        x.fillStyle = c.warn; x.beginPath(); x.arc(180, yy, rr, 0, 7); x.fill();
-        x.fillStyle = "#1a1300"; x.font = "bold 11px system-ui"; x.textAlign = "center"; x.fillText(drop.neg ? "−" : "+", 180, yy + 4);
+        x.globalAlpha = fade;
+        GX.glow(x, px, py, 22, floating ? "#3fb57a" : "#ffd28a", 0.55);
+        GX.glow(x, px, py, 7, "#fff6e0", 0.95);
+        x.fillStyle = "#fffdf5"; x.beginPath(); x.arc(px, py, 2.4, 0, TAU); x.fill();
+        x.globalAlpha = 1; x.restore();
+        x.strokeStyle = c.fg; x.lineWidth = 3; x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.stroke();
         // Kräfte
-        const fel = drop.q * U / d, fg = drop.m * G, sc = 46 / fg;
-        x.lineWidth = 2.6;
-        x.strokeStyle = c.ok; x.fillStyle = c.ok; if (fel > 0) arrow(x, 214, yy, 214, yy - dir() * Math.min(90, fel * sc), 7);
-        x.strokeStyle = c.bad; x.fillStyle = c.bad; arrow(x, 238, yy, 238, yy + 46, 7);
-        x.font = "11px system-ui"; x.textAlign = "left"; x.fillStyle = c.ok; if (fel > 0) x.fillText("F_el", 196, dir() > 0 ? top + 14 : bot - 6); x.fillStyle = c.bad; x.fillText("F_G", 244, yy + 30);
-        // Abstand
-        x.strokeStyle = c.dim; x.fillStyle = c.dim; x.lineWidth = 1; L(x, [[50, top], [50, bot]]); x.save(); x.translate(40, (top + bot) / 2); x.rotate(-Math.PI / 2); x.textAlign = "center"; x.font = "11px system-ui"; x.fillText("d = 5 mm", 0, 0); x.restore();
+        if (forces) {
+          // Kräftekasten rechts oben: Kräfte am Tröpfchen, maßstäblich (größte Kraft 44 px)
+          const fx = 334, fy = 122, big = Math.max(1, Math.abs(Fv.el)), sc = 34 / big;
+          x.save(); x.fillStyle = GX.alpha(c.surf.startsWith("#") ? c.surf : "#ffffff", 0.9); x.strokeStyle = c.border; x.lineWidth = 1;
+          GX.rr(x, fx - 21, fy - 58, 42, 116, 10); x.fill(); x.stroke(); x.restore();
+          if (Math.abs(Fv.el) > 0.02) GX.arrow(x, c.ok, fx - 6, fy, fx - 6, fy - Fv.el * sc, 2.6);
+          GX.arrow(x, c.bad, fx + 6, fy, fx + 6, fy + sc, 2.6);
+          GX.ball(x, fx, fy, 4, "#e8b04a");
+          GX.text(x, c.ok, "F_el", fx, Fv.el >= 0 ? fy - 48 : fy + 48, { size: 9, weight: 700 });
+          GX.text(x, c.bad, "F_G", fx, Fv.el >= 0 ? fy + 48 : fy - 48, { size: 9, weight: 700 });
+        }
+        const fel = drop.q * U / d, fg = drop.m * G;
         ro({ m: de(drop.m * 1e15, 3) + " · 10⁻¹⁵ kg", fel: de(fel * 1e15, 3) + " · 10⁻¹⁵ N", fg: de(fg * 1e15, 3) + " · 10⁻¹⁵ N", v: de((drop.v || 0) * 1e3, 2) + " mm/s" });
-        info.textContent = U > 0 && dir() < 0 ? "Die elektrische Kraft zeigt nach unten (" + (drop.neg ? "negatives" : "positives") + " Tröpfchen). Polung umkehren!" : floating ? "Das Tröpfchen schwebt: F_el = F_G. Jetzt Spannung ablesen und q berechnen." : net() > 0 ? "Die elektrische Kraft überwiegt: Das Tröpfchen steigt." : "Die Gewichtskraft überwiegt: Das Tröpfchen sinkt.";
+        info.textContent = stuck > 0.3 ? "Das Tröpfchen ist am Rand angekommen. Ändere die Spannung, sonst kommt gleich ein neues Tröpfchen."
+          : U > 0 && dir() < 0 ? "Die elektrische Kraft zeigt nach unten (" + (drop.neg ? "negatives" : "positives") + " Tröpfchen). Polung umkehren!"
+          : floating ? "Das Tröpfchen schwebt: F_el = F_G. Jetzt Spannung ablesen und q berechnen."
+          : net() > 0 ? "Die elektrische Kraft überwiegt: Das Tröpfchen steigt." : "Die Gewichtskraft überwiegt: Das Tröpfchen sinkt.";
       }
       return { step, draw };
     }
@@ -345,13 +443,13 @@
     icon: ICON('<circle cx="6" cy="12" r="2.5" fill="currentColor"/><circle cx="18" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 11c3-3 4-3 7 0M8.5 13c3 3 4 3 7 0" stroke="currentColor" stroke-width="1.6" fill="none"/>'),
     make(host) {
       const W = 360, H = 290, st = stage(W, H, "touch-none"); host.append(st.c);
-      let ch = [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: -1 }], mode = "+", probe = null, drag = null, dirty = true, lines = [], showProbe = true;
+      let ch = [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: -1 }], mode = "+", probe = null, drag = null, dirty = true, lines = [], phase = 0;
       seg(host, { label: "Modus", options: [{ v: "+", t: "+ setzen" }, { v: "-", t: "− setzen" }, { v: "m", t: "Verschieben" }, { v: "d", t: "Löschen" }, { v: "p", t: "Probeladung" }], value: "+", onChange: v => { mode = v; } });
       const acts = el("div", "sim-acts"); host.append(acts);
       const pre = {
         "Dipol": () => [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: -1 }],
         "Gleichnamig": () => [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: 1 }],
-        "Platten": () => { const a = []; for (let i = 0; i < 6; i++) { a.push({ x: 90 + i * 36, y: 60, q: 1 }); } for (let i = 0; i < 6; i++) { a.push({ x: 90 + i * 36, y: 230, q: -1 }); } return a; },
+        "Platten": () => { const a = []; for (let i = 0; i < 7; i++) a.push({ x: 72 + i * 36, y: 70, q: 1 }); for (let i = 0; i < 7; i++) a.push({ x: 72 + i * 36, y: 220, q: -1 }); return a; },
         "Einzeln": () => [{ x: 180, y: 145, q: 1 }]
       };
       Object.keys(pre).forEach(k => button(acts, k, () => { ch = pre[k](); probe = null; dirty = true; }));
@@ -367,51 +465,42 @@
         src.forEach(s => {
           const n = ch.length > 8 ? 6 : 14;
           for (let i = 0; i < n; i++) {
-            const a = (i + 0.5) / n * 6.2832; let px = s.x + 9 * Math.cos(a), py = s.y + 9 * Math.sin(a); const pts = [[px, py]];
-            for (let k = 0; k < 800; k++) {
-              const f = fieldAt(px, py), m = Math.hypot(f[0], f[1]) || 1; px += dir * f[0] / m * 3; py += dir * f[1] / m * 3;
+            const a = (i + 0.5) / n * TAU; let px = s.x + 10 * Math.cos(a), py = s.y + 10 * Math.sin(a); const pts = [[px, py]];
+            for (let k = 0; k < 900; k++) {
+              const f = fieldAt(px, py), m = Math.hypot(f[0], f[1]) || 1; px += dir * f[0] / m * 2.6; py += dir * f[1] / m * 2.6;
               if (px < 2 || px > W - 2 || py < 2 || py > H - 2) { pts.push([px, py]); break; }
-              let hit = false; for (const c of ch) if (Math.sign(c.q) !== Math.sign(s.q) && Math.hypot(px - c.x, py - c.y) < 9) { hit = true; break; }
-              pts.push([px, py]); if (hit) break;
+              let hit = false; for (const c of ch) if (Math.sign(c.q) !== Math.sign(s.q) && Math.hypot(px - c.x, py - c.y) < 10) { hit = true; break; }
+              if (k % 2 === 0 || hit) pts.push([px, py]); if (hit) break;
             }
-            lines.push({ pts, dir });
+            lines.push(dir > 0 ? pts : pts.slice().reverse());
           }
         });
       }
-      function pt(e) { return st.pos(e); }
       st.c.addEventListener("pointerdown", e => {
-        const p = pt(e); st.c.setPointerCapture && st.c.setPointerCapture(e.pointerId);
-        const near = () => { let b = null, bd = 22; ch.forEach(c => { const d = Math.hypot(c.x - p.x, c.y - p.y); if (d < bd) { bd = d; b = c; } }); return b; };
-        if (mode === "+" || mode === "-") { if (near()) { drag = near(); } else if (ch.length < 12) { ch.push({ x: p.x, y: p.y, q: mode === "+" ? 1 : -1 }); dirty = true; } }
+        const p = st.pos(e); st.c.setPointerCapture && st.c.setPointerCapture(e.pointerId);
+        const near = () => { let b = null, bd = 24; ch.forEach(c => { const d = Math.hypot(c.x - p.x, c.y - p.y); if (d < bd) { bd = d; b = c; } }); return b; };
+        if (mode === "+" || mode === "-") { const n = near(); if (n) drag = n; else if (ch.length < 14) { ch.push({ x: p.x, y: p.y, q: mode === "+" ? 1 : -1 }); dirty = true; } }
         else if (mode === "m") drag = near();
         else if (mode === "d") { const n = near(); if (n) { ch.splice(ch.indexOf(n), 1); dirty = true; } }
         else if (mode === "p") { probe = p; drag = "probe"; }
       });
-      st.c.addEventListener("pointermove", e => { if (!drag) return; const p = pt(e); if (drag === "probe") probe = p; else { drag.x = clamp(p.x, 8, W - 8); drag.y = clamp(p.y, 8, H - 8); dirty = true; } });
-      const up = () => { drag = null; };
-      st.c.addEventListener("pointerup", up); st.c.addEventListener("pointercancel", up);
+      st.c.addEventListener("pointermove", e => { if (!drag) return; const p = st.pos(e); if (drag === "probe") probe = p; else { drag.x = clamp(p.x, 10, W - 10); drag.y = clamp(p.y, 10, H - 10); dirty = true; } });
+      const up = () => { drag = null; }; st.c.addEventListener("pointerup", up); st.c.addEventListener("pointercancel", up);
+      function step(dt) { phase += dt * 22; }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
         if (dirty) { trace(); dirty = false; }
-        x.lineWidth = 1.4;
-        lines.forEach(l => {
-          x.strokeStyle = c.line; x.beginPath(); l.pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.stroke();
-          const mi = Math.floor(l.pts.length * 0.5);
-          if (mi > 1 && mi < l.pts.length - 1) {
-            const p = l.pts[mi], q = l.pts[mi + 1]; let a = Math.atan2(q[1] - p[1], q[0] - p[0]); if (l.dir < 0) a += Math.PI;
-            x.fillStyle = c.line; x.beginPath(); x.moveTo(p[0] + Math.cos(a) * 6, p[1] + Math.sin(a) * 6); x.lineTo(p[0] + Math.cos(a + 2.6) * 6, p[1] + Math.sin(a + 2.6) * 6); x.lineTo(p[0] + Math.cos(a - 2.6) * 6, p[1] + Math.sin(a - 2.6) * 6); x.fill();
-          }
-        });
-        ch.forEach(q => { x.fillStyle = q.q > 0 ? c.pos : c.neg; x.beginPath(); x.arc(q.x, q.y, 9, 0, 7); x.fill(); x.fillStyle = "#fff"; x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillText(q.q > 0 ? "+" : "−", q.x, q.y + 5); });
+        lines.forEach(l => GX.flowLine(x, c.line, l, phase, { w: 1.4, alpha: 0.85 }));
+        ch.forEach(q => GX.ball(x, q.x, q.y, 9.5, q.q > 0 ? c.pos : c.neg, q.q > 0 ? "+" : "−", { glow: 10 }));
         if (probe && ch.length) {
           const f = fieldAt(probe.x, probe.y), m = Math.hypot(f[0], f[1]);
-          x.fillStyle = c.warn; x.beginPath(); x.arc(probe.x, probe.y, 6, 0, 7); x.fill();
-          if (m > 1e-7) { const len = clamp(Math.log10(m * 2e4) * 22, 6, 70); x.strokeStyle = c.warn; x.lineWidth = 2.8; arrow(x, probe.x, probe.y, probe.x + f[0] / m * len, probe.y + f[1] / m * len, 8); }
-          x.font = "11px system-ui"; x.fillStyle = c.warn; x.textAlign = "left"; x.fillText(m < 2e-5 ? "E ≈ 0" : "E (relativ): " + de(m * 1e4, 2), 8, H - 8);
+          GX.ball(x, probe.x, probe.y, 6, c.warn, null, { glow: 8 });
+          if (m > 1e-7) { const len = clamp(Math.log10(m * 2e4) * 22, 8, 70); GX.arrow(x, c.warn, probe.x, probe.y, probe.x + f[0] / m * len, probe.y + f[1] / m * len, 3); }
+          GX.pill(x, c, m < 2e-5 ? "E ≈ 0" : "E (relativ): " + de(m * 1e4, 2), 8, H - 14, { align: "left", col: c.warn, size: 10 });
         }
-        if (!ch.length) { x.fillStyle = c.dim; x.font = "13px system-ui"; x.textAlign = "center"; x.fillText("Tippe hier, um eine Ladung zu setzen", W / 2, H / 2); }
+        if (!ch.length) GX.text(x, c.dim, "Tippe hier, um eine Ladung zu setzen", W / 2, H / 2, { size: 13 });
       }
-      return { draw };
+      return { step, draw };
     }
   });
 })();

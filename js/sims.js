@@ -7,11 +7,25 @@
   const S = A.store;
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
   const rnd = a => a[Math.floor(Math.random() * a.length)];
-  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const TEXT = Object.getOwnPropertyDescriptor(Node.prototype, "textContent");
+  const el = (tag, cls, html) => {
+    const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html;
+    if (cls === "sim-info") { // Infotexte werden jedes Bild gesetzt: nur bei Änderung ins DOM schreiben
+      let last = e.textContent;
+      Object.defineProperty(e, "textContent", { get: () => last, set: v => { if (v !== last) { last = v; TEXT.set.call(e, v); } } });
+    }
+    return e;
+  };
   const de = (x, n) => String(Number(x.toPrecision(n || 3))).replace(".", ",");
 
   // ------------------------------------------------------------ Farben aus dem Theme
+  let colCache = null, colKey = "";
   function colors() {
+    const key = (document.documentElement.getAttribute("data-theme") || "") + (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "d" : "l");
+    if (colCache && key === colKey) return colCache;
+    colKey = key; colCache = readColors(); return colCache;
+  }
+  function readColors() {
     const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
     return { fg: g("--fg"), dim: g("--fg-dim"), line: g("--line"), border: g("--border"), surf: g("--surface"), surf2: g("--surface-2"),
       pos: g("--pos"), neg: g("--neg"), ok: g("--ok"), bad: g("--bad"), warn: g("--warn"), accent: g("--accent") };
@@ -72,7 +86,8 @@
     const spans = {};
     keys.forEach(([k, label]) => { const d = el("div", "ro", '<span class="ro-l">' + label + '</span><span class="ro-v">–</span>'); spans[k] = d.querySelector(".ro-v"); box.append(d); });
     host.append(box);
-    return o => { for (const k in o) if (spans[k]) spans[k].textContent = o[k]; };
+    const last = {};
+    return o => { for (const k in o) if (spans[k] && last[k] !== o[k]) { last[k] = o[k]; spans[k].textContent = o[k]; } };
   }
 
   // ------------------------------------------------------------ Schleife
@@ -80,7 +95,7 @@
   let cur = null, raf = 0, last = 0;
   function loop(now) {
     raf = requestAnimationFrame(loop);
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = Math.max(last, now); // nie negativ (sonst NaN bei Zufallsbewegung)
     if (cur) { cur.step && cur.step(dt); cur.draw && cur.draw(); }
   }
   function startLoop(obj) { stopLoop(); cur = obj; last = performance.now(); raf = requestAnimationFrame(loop); }
@@ -113,42 +128,53 @@
     D: { x: 258, y: 40, t: "D" }, E: { x: 322, y: 110, t: "E" }, F: { x: 120, y: 230, t: "F" }
   };
   const L = (ctx, pts) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); };
-  function drawCircuit(ctx, c, o) {
-    ctx.lineWidth = 2.2; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = c.fg; ctx.fillStyle = c.fg;
-    ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
-    // Quelle links
-    L(ctx, [[G.bx, G.by1], [G.bx, G.topY], [G.r1[0], G.topY]]);
-    L(ctx, [[G.bx, G.by2], [G.bx, G.botY], [G.rx, G.botY], [G.rx, G.topY], [G.r2[1], G.topY]]);
-    ctx.lineWidth = 3; L(ctx, [[G.bx - 14, G.by1], [G.bx + 14, G.by1]]); ctx.lineWidth = 2; L(ctx, [[G.bx - 8, G.by2], [G.bx + 8, G.by2]]); ctx.lineWidth = 2.2;
-    ctx.fillText("+", G.bx + 24, G.by1 - 2); ctx.fillText("−", G.bx + 24, G.by2 + 11);
-    ctx.textAlign = "right"; ctx.fillText(o.U0lab || "U₀", G.bx - 18, (G.by1 + G.by2) / 2 + 4); ctx.textAlign = "center";
-    // Widerstände
-    [[G.r1, o.R1lab || "R₁"], [G.r2, o.R2lab || "R₂"]].forEach(([r, t]) => {
-      ctx.fillStyle = c.surf; ctx.fillRect(r[0], G.topY - 11, r[1] - r[0], 22); ctx.strokeRect(r[0], G.topY - 11, r[1] - r[0], 22);
-      ctx.fillStyle = c.fg; ctx.fillText(t, (r[0] + r[1]) / 2, G.topY + 4);
-    });
-    L(ctx, [[G.r1[1], G.topY], [G.cl[0], G.cl[1]]]);
-    L(ctx, [[G.cr[0], G.cr[1]], [G.r2[0], G.topY]]);
-    // Schalter
-    const blade = o.mode === "charge" ? [G.cl[0] + 2, G.cl[1] + 6] : o.mode === "discharge" ? [G.cr[0] - 2, G.cr[1] + 6] : [G.pv[0] + 18, G.pv[1] - 44];
-    ctx.lineWidth = 2.6; L(ctx, [G.pv, blade]); ctx.lineWidth = 2.2;
-    [G.cl, G.cr].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fillStyle = c.surf; ctx.fill(); ctx.stroke(); });
-    ctx.beginPath(); ctx.arc(G.pv[0], G.pv[1], 4, 0, 7); ctx.fillStyle = c.fg; ctx.fill();
-    // Kondensator, Leitungen
-    L(ctx, [G.pv, [G.pv[0], G.pt]]);
-    L(ctx, [[G.pv[0], G.pb], [G.pv[0], G.botY]]);
-    ctx.lineWidth = 3; L(ctx, [[170, G.pt], [250, G.pt]]); L(ctx, [[170, G.pb], [250, G.pb]]); ctx.lineWidth = 2.2;
-    ctx.fillStyle = c.dim; ctx.textAlign = "left"; ctx.fillText("C", 255, 164); ctx.textAlign = "center";
-    // Voltmeter
-    L(ctx, [[G.pv[0], 128], [G.vm[0], 128], [G.vm[0], G.vm[1] - 14]]);
-    L(ctx, [[G.vm[0], G.vm[1] + 14], [G.vm[0], G.botY]]);
-    ctx.beginPath(); ctx.arc(G.vm[0], G.vm[1], 14, 0, 7); ctx.fillStyle = c.surf; ctx.fill(); ctx.stroke();
-    ctx.fillStyle = c.fg; ctx.font = "bold 13px system-ui, sans-serif"; ctx.fillText("V", G.vm[0], G.vm[1] + 4.5); ctx.font = "12px system-ui, sans-serif";
-    // Knoten unten
-    [[G.pv[0], G.botY], [G.vm[0], G.botY]].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fill(); });
-    [[G.pv[0], 128]].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fill(); });
-    // Masse-Zeichen
-    ctx.fillStyle = c.dim; ctx.textAlign = "left"; ctx.fillText("0 V", 52, G.botY - 6); ctx.textAlign = "center";
+  const GX = window.PHYS_GFX;
+  const BLADE = { charge: [G.cl[0] + 3, G.cl[1] + 5], discharge: [G.cr[0] - 3, G.cr[1] + 5], open: [G.pv[0] + 20, G.pv[1] - 46] };
+  // Zeigermessgerät (Voltmeter) mit Skala; frac = Zeigerausschlag 0 … 1
+  function drawMeter(x, c, cx, cy, frac, unit) {
+    x.save();
+    const g = x.createRadialGradient(cx - 4, cy - 5, 2, cx, cy, 17);
+    g.addColorStop(0, GX.shade(c.surf, GX.isDark(c) ? 0.12 : 0)); g.addColorStop(1, GX.shade(c.surf2, GX.isDark(c) ? -0.1 : -0.06));
+    x.fillStyle = g; x.strokeStyle = c.fg; x.lineWidth = 2.2;
+    x.beginPath(); x.arc(cx, cy, 16, 0, GX.TAU); x.fill(); x.stroke();
+    x.strokeStyle = c.dim; x.lineWidth = 1;
+    for (let i = 0; i <= 6; i++) { const a = -Math.PI * 0.85 + (Math.PI * 0.7) * i / 6; x.beginPath(); x.moveTo(cx + Math.cos(a) * 11, cy + Math.sin(a) * 11 + 3); x.lineTo(cx + Math.cos(a) * 14, cy + Math.sin(a) * 14 + 3); x.stroke(); }
+    if (frac != null) {
+      const a = -Math.PI * 0.85 + Math.PI * 0.7 * Math.max(0, Math.min(1, frac));
+      x.strokeStyle = c.bad; x.lineWidth = 1.6; x.lineCap = "round";
+      x.beginPath(); x.moveTo(cx, cy + 3); x.lineTo(cx + Math.cos(a) * 13, cy + 3 + Math.sin(a) * 13); x.stroke();
+    }
+    x.fillStyle = c.fg; x.beginPath(); x.arc(cx, cy + 3, 1.8, 0, GX.TAU); x.fill();
+    GX.text(x, c.fg, unit || "V", cx, cy + 10, { weight: 800, size: 8 });
+    x.restore();
+  }
+  function drawCircuit(x, c, o) {
+    o = o || {};
+    // Leitungen
+    GX.wire(x, c, [[G.bx, G.by1 - 3], [G.bx, G.topY], [G.r1[0], G.topY]]);
+    GX.wire(x, c, [[G.bx, G.by2 + 3], [G.bx, G.botY], [G.rx, G.botY], [G.rx, G.topY], [G.r2[1], G.topY]]);
+    GX.wire(x, c, [[G.r1[1], G.topY], [G.cl[0], G.cl[1]]]);
+    GX.wire(x, c, [[G.cr[0], G.cr[1]], [G.r2[0], G.topY]]);
+    GX.wire(x, c, [G.pv, [G.pv[0], G.pt - 3]]);
+    GX.wire(x, c, [[G.pv[0], G.pb + 3], [G.pv[0], G.botY]]);
+    GX.wire(x, c, [[G.pv[0], 128], [G.vm[0], 128], [G.vm[0], G.vm[1] - 16]]);
+    GX.wire(x, c, [[G.vm[0], G.vm[1] + 16], [G.vm[0], G.botY]]);
+    // Bauteile
+    GX.battery(x, c, G.bx, G.by1, G.by2, o.U0lab || "U₀");
+    GX.resistor(x, c, G.r1[0], G.r1[1], G.topY, o.R1lab || "R₁");
+    GX.resistor(x, c, G.r2[0], G.r2[1], G.topY, o.R2lab || "R₂");
+    GX.plate(x, c, 170, G.pt, 250, G.pt, o.glow ? GX.alpha(c.pos, o.glow) : null);
+    GX.plate(x, c, 170, G.pb, 250, G.pb, o.glow ? GX.alpha(c.neg, o.glow) : null);
+    GX.text(x, c.dim, "C", 258, 160, { align: "left", weight: 700, size: 12 });
+    if (!o.noMeter) drawMeter(x, c, G.vm[0], G.vm[1], o.meter);
+    // Umschalter
+    GX.terminal(x, c, G.cl); GX.terminal(x, c, G.cr);
+    const b = o.blade || BLADE[o.mode || "open"];
+    x.save(); x.strokeStyle = c.fg; x.lineWidth = 3.4; x.lineCap = "round";
+    x.beginPath(); x.moveTo(G.pv[0], G.pv[1]); x.lineTo(b[0], b[1]); x.stroke(); x.restore();
+    GX.node(x, c, G.pv, 4.6);
+    [[G.pv[0], 128], [G.pv[0], G.botY], [G.vm[0], G.botY]].forEach(p => GX.node(x, c, p, 3.4));
+    GX.text(x, c.dim, "0 V", 56, G.botY - 10, { align: "left", size: 11 });
   }
   // Potenziale (Bezug: unterer Draht = 0 V) für Schalterstellung und Kondensatorspannung
   function potentials(mode, U0, Uc) {
@@ -171,7 +197,8 @@
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
       const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1 };
-      let mode = "open", Q = 0, t = 0, qty = "U", showTau = true, showPot = false, hist = [], histT = 0, ev = null, phase = 0;
+      let mode = "open", Q = 0, t = 0, qty = "U", showTau = true, showPot = false, hist = [], histT = 0, ev = null, phase = 0, fieldPhase = 0;
+      let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0;
       const tau = m => (m === "charge" ? P.R1 : P.R2) * P.C / 1000; // kΩ·µF = ms
       const Uc = () => Q / P.C;
       function setMode(m) {
@@ -182,7 +209,7 @@
       }
       host.append(st.c);
       const info = el("div", "sim-info"); host.append(info);
-      const segMode = seg(host, { label: "Schalter", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: "open", onChange: setMode });
+      const segMode = seg(host, { label: "Schalter (oder im Bild auf den Schalter tippen)", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: "open", onChange: setMode });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
       slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
       slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
@@ -203,6 +230,7 @@
         "Schalte auf <b>Entladen</b> und lies die Spannung nach genau $\\tau$ ab. Welchen Bruchteil von $U_0$ erwartest du?",
         "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen."
       ]);
+      function curI() { return mode === "charge" ? (P.U0 - Uc()) / P.R1 : mode === "discharge" ? -Uc() / P.R2 : 0; } // mA
 
       function step(dt) {
         const ds = dt * P.speed;
@@ -214,82 +242,89 @@
         histT += ds;
         while (histT >= 0.04) { histT -= 0.04; hist.push([t, Uc(), curI()]); if (hist.length > 5000) hist.shift(); }
         const I = Math.abs(curI());
-        phase += (I > 0.005 ? 30 + 16 * I : 0) * dt * Math.min(P.speed, 2) * 0.8;
+        phase += (I > 0.004 ? 18 + 22 * Math.sqrt(I) : 0) * dt;
+        fieldPhase += dt * 14;
+        const target = BLADE[mode];
+        blade[0] = GX.ease(blade[0], target[0], dt, 14); blade[1] = GX.ease(blade[1], target[1], dt, 14);
+        meter = GX.ease(meter, Uc() / 12, dt, 6);
+        glow = GX.ease(glow, Math.min(1, I / 2), dt, 6);
       }
-      function curI() { return mode === "charge" ? (P.U0 - Uc()) / P.R1 : mode === "discharge" ? -Uc() / P.R2 : 0; } // mA
+      const inRes = p => p[1] > G.topY - 12 && p[1] < G.topY + 12 && ((p[0] > G.r1[0] - 2 && p[0] < G.r1[1] + 2) || (p[0] > G.r2[0] - 2 && p[0] < G.r2[1] + 2));
 
       function draw() {
         const c = colors(), x = st.ctx;
-        st.fit();
-        // Elektronen (zuerst, damit Widerstände und Beschriftung darüber liegen)
+        st.fit(); GX.bg(x, 360, 250, c);
+        const f = clamp(Uc() / 12, 0, 1);
+        // Feld zwischen den Platten (fließt von + nach −)
+        if (f > 0.01) {
+          for (let i = 0; i < 5; i++) { const px = 182 + i * 14; GX.flowLine(x, c.line, [[px, G.pt + 4], [px, G.pb - 4]], fieldPhase, { alpha: 0.35 + 0.6 * f, head: false, w: 1.2 }); }
+        }
+        drawCircuit(x, c, { blade, meter, glow: f > 0.05 ? 0.35 * f : 0, R1lab: de(P.R1) + " kΩ", R2lab: de(P.R2) + " kΩ", U0lab: P.U0 + " V" });
+        // Elektronen auf den Leitungen (entgegen der technischen Stromrichtung)
         const paths = mode === "charge" ? P_CHARGE : mode === "discharge" ? P_DISCH : [];
-        paths.forEach(pts => {
-          const len = pathLen(pts), n = Math.max(4, Math.round(len / 22));
-          x.fillStyle = c.neg;
+        const I = Math.abs(curI());
+        if (I > 0.004) paths.forEach(pts => {
+          const len = pathLen(pts), n = Math.max(4, Math.round(len / 20));
           for (let i = 0; i < n; i++) {
             const d = (((i * len / n) - phase) % len + len) % len;
             const p = pointAt(pts, d);
-            x.beginPath(); x.arc(p[0], p[1], 2.6, 0, 7); x.fill();
+            if (!inRes(p)) GX.electron(x, c, p[0], p[1], Math.min(1, 0.35 + I / 1.2));
           }
         });
-        drawCircuit(x, c, { mode, R1lab: "R₁=" + de(P.R1) + "k", R2lab: "R₂=" + de(P.R2) + "k", U0lab: P.U0 + " V" });
-        // Platten: Ladungen und Feld
-        const f = clamp(Uc() / 12, 0, 1), n = Math.round(f * 8);
-        x.font = "bold 12px system-ui, sans-serif"; x.textAlign = "center";
-        for (let i = 0; i < n; i++) { const px = 176 + i * (68 / Math.max(7, n - 1)) + 3; x.fillStyle = c.pos; x.fillText("+", px, G.pt - 5); x.fillStyle = c.neg; x.fillText("−", px, G.pb + 13); }
-        x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.2;
-        const na = Math.round(f * 5);
-        for (let i = 0; i < na; i++) { const px = 182 + i * 15, len = 4 + 10 * f; L(x, [[px, G.pt + 3], [px, G.pb - 3]]); x.beginPath(); x.moveTo(px, G.pb - 3); x.lineTo(px - 3, G.pb - 8); x.lineTo(px + 3, G.pb - 8); x.fill(); }
-        x.lineWidth = 2.2;
-        // Voltmeter-Anzeige
-        x.fillStyle = c.accent; x.font = "bold 13px system-ui, sans-serif"; x.textAlign = "left";
-        x.textAlign = "center"; x.fillText(de(Uc(), 3) + " V", 250, 206); x.textAlign = "left";
+        // Ladungen auf den Platten, erscheinen nach und nach
+        for (let i = 0; i < 9; i++) {
+          const a = clamp(f * 9 - i, 0, 1); if (a <= 0) continue;
+          const px = 176 + i * 8.5;
+          GX.ball(x, px, G.pt - 9, 3.6, c.pos, "+", { alpha: a });
+          GX.ball(x, px, G.pb + 9, 3.6, c.neg, "−", { alpha: a });
+        }
+        // Stromstärke am aktiven Widerstand
+        if (I > 0.004) {
+          const r = mode === "charge" ? G.r1 : G.r2, xm = (r[0] + r[1]) / 2;
+          GX.pill(x, c, "I = " + de(I, 2) + " mA", xm, G.topY + 24, { col: c.bad, size: 10 });
+        }
+        // Spannungsanzeige
+        GX.pill(x, c, de(Uc(), 3) + " V", G.vm[0] + 2, 202, { col: c.accent, size: 12 });
         // Potenziale
         if (showPot) {
           const pot = potentials(mode, P.U0, Uc());
-          x.font = "bold 11px system-ui, sans-serif"; x.textAlign = "center";
-          Object.keys(NODES).forEach(k => {
-            const nd = NODES[k], v = pot[k], txt = k + ": " + de(v, 3) + " V";
-            const w = x.measureText(txt).width + 8;
-            x.fillStyle = c.surf; x.strokeStyle = c.accent; x.lineWidth = 1.2;
-            x.beginPath(); x.rect(nd.x - w / 2, nd.y - 16, w, 15); x.fill(); x.stroke();
-            x.fillStyle = c.accent; x.fillText(txt, nd.x, nd.y - 5);
-          });
-          x.lineWidth = 2.2;
+          Object.keys(NODES).forEach(k => { const nd = NODES[k]; GX.pill(x, c, k + ": " + de(pot[k], 3) + " V", nd.x, nd.y - 12, { col: c.accent, size: 10, clampW: 360 }); });
         }
-        // Zahlen
         ro({ u: de(Uc(), 3) + " V", i: de(curI(), 3) + " mA", q: de(Q, 3) + " µC", tau: de(tau(mode === "open" ? "charge" : mode), 3) + " s" });
-        info.textContent = mode === "charge" ? "Laden: Strom fließt über R₁ zur Platte. Elektronen (blau) wandern entgegen der technischen Stromrichtung."
+        info.textContent = mode === "charge" ? "Laden: Der Strom fließt über R₁ zur Platte. Die Elektronen (blau) wandern entgegen der technischen Stromrichtung."
           : mode === "discharge" ? "Entladen: Der Kondensator treibt den Strom über R₂. Die Spannung sinkt exponentiell."
           : "Schalter offen: keine Verbindung, die Ladung bleibt (ideal).";
-        drawPlot(c);
+        if ((frame = (frame + 1) % 2) === 0) drawPlot(c); // Diagramm reicht mit halber Bildrate
       }
 
-      function niceW(x) { const v = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200]; return v.find(a => a >= x) || 200; }
+      function niceW(v) { const a = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200]; return a.find(z => z >= v) || 200; }
       function drawPlot(c) {
-        pl.fit();
-        const x = pl.ctx, X0 = 44, X1 = 350, Y0 = 14, Y1 = 142;
+        pl.fit(); const x = pl.ctx;
+        GX.bg(x, 360, 175, c, false);
+        const X0 = 44, X1 = 350, Y0 = 16, Y1 = 142;
         const W = niceW(5.5 * Math.max(tau("charge"), tau("discharge")));
         const t0 = Math.max(0, t - W), t1 = t0 + W;
-        let ymin = 0, ymax, unit, key;
-        if (qty === "U") { ymax = Math.max(P.U0, 1) * 1.08; unit = "V"; key = 1; }
-        else if (qty === "I") { const m = P.U0 / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; unit = "mA"; key = 2; }
-        else { ymax = P.C * P.U0 * 1.08; unit = "µC"; key = 3; }
+        let ymin = 0, ymax, key, col;
+        if (qty === "U") { ymax = Math.max(P.U0, 1) * 1.08; key = 1; col = c.accent; }
+        else if (qty === "I") { const m = P.U0 / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; key = 2; col = c.bad; }
+        else { ymax = P.C * P.U0 * 1.08; key = 3; col = c.ok; }
         const sx = tt => X0 + (tt - t0) / W * (X1 - X0), sy = v => Y1 - (v - ymin) / (ymax - ymin) * (Y1 - Y0);
-        x.font = "11px system-ui, sans-serif"; x.lineWidth = 1; x.textAlign = "right";
-        // Gitter und Achsen
-        for (let i = 0; i <= 4; i++) {
-          const v = ymin + (ymax - ymin) * i / 4, yy = sy(v);
-          x.strokeStyle = c.border; L(x, [[X0, yy], [X1, yy]]);
-          x.fillStyle = c.dim; x.fillText(de(v, 2), X0 - 5, yy + 4);
-        }
-        x.textAlign = "center";
-        for (let i = 0; i <= 5; i++) { const tt = t0 + W * i / 5, xx = sx(tt); x.strokeStyle = c.border; L(x, [[xx, Y0], [xx, Y1]]); x.fillStyle = c.dim; x.fillText(de(tt, 3), xx, Y1 + 14); }
-        x.fillStyle = c.dim; x.textAlign = "left"; x.fillText(qty === "U" ? "Uc in V" : qty === "I" ? "I in mA" : "Q in µC", X0 + 6, 11);
-        x.textAlign = "right"; x.fillText("t in s", X1, Y1 + 28);
+        const val = h => key === 3 ? h[1] * P.C : h[key];
+        x.font = "11px system-ui, sans-serif"; x.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) { const v = ymin + (ymax - ymin) * i / 4, yy = sy(v); x.strokeStyle = c.border; L(x, [[X0, yy], [X1, yy]]); GX.text(x, c.dim, de(v, 2), X0 - 5, yy, { align: "right" }); }
+        for (let i = 0; i <= 5; i++) { const tt = t0 + W * i / 5, xx = sx(tt); x.strokeStyle = c.border; L(x, [[xx, Y0], [xx, Y1]]); GX.text(x, c.dim, de(tt, 3), xx, Y1 + 12); }
+        x.strokeStyle = c.fg; x.lineWidth = 1.4; L(x, [[X0, Y1], [X1, Y1]]); L(x, [[X0, Y1], [X0, Y0 - 6]]);
+        GX.text(x, c.dim, qty === "U" ? "Uc in V" : qty === "I" ? "I in mA" : "Q in µC", X0 + 6, 9, { align: "left" });
+        GX.text(x, c.dim, "t in s", X1, Y1 + 26, { align: "right" });
         if (qty === "I") { x.strokeStyle = c.dim; L(x, [[X0, sy(0)], [X1, sy(0)]]); }
-        x.save(); x.beginPath(); x.rect(X0, Y0 - 2, X1 - X0, Y1 - Y0 + 4); x.clip();
-        // ideale Kurve und τ-Marke (nur für Uc)
+        x.save(); x.beginPath(); x.rect(X0, Y0 - 4, X1 - X0, Y1 - Y0 + 8); x.clip();
+        const pts = hist.filter(h => h[0] >= t0 - 0.1).map(h => [sx(h[0]), sy(val(h))]);
+        if (pts.length > 1) {
+          // Fläche unter der Kurve
+          const g = x.createLinearGradient(0, Y0, 0, Y1); g.addColorStop(0, GX.alpha(col, 0.28)); g.addColorStop(1, GX.alpha(col, 0.02));
+          x.fillStyle = g; x.beginPath(); x.moveTo(pts[0][0], sy(Math.max(ymin, 0))); pts.forEach(p => x.lineTo(p[0], p[1])); x.lineTo(pts[pts.length - 1][0], sy(Math.max(ymin, 0))); x.closePath(); x.fill();
+          x.strokeStyle = col; x.lineWidth = 2.6; x.lineJoin = "round"; GX.poly(x, pts); x.stroke();
+        }
         if (showTau && ev && qty === "U") {
           x.strokeStyle = c.warn; x.fillStyle = c.warn; x.setLineDash([4, 4]); x.lineWidth = 1.4;
           x.beginPath();
@@ -297,17 +332,14 @@
           x.stroke();
           const tt = ev.t0 + ev.tau, v = ev.Uinf + (ev.Ustart - ev.Uinf) / Math.E;
           L(x, [[sx(tt), Y1], [sx(tt), sy(v)]]); L(x, [[X0, sy(v)], [sx(tt), sy(v)]]);
-          x.setLineDash([]); x.beginPath(); x.arc(sx(tt), sy(v), 3.5, 0, 7); x.fill();
-          x.font = "11px system-ui, sans-serif"; x.textAlign = "left"; x.fillText("τ", sx(tt) + 4, Y1 - 4);
+          x.setLineDash([]); GX.ball(x, sx(tt), sy(v), 4, c.warn);
+          GX.pill(x, c, "τ", sx(tt), Y1 - 10, { col: c.warn, size: 10 });
         }
-        x.setLineDash([]); x.lineWidth = 2.4; x.strokeStyle = qty === "U" ? c.accent : qty === "I" ? c.bad : c.ok;
-        x.beginPath(); let started = false;
-        for (let i = 0; i < hist.length; i++) { const h = hist[i]; if (h[0] < t0 - 0.1) continue; const px = sx(h[0]), py = sy(key === 3 ? h[1] * P.C : h[key]); started ? x.lineTo(px, py) : x.moveTo(px, py); started = true; }
-        x.stroke(); x.restore();
-        x.lineWidth = 1;
+        x.restore();
+        if (pts.length) { const p = pts[pts.length - 1]; GX.glow(x, p[0], p[1], 12, col, 0.5); GX.ball(x, p[0], p[1], 4.2, col); }
       }
-      // Klick auf den Schalter wechselt die Stellung
-      st.c.addEventListener("click", e => { const p = st.pos(e); if (p.y < 110 && p.x > 150 && p.x < 270) setMode(mode === "open" ? "charge" : mode === "charge" ? "discharge" : "open"); });
+      // Tippen auf den Schalter wechselt die Stellung
+      st.c.addEventListener("click", e => { const p = st.pos(e); if (p.y < 115 && p.x > 150 && p.x < 270) setMode(mode === "open" ? "charge" : mode === "charge" ? "discharge" : "open"); });
       return { step, draw };
     }
   });
@@ -337,12 +369,12 @@
       ]);
       const f = y => m === "dis" ? -y : 1 - y, ex = t => m === "dis" ? Math.exp(-t) : 1 - Math.exp(-t);
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 235, c, false);
         const X0 = 40, X1 = 350, Y0 = 14, Y1 = 195, sx = t => X0 + t / 5 * (X1 - X0), sy = y => Y1 - y * (Y1 - Y0);
         x.font = "11px system-ui, sans-serif"; x.lineWidth = 1;
         for (let i = 0; i <= 4; i++) { const y = i / 4; x.strokeStyle = c.border; L(x, [[X0, sy(y)], [X1, sy(y)]]); x.fillStyle = c.dim; x.textAlign = "right"; x.fillText(de(y, 2), X0 - 5, sy(y) + 4); }
         for (let i = 0; i <= 5; i++) { x.strokeStyle = c.border; L(x, [[sx(i), Y0], [sx(i), Y1]]); x.fillStyle = c.dim; x.textAlign = "center"; x.fillText(i + "τ", sx(i), Y1 + 14); }
-        x.textAlign = "left"; x.fillStyle = c.dim; x.fillText(m === "dis" ? "U / U₀" : "U / U₀", 4, 10);
+        x.textAlign = "left"; x.fillStyle = c.dim; x.fillText("U / U₀", X0 + 8, 10);
         // exakte Kurve
         x.lineWidth = 2.4; x.strokeStyle = c.accent; x.beginPath();
         for (let i = 0; i <= 100; i++) { const t = i / 20; i ? x.lineTo(sx(t), sy(ex(t))) : x.moveTo(sx(t), sy(ex(t))); } x.stroke();
@@ -352,7 +384,7 @@
         for (let i = 0; i < k; i++) { const ny = y + f(y) * dtau; pts.push([(i + 1) * dtau, ny]); y = ny; }
         x.lineWidth = 2; x.strokeStyle = c.warn; x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(sx(Math.min(p[0], 5.2)), sy(p[1])) : x.moveTo(sx(p[0]), sy(p[1]))); x.stroke();
         pts.forEach((p, i) => {
-          x.fillStyle = c.warn; x.beginPath(); x.arc(sx(p[0]), sy(p[1]), 3.4, 0, 7); x.fill();
+          GX.ball(x, sx(p[0]), sy(p[1]), 4, c.warn);
           if (i > 0) { x.strokeStyle = c.dim; x.setLineDash([2, 3]); x.lineWidth = 1; L(x, [[sx(p[0]), sy(p[1])], [sx(p[0]), sy(ex(p[0]))]]); x.setLineDash([]); }
         });
         // aktuelle Tangente (nächster Schritt)
@@ -472,8 +504,8 @@
     }
     paint();
     lab.draw = () => {
-      const c = colors(); cv.fit();
-      drawCircuit(cv.ctx, c, { mode: sc.mode, R1lab: "R₁", R2lab: "R₂", U0lab: "U₀" });
+      const c = colors(); cv.fit(); GX.bg(cv.ctx, 360, 250, c);
+      drawCircuit(cv.ctx, c, { mode: sc.mode, R1lab: "R₁", R2lab: "R₂", U0lab: "U₀", meter: null });
     };
   }
   function finishLabel() {
@@ -502,6 +534,6 @@
   origStat();
 
   // Öffentliche Schnittstelle für sims2.js
-  window.PHYS_SIMKIT = { labState: () => (lab ? lab.sc : null), potentials, A, S, $, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L, add: s => { SIMS.push(s); renderSimList(); }, G };
+  window.PHYS_SIMKIT = { GX, labState: () => (lab ? lab.sc : null), potentials, A, S, $, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L, add: s => { SIMS.push(s); renderSimList(); }, G };
   renderSimList();
 })();

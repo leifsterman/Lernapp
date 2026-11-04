@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const K = window.PHYS_SIMKIT; if (!K) return;
-  const { A, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L } = K;
+  const { A, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L, GX } = K;
   const QE = 1.602e-19;
   const ICON = p => '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' + p + "</svg>";
   const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
@@ -34,7 +34,7 @@
       const acts = el("div", "sim-acts"); host.append(acts);
       button(acts, "Laden und Q messen", () => {
         const Q = cap.C * U * (1 + 0.025 * gauss());
-        pts.push({ U, Q }); renderTable();
+        pts.push({ U, Q, a: 0 }); renderTable();
       }, "primary");
       const sb = button(acts, "Energie als Fläche: aus", () => { shade = !shade; sb.textContent = "Energie als Fläche: " + (shade ? "an" : "aus"); });
       button(acts, "Messreihe löschen", () => { pts = []; renderTable(); });
@@ -58,30 +58,43 @@
           (revealed ? " · tatsächlicher Wert: <b>" + cap.C + " µF</b> (Abweichung " + de(Math.abs(m - cap.C) / cap.C * 100, 2) + " %)" : "") + "</p>";
       }
       renderTable();
+      let shadeV = 0, lineV = 0;
+      function step(dt) {
+        pts.forEach(p => { p.a = Math.min(1, (p.a || 0) + dt * 3); });
+        shadeV = GX.ease(shadeV, shade ? 1 : 0, dt, 6);
+        const m = fit(); lineV = GX.ease(lineV, m && pts.length >= 2 ? 1 : 0, dt, 5);
+      }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
-        const ymax = Math.ceil(cap.C * 12 * 1.12 / 500) * 500, X0 = 52, X1 = 345, Y0 = 18, Y1 = 212;
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 250, c);
+        const ymax = Math.ceil(cap.C * 12 * 1.12 / 500) * 500, X0 = 52, X1 = 345, Y0 = 22, Y1 = 212;
         const sx = u => X0 + u / 12 * (X1 - X0), sy = q => Y1 - q / ymax * (Y1 - Y0);
         axes(x, c, { X0, X1, Y0, Y1, xmax: 12, ymax, xs: 6, ys: 5, xl: "U in V", yl: "Q in µC" });
         const m = fit();
         if (m && pts.length >= 2) {
-          if (shade) {
-            x.fillStyle = "rgba(63,181,122,.22)"; x.beginPath(); x.moveTo(sx(0), sy(0)); x.lineTo(sx(U), sy(m * U)); x.lineTo(sx(U), sy(0)); x.closePath(); x.fill();
-            x.fillStyle = c.ok; x.font = "bold 12px system-ui"; x.textAlign = "left";
-            x.fillText("W = ½QU = " + de(0.5 * m * U * U / 1000, 3) + " mJ", sx(U * 0.45), sy(m * U * 0.18) - 4);
+          if (shadeV > 0.01) {
+            x.save(); x.globalAlpha = shadeV;
+            const g = x.createLinearGradient(0, sy(m * U), 0, Y1); g.addColorStop(0, GX.alpha(c.ok, 0.35)); g.addColorStop(1, GX.alpha(c.ok, 0.08));
+            x.fillStyle = g; x.beginPath(); x.moveTo(sx(0), sy(0)); x.lineTo(sx(U), sy(m * U)); x.lineTo(sx(U), sy(0)); x.closePath(); x.fill(); x.restore();
+            GX.pill(x, c, "W = ½QU = " + de(0.5 * m * U * U / 1000, 3) + " mJ", sx(U * 0.62), sy(m * U * 0.2), { col: c.ok, size: 11, clampW: 360 });
           }
-          x.strokeStyle = c.accent; x.lineWidth = 2; L(x, [[sx(0), sy(0)], [sx(12), sy(m * 12)]]);
-          x.fillStyle = c.accent; x.font = "bold 12px system-ui"; x.textAlign = "left"; x.fillText("Steigung: C ≈ " + de(m, 3) + " µF", X0 + 10, Y0 + 14);
+          x.save(); x.strokeStyle = c.accent; x.lineWidth = 2.4; x.globalAlpha = lineV;
+          const xe = sx(12 * lineV); GX.poly(x, [[sx(0), sy(0)], [xe, sy(m * 12 * lineV)]]); x.stroke(); x.restore();
+          GX.pill(x, c, "Steigung: C ≈ " + de(m, 3) + " µF", X0 + 8, Y0 + 12, { align: "left", col: c.accent, size: 11 });
         }
-        // aktuelle Spannung
-        x.strokeStyle = c.warn; x.setLineDash([3, 4]); x.lineWidth = 1; L(x, [[sx(U), Y0], [sx(U), Y1]]); x.setLineDash([]);
-        // Messpunkte als Kreuze
-        x.strokeStyle = c.fg; x.lineWidth = 2;
-        pts.forEach(p => { const px = sx(p.U), py = sy(p.Q); L(x, [[px - 5, py - 5], [px + 5, py + 5]]); L(x, [[px - 5, py + 5], [px + 5, py - 5]]); });
+        // aktuelle Ladespannung
+        x.save(); x.strokeStyle = c.warn; x.setLineDash([3, 4]); x.lineWidth = 1.2; GX.poly(x, [[sx(U), Y0], [sx(U), Y1]]); x.stroke(); x.restore();
+        GX.pill(x, c, de(U) + " V", sx(U), Y1 - 12, { col: c.warn, size: 10, clampW: 360 });
+        // Messpunkte als Kreuze (erscheinen mit kurzem Aufleuchten)
+        pts.forEach(p => {
+          const px = sx(p.U), py = sy(p.Q), a = p.a || 0, s = 5 + (1 - a) * 8;
+          if (a < 1) GX.glow(x, px, py, 18, c.accent, 0.6 * (1 - a));
+          x.save(); x.globalAlpha = a; x.strokeStyle = c.fg; x.lineWidth = 2.2; x.lineCap = "round";
+          GX.poly(x, [[px - s, py - s], [px + s, py + s]]); x.stroke(); GX.poly(x, [[px - s, py + s], [px + s, py - s]]); x.stroke(); x.restore();
+        });
         info.textContent = pts.length < 2 ? "Miss bei mehreren Spannungen. Die Messpunkte werden als Kreuze eingetragen."
           : "Die Punkte liegen auf einer Ursprungsgeraden: Q ist proportional zu U. Die Steigung ist die Kapazität.";
       }
-      return { draw };
+      return { step, draw };
     }
   });
 
@@ -109,47 +122,61 @@
         if (mode === "par") { const cg = C1 + C2; return { cg, q1: C1 * U, q2: C2 * U, u1: U, u2: U, qg: cg * U }; }
         const cg = C1 * C2 / (C1 + C2), q = cg * U; return { cg, q1: q, q2: q, u1: q / C1, u2: q / C2, qg: q };
       }
+      const VV = { q1: 0, q2: 0, u1: 0, u2: 0 };
+      let phase = 0, flowAmt = 0;
+      function step(dt) {
+        const v = vals();
+        const dq = Math.abs(v.q1 - VV.q1) + Math.abs(v.q2 - VV.q2);
+        flowAmt = GX.ease(flowAmt, clamp(dq / 20, 0, 1), dt, 10);
+        VV.q1 = GX.ease(VV.q1, v.q1, dt, 3); VV.q2 = GX.ease(VV.q2, v.q2, dt, 3);
+        VV.u1 = GX.ease(VV.u1, v.u1, dt, 3); VV.u2 = GX.ease(VV.u2, v.u2, dt, 3);
+        phase += dt * 60;
+      }
+      // Kondensator mit Ladungen; horizontal: Platten senkrecht im waagerechten Draht
       function cap(x, c, cx, cy, Cv, Q, Uv, label, horizontal) {
-        const w = 18 + Cv * 2.2; // Plattengröße ~ C
-        x.strokeStyle = c.fg; x.lineWidth = 3.4;
-        if (horizontal) { L(x, [[cx - 6, cy - w / 2], [cx - 6, cy + w / 2]]); L(x, [[cx + 6, cy - w / 2], [cx + 6, cy + w / 2]]); }
-        else { L(x, [[cx - w / 2, cy - 6], [cx + w / 2, cy - 6]]); L(x, [[cx - w / 2, cy + 6], [cx + w / 2, cy + 6]]); }
-        const n = clamp(Math.round(Q / 240 * 10), 1, 10);
-        x.font = "bold 11px system-ui"; x.textAlign = "center";
+        const w = 22 + Cv * 2;
+        if (horizontal) { GX.plate(x, c, cx - 6, cy - w / 2, cx - 6, cy + w / 2); GX.plate(x, c, cx + 6, cy - w / 2, cx + 6, cy + w / 2); }
+        else { GX.plate(x, c, cx - w / 2, cy - 6, cx + w / 2, cy - 6); GX.plate(x, c, cx - w / 2, cy + 6, cx + w / 2, cy + 6); }
+        const nq = clamp(10 * Math.sqrt(Math.max(0, Q) / 240), 0, 10), n = Math.ceil(nq);
         for (let i = 0; i < n; i++) {
-          const t = (i + 0.5) / n - 0.5;
-          if (horizontal) { x.fillStyle = c.pos; x.fillText("+", cx - 14, cy + t * w + 4); x.fillStyle = c.neg; x.fillText("−", cx + 14, cy + t * w + 4); }
-          else { x.fillStyle = c.pos; x.fillText("+", cx + t * w, cy - 11); x.fillStyle = c.neg; x.fillText("−", cx + t * w, cy + 20); }
+          const a = clamp(nq - i, 0, 1), tt = (i + 0.5) / Math.max(n, 4) - 0.5;
+          if (horizontal) { GX.ball(x, cx - 15, cy + tt * w, 3.4, c.pos, "+", { alpha: a }); GX.ball(x, cx + 15, cy + tt * w, 3.4, c.neg, "−", { alpha: a }); }
+          else { GX.ball(x, cx + tt * w, cy - 15, 3.4, c.pos, "+", { alpha: a }); GX.ball(x, cx + tt * w, cy + 15, 3.4, c.neg, "−", { alpha: a }); }
         }
-        x.fillStyle = c.fg; x.font = "bold 12px system-ui";
-        if (horizontal) { x.fillText(label, cx, cy - w / 2 - 22); x.font = "11px system-ui"; x.fillStyle = c.accent; x.fillText(de(Uv, 3) + " V", cx, cy + w / 2 + 34); }
-        else { x.textAlign = "left"; x.fillText(label, cx + w / 2 + 8, cy + 4); x.font = "11px system-ui"; x.fillStyle = c.accent; x.fillText(de(Uv, 3) + " V", cx + w / 2 + 8, cy + 18); }
+        if (horizontal) { GX.text(x, c.fg, label, cx, cy - w / 2 - 12, { weight: 700, size: 11 }); GX.pill(x, c, de(Uv, 3) + " V", cx, cy + w / 2 + 16, { col: c.accent, size: 10 }); }
+        else { GX.text(x, c.fg, label, cx + w / 2 + 8, cy - 8, { align: "left", weight: 700, size: 11 }); GX.pill(x, c, de(Uv, 3) + " V", cx + w / 2 + 8, cy + 10, { align: "left", col: c.accent, size: 10 }); }
+      }
+      function flowDots(x, c, pts) {
+        if (flowAmt < 0.03) return;
+        let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        const n = Math.round(len / 22);
+        for (let k = 0; k < n; k++) {
+          let d = ((k * len / n + phase) % len + len) % len;
+          for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= l) { const t = d / l; GX.electron(x, c, pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t, flowAmt); break; } d -= l; }
+        }
       }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
-        const v = vals();
-        x.strokeStyle = c.fg; x.lineWidth = 2.2; x.lineCap = "round";
-        // Quelle links
-        const yt = mode === "par" ? 30 : 70;
-        L(x, [[40, yt], [40, 106]]); L(x, [[40, 130], [40, 212]]);
-        x.lineWidth = 3.4; L(x, [[26, 106], [54, 106]]); x.lineWidth = 2.2; L(x, [[32, 130], [48, 130]]);
-        x.fillStyle = c.fg; x.font = "12px system-ui"; x.textAlign = "left"; x.fillText("+", 58, 104); x.fillText("−", 58, 140); x.textAlign = "right"; x.fillText(U + " V", 22, 122);
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 240, c);
+        const v = vals(), yt = mode === "par" ? 30 : 70;
         if (mode === "par") {
-          L(x, [[40, 30], [225, 30]]); L(x, [[40, 212], [225, 212]]);
-          L(x, [[120, 30], [120, 115]]); L(x, [[120, 127], [120, 212]]);
-          L(x, [[225, 30], [225, 115]]); L(x, [[225, 127], [225, 212]]);
-          cap(x, c, 120, 121, C1, v.q1, v.u1, "C₁ = " + C1 + " µF", false);
-          cap(x, c, 225, 121, C2, v.q2, v.u2, "C₂ = " + C2 + " µF", false);
+          GX.wire(x, c, [[40, 104], [40, yt], [225, yt], [225, 113]]); GX.wire(x, c, [[120, yt], [120, 113]]);
+          GX.wire(x, c, [[40, 134], [40, 212], [225, 212], [225, 129]]); GX.wire(x, c, [[120, 212], [120, 129]]);
+          flowDots(x, c, [[40, 212], [40, 134]]); flowDots(x, c, [[40, 104], [40, yt], [225, yt]]);
+          cap(x, c, 120, 121, C1, VV.q1, VV.u1, "C₁ = " + C1 + " µF", false);
+          cap(x, c, 225, 121, C2, VV.q2, VV.u2, "C₂ = " + C2 + " µF", false);
+          [[120, yt], [120, 212]].forEach(p => GX.node(x, c, p, 3.4));
         } else {
-          L(x, [[40, 70], [320, 70], [320, 212], [40, 212]]);
-          x.strokeStyle = c.surf; x.lineWidth = 6; L(x, [[124, 70], [136, 70]]); L(x, [[234, 70], [246, 70]]); x.strokeStyle = c.fg; x.lineWidth = 2.2;
-          cap(x, c, 130, 70, C1, v.q1, v.u1, "C₁ = " + C1 + " µF", true);
-          cap(x, c, 240, 70, C2, v.q2, v.u2, "C₂ = " + C2 + " µF", true);
-          // Spannungsbalken
-          const tot = 230, w1 = tot * v.u1 / U;
-          x.fillStyle = c.accent; x.globalAlpha = 0.85; x.fillRect(70, 160, w1, 14); x.fillStyle = c.warn; x.fillRect(70 + w1, 160, tot - w1, 14); x.globalAlpha = 1;
-          x.fillStyle = c.dim; x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("U₁ (blau) + U₂ (gelb) = " + U + " V", 70, 192);
+          GX.wire(x, c, [[40, 104], [40, yt], [124, yt]]); GX.wire(x, c, [[136, yt], [234, yt]]); GX.wire(x, c, [[246, yt], [320, yt], [320, 212], [40, 212], [40, 134]]);
+          flowDots(x, c, [[40, 104], [40, yt], [124, yt]]); flowDots(x, c, [[246, yt], [320, yt], [320, 212], [40, 212], [40, 134]]);
+          cap(x, c, 130, yt, C1, VV.q1, VV.u1, "C₁ = " + C1 + " µF", true);
+          cap(x, c, 240, yt, C2, VV.q2, VV.u2, "C₂ = " + C2 + " µF", true);
+          // Spannungsbalken U = U₁ + U₂
+          const tot = 230, w1 = tot * VV.u1 / Math.max(U, 1e-6);
+          x.save(); GX.rr(x, 70, 160, tot, 16, 8); x.clip();
+          x.fillStyle = c.accent; x.fillRect(70, 160, w1, 16); x.fillStyle = c.warn; x.fillRect(70 + w1, 160, tot - w1, 16); x.restore();
+          GX.text(x, c.dim, "U₁ (blau) + U₂ (gelb) = " + U + " V", 70, 192, { align: "left", size: 11 });
         }
+        GX.battery(x, c, 40, 104, 134, U + " V");
         ro({ cg: de(v.cg, 3) + " µF", q1: de(v.q1, 3) + " µC", q2: de(v.q2, 3) + " µC", u1: de(v.u1, 3) + " V", u2: de(v.u2, 3) + " V", qg: de(v.qg, 3) + " µC" });
         const key = mode;
         if (formula._k !== key) {
@@ -160,7 +187,7 @@
           A.render(formula);
         }
       }
-      return { draw };
+      return { step, draw };
     }
   });
 
@@ -170,13 +197,13 @@
     icon: ICON('<path d="M4 20h16M6 20v-4M9 20v-9M12 20v-2M15 20v-12M18 20v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     make(host) {
       const st = stage(360, 230); host.append(st.c);
-      let qs = [], guess = 1.0, noise = 0.04;
+      let qs = [], anim = [], guess = 1.0, noise = 0.04;
       const info = el("div", "sim-info"); host.append(info);
       const acts = el("div", "sim-acts"); host.append(acts);
-      const measure = k => { for (let i = 0; i < k; i++) { const n = 1 + Math.floor(Math.random() * Math.random() * 7); qs.push(n * QE * (1 + noise * gauss()) * 1e19); } renderTable(); };
+      const measure = k => { for (let i = 0; i < k; i++) { const n = 1 + Math.floor(Math.random() * Math.random() * 7); qs.push(n * QE * (1 + noise * gauss()) * 1e19); anim.push(-i * 0.12); } renderTable(); };
       button(acts, "1 Tröpfchen messen", () => measure(1));
       button(acts, "10 Tröpfchen messen", () => measure(10), "primary");
-      button(acts, "Neu", () => { qs = []; renderTable(); });
+      button(acts, "Neu", () => { qs = []; anim = []; renderTable(); });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
       slider(ctl, { label: "Vermutete Elementarladung", min: 0.5, max: 3.5, step: 0.01, value: guess, fmt: v => de(v, 3) + "·10⁻¹⁹ C", onInput: v => { guess = v; renderTable(); } });
       slider(ctl, { label: "Messunsicherheit", min: 0, max: 10, step: 1, value: noise * 100, fmt: v => "± " + v + " %", onInput: v => { noise = v / 100; } });
@@ -206,30 +233,41 @@
           "</table>" + (qs.length > 8 ? "<p class='fine tight'>Angezeigt: die letzten 8 Messungen.</p>" : "");
       }
       renderTable();
+      let guessV = guess;
+      function step(dt) {
+        guessV = GX.ease(guessV, guess, dt, 10);
+        anim.forEach((a, i) => { anim[i] = a + dt * 2.4; });
+      }
       function draw() {
-        const c = colors(), x = st.ctx; st.fit();
+        const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 230, c);
         const X0 = 20, X1 = 345, base = 190, qmax = 12;
         const sx = q => X0 + q / qmax * (X1 - X0);
         // Raster der vermuteten Vielfachen
-        x.lineWidth = 1;
-        for (let k = 1; k * guess <= qmax; k++) {
-          x.strokeStyle = c.warn; x.globalAlpha = 0.55; x.setLineDash([4, 4]); L(x, [[sx(k * guess), 18], [sx(k * guess), base]]); x.setLineDash([]); x.globalAlpha = 1;
-          if (guess > 0.9 || k % 2 === 0) { x.fillStyle = c.warn; x.font = "10px system-ui"; x.textAlign = "center"; x.fillText(k + "e*", sx(k * guess), 14); }
+        const s = stats(), good = s && s.dev < 0.12;
+        for (let k = 1; k * guessV <= qmax; k++) {
+          x.save(); x.strokeStyle = good ? c.ok : c.warn; x.globalAlpha = 0.7; x.setLineDash([4, 4]); x.lineWidth = 1.3;
+          GX.poly(x, [[sx(k * guessV), 22], [sx(k * guessV), base]]); x.stroke(); x.restore();
+          if (guessV > 0.9 || k % 2 === 0) GX.text(x, good ? c.ok : c.warn, k + "e*", sx(k * guessV), 12, { size: 10, weight: 700 });
         }
         // Achse
-        x.strokeStyle = c.fg; x.lineWidth = 1.4; L(x, [[X0, base], [X1, base]]);
-        x.fillStyle = c.dim; x.font = "11px system-ui"; x.textAlign = "center";
-        for (let q = 0; q <= qmax; q += 2) { L(x, [[sx(q), base], [sx(q), base + 4]]); x.fillText(String(q), sx(q), base + 16); }
-        x.textAlign = "right"; x.fillText("q in 10⁻¹⁹ C", X1, base + 32);
-        // Punkte gestapelt (Histogramm in Klassen von 0,15)
+        x.save(); x.strokeStyle = c.fg; x.lineWidth = 1.6; GX.poly(x, [[X0, base], [X1, base]]); x.stroke();
+        for (let q = 0; q <= qmax; q += 2) { GX.poly(x, [[sx(q), base], [sx(q), base + 4]]); x.stroke(); GX.text(x, c.dim, String(q), sx(q), base + 14, { size: 11 }); }
+        x.restore();
+        GX.text(x, c.dim, "q in 10⁻¹⁹ C", X1, base + 30, { align: "right", size: 11 });
+        // Tröpfchen fallen in die Klassen (Breite 0,15)
         const bins = {};
-        qs.forEach(q => { const b = Math.round(q / 0.15); bins[b] = (bins[b] || 0) + 1; const yy = base - 6 - (bins[b] - 1) * 9; x.fillStyle = c.accent; x.beginPath(); x.arc(sx(q), Math.max(24, yy), 3.6, 0, 7); x.fill(); });
-        const s = stats();
+        qs.forEach((q, i) => {
+          const b = Math.round(q / 0.15); bins[b] = (bins[b] || 0) + 1;
+          const yEnd = Math.max(26, base - 6 - (bins[b] - 1) * 9), a = clamp(anim[i], 0, 1), e = 1 - Math.pow(1 - a, 3);
+          if (anim[i] < 0) return;
+          const yy = 20 + (yEnd - 20) * e;
+          GX.ball(x, sx(q), yy, 3.8, c.accent, null, { alpha: Math.min(1, a * 2), glow: a < 1 ? 8 : 0 });
+        });
         info.textContent = !qs.length ? "Jeder Punkt ist ein gemessenes Tröpfchen. Miss zuerst einige Tröpfchen."
-          : s.dev < 0.12 ? "Alle Ladungen liegen nahe bei ganzzahligen Vielfachen von e*. Die Ladung ist gequantelt."
+          : good ? "Alle Ladungen liegen nahe bei ganzzahligen Vielfachen von e*. Die Ladung ist gequantelt."
           : "Die Linien treffen die Häufungen nicht. Verschiebe die vermutete Elementarladung.";
       }
-      return { draw };
+      return { step, draw };
     }
   });
 })();

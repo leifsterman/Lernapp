@@ -46,6 +46,9 @@ Output directory `public`. Oder per Kommandozeile: `npx wrangler pages deploy pu
 
 ## Entwickeln
 
+Grafik der Simulationen: `js/gfx.js` (Hintergrund, Bauteile, Kugeln, Feldlinien, Sprite-Cache), Simulationen in `js/sims*.js`.
+
+
 Quellen: `index.html`, `css/`, `js/` (`cards.js` = alle Karten, `diagrams.js` = Feldlinien-Diagramme).
 Mit `node build.mjs` wird daraus `public/index.html` gebaut. Lokal testen: `python3 -m http.server` im Projektordner.
 

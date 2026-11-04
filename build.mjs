@@ -13,7 +13,7 @@ katexCss = katexCss.replace(/src:\s*url\(([^)]*?\.woff2)\)\s*format\("woff2"\)[^
   return `src:url(data:font/woff2;base64,${b64}) format("woff2")`;
 });
 const css = katexCss + "\n" + read("css/style.css");
-const js = ["vendor/katex/katex.min.js", "vendor/katex/auto-render.min.js", "js/config.js", "js/cards.js", "js/diagrams.js", "js/trainer.js", "js/quiz.js", "js/sheets.js", "js/app.js", "js/methods.js", "js/sims.js", "js/sims2.js", "js/sims3.js"]
+const js = ["vendor/katex/katex.min.js", "vendor/katex/auto-render.min.js", "js/config.js", "js/cards.js", "js/diagrams.js", "js/trainer.js", "js/quiz.js", "js/sheets.js", "js/app.js", "js/methods.js", "js/gfx.js", "js/sims.js", "js/sims2.js", "js/sims3.js"]
   .map(read).join("\n;\n")
   .replace(/<\/script/g, "<\\/script");
 

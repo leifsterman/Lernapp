@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0e1117">
+  <meta name="description" content="Karteikarten und Rechenaufgaben zum elektrischen Feld (Physik Q1): Influenz, Feldlinien, Coulomb, Kondensator, Auf- und Entladung, Millikan.">
+  <title>Physik Q1 – Elektrisches Feld</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <button id="btn-home" class="brand" type="button" aria-label="Zur Übersicht">
+      <span class="brand-mark" aria-hidden="true">⚡</span>
+      <span>Physik Q1</span>
+    </button>
+    <button id="btn-theme" class="icon-btn" type="button" aria-label="Hell/Dunkel umschalten"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
+  </header>
+
+  <main>
+    <!-- Übersicht -->
+    <section id="screen-start" class="screen">
+      <div class="hero">
+        <p class="eyebrow" id="countdown"></p>
+        <h1>Das elektrische Feld</h1>
+        <p class="lead">Karteikarten zu allen Punkten deiner Checkliste. Wähle Themen, starte eine Runde. Was du nicht wusstest, kommt wieder.</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Themen</h2>
+          <div class="mini-actions">
+            <button type="button" id="sel-all" class="link">Alle</button>
+            <button type="button" id="sel-none" class="link">Keine</button>
+          </div>
+        </div>
+        <ul id="topic-list" class="topics"></ul>
+      </div>
+
+      <div class="start-actions">
+        <button id="btn-start" class="btn primary" type="button">Lernrunde starten <span id="start-count" class="count"></span></button>
+        <button id="btn-weak" class="btn" type="button">Nur Schwächen <span id="weak-count" class="count"></span></button>
+      </div>
+      <p class="fine">Tasten im Quiz: <kbd>Leertaste</kbd> umdrehen · <kbd>1</kbd> nicht gewusst · <kbd>2</kbd> teilweise · <kbd>3</kbd> gewusst · <kbd>Esc</kbd> Übersicht</p>
+
+      <div class="panel exam">
+        <h2>Klausur</h2>
+        <ul>
+          <li>Messwerttabelle erstellen · Mittelwert · Diagramme zeichnen</li>
+          <li>Formelsammlung: <b>S. 23, 24, 25, 27</b></li>
+        </ul>
+      </div>
+      <p class="fine"><button type="button" id="btn-reset" class="link danger">Lernfortschritt zurücksetzen</button></p>
+    </section>
+
+    <!-- Quiz -->
+    <section id="screen-quiz" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="btn-quit" class="link">← Übersicht</button>
+        <span class="left"><span id="cards-left">0</span> offen</span>
+      </div>
+      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><div id="progress-bar"></div></div>
+
+      <div class="card-wrap">
+        <div id="card" class="card" tabindex="0" role="button" aria-label="Karte umdrehen">
+          <div class="card-inner">
+            <div class="face front">
+              <span class="tag" id="front-tag"></span>
+              <div id="front-body" class="front-body"></div>
+              <p class="flip-hint">Tippen zum Aufdecken</p>
+            </div>
+            <div class="face back">
+              <span class="tag" id="back-tag"></span>
+              <div id="back-body" class="back-body"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="rating" class="rating" aria-hidden="true">
+        <button type="button" class="btn r-wrong" data-rate="wrong"><kbd>1</kbd> Wusste ich nicht</button>
+        <button type="button" class="btn r-partial" data-rate="partial"><kbd>2</kbd> Teilweise</button>
+        <button type="button" class="btn r-right" data-rate="correct"><kbd>3</kbd> Wusste ich</button>
+      </div>
+    </section>
+
+    <!-- Ende -->
+    <section id="screen-end" class="screen" hidden>
+      <div class="hero center">
+        <h1>Runde geschafft</h1>
+        <p class="lead" id="end-summary"></p>
+      </div>
+      <div class="start-actions">
+        <button id="btn-again" class="btn primary" type="button">Nochmal dieselben Themen</button>
+        <button id="btn-end-weak" class="btn" type="button">Nur Schwächen</button>
+        <button id="btn-end-home" class="btn" type="button">Zur Übersicht</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="vendor/katex/katex.min.js"></script>
+  <script src="vendor/katex/auto-render.min.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/diagrams.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -264,12 +264,13 @@
     make(host) {
       const st = stage(360, 260); host.append(st.c);
       const d = 5e-3, eta = 1.8e-5, rho = 880, SPEED = 300; // Zeitraffer
-      let U = 0, drop, rows = [], y = 0.5;
+      let U = 0, drop, rows = [], y = 0.5, topPlus = true;
       function newDrop() {
         const r = (0.75 + Math.random() * 0.25) * 1e-6, n = 1 + Math.floor(Math.random() * 5);
-        drop = { r, n, m: 4 / 3 * Math.PI * r ** 3 * rho, q: n * QE };
+        drop = { r, n, m: 4 / 3 * Math.PI * r ** 3 * rho, q: n * QE, neg: Math.random() < 0.7 };
         y = 0.55; U = 0; sU.set(0);
       }
+      seg(host, { label: "Polung der oberen Platte", options: [{ v: true, t: "oben +" }, { v: false, t: "oben −" }], value: true, onChange: v => { topPlus = v; } });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
       const sU = slider(ctl, { label: "Spannung U", min: 0, max: 1500, step: 1, value: 0, fmt: v => v + " V", onInput: v => { U = v; } });
       const acts = el("div", "sim-acts"); host.append(acts);
@@ -282,10 +283,13 @@
       const tbl = el("div", "sim-table"); host.append(tbl);
       notes(host, "Aufgaben", ["Stelle die Spannung so ein, dass das Tröpfchen <b>schwebt</b>. Nutze die Feinstufen.",
         "Berechne $q = \\dfrac{m\\,g\\,d}{U}$ und vergleiche mit $e = 1{,}602\\cdot10^{-19}\\,\\mathrm{C}$. Wie viele Elementarladungen sind es?",
-        "Notiere mehrere Tröpfchen. Welche gemeinsame Einheit haben alle Ladungen? Bilde den Mittelwert für $e$."]);
-      const net = () => drop.q * U / d - drop.m * G;
+        "Notiere mehrere Tröpfchen. Welche gemeinsame Einheit haben alle Ladungen? Bilde den Mittelwert für $e$.",
+        "Manche Tröpfchen sind positiv geladen. Welche Platte muss dann oben + sein, damit sie schweben können?"]);
+      const dir = () => (topPlus === drop.neg ? 1 : -1); // +1: elektrische Kraft nach oben
+      const net = () => dir() * drop.q * U / d - drop.m * G;
       function record() {
         const fg = drop.m * G;
+        if (U > 0 && dir() < 0) { A.toast("Die elektrische Kraft zeigt nach unten. Polung umkehren!"); return; }
         if (U <= 0 || Math.abs(net()) > 0.05 * fg) { A.toast("Das Tröpfchen schwebt noch nicht. Stelle die Spannung genauer ein."); return; }
         const q = drop.m * G * d / U, nEst = Math.max(1, Math.round(q / QE));
         rows.push({ U, q, nEst }); renderTable(); newDrop();
@@ -308,27 +312,28 @@
         const c = colors(), x = st.ctx; st.fit();
         const top = 34, bot = 226, yy = bot - y * (bot - top);
         x.fillStyle = c.fg; x.fillRect(60, top - 8, 240, 6); x.fillRect(60, bot + 2, 240, 6);
-        x.font = "bold 14px system-ui"; x.textAlign = "left"; x.fillStyle = c.pos; x.fillText("+", 308, top - 2); x.fillStyle = c.neg; x.fillText("−", 308, bot + 10);
-        // Feldlinien schwach
+        x.font = "bold 14px system-ui"; x.textAlign = "left";
+        x.fillStyle = topPlus ? c.pos : c.neg; x.fillText(topPlus ? "+" : "−", 308, top - 2); x.fillStyle = topPlus ? c.neg : c.pos; x.fillText(topPlus ? "−" : "+", 308, bot + 10);
+        // Feldlinien schwach (von + nach −)
         x.strokeStyle = c.line; x.fillStyle = c.line; x.globalAlpha = 0.35; x.lineWidth = 1.2;
-        if (U > 0) for (let i = 0; i < 6; i++) arrow(x, 80 + i * 40, top, 80 + i * 40, bot, 5);
+        if (U > 0) for (let i = 0; i < 6; i++) topPlus ? arrow(x, 80 + i * 40, top, 80 + i * 40, bot, 5) : arrow(x, 80 + i * 40, bot, 80 + i * 40, top, 5);
         x.globalAlpha = 1;
         // Tröpfchen
-        const floating = U > 0 && Math.abs(net()) < 0.02 * drop.m * G;
+        const floating = U > 0 && dir() > 0 && Math.abs(net()) < 0.02 * drop.m * G;
         const rr = 7 + (drop.r / 1e-6 - 0.75) * 16;
         if (floating) { x.fillStyle = "rgba(63,181,122,.25)"; x.beginPath(); x.arc(180, yy, rr + 8, 0, 7); x.fill(); }
         x.fillStyle = c.warn; x.beginPath(); x.arc(180, yy, rr, 0, 7); x.fill();
-        x.fillStyle = "#1a1300"; x.font = "bold 11px system-ui"; x.textAlign = "center"; x.fillText("−", 180, yy + 4);
+        x.fillStyle = "#1a1300"; x.font = "bold 11px system-ui"; x.textAlign = "center"; x.fillText(drop.neg ? "−" : "+", 180, yy + 4);
         // Kräfte
         const fel = drop.q * U / d, fg = drop.m * G, sc = 46 / fg;
         x.lineWidth = 2.6;
-        x.strokeStyle = c.ok; x.fillStyle = c.ok; if (fel > 0) arrow(x, 214, yy, 214, yy - Math.min(90, fel * sc), 7);
+        x.strokeStyle = c.ok; x.fillStyle = c.ok; if (fel > 0) arrow(x, 214, yy, 214, yy - dir() * Math.min(90, fel * sc), 7);
         x.strokeStyle = c.bad; x.fillStyle = c.bad; arrow(x, 238, yy, 238, yy + 46, 7);
-        x.font = "11px system-ui"; x.textAlign = "left"; x.fillStyle = c.ok; x.fillText("F_el", 196, top + 14); x.fillStyle = c.bad; x.fillText("F_G", 244, yy + 30);
+        x.font = "11px system-ui"; x.textAlign = "left"; x.fillStyle = c.ok; if (fel > 0) x.fillText("F_el", 196, dir() > 0 ? top + 14 : bot - 6); x.fillStyle = c.bad; x.fillText("F_G", 244, yy + 30);
         // Abstand
         x.strokeStyle = c.dim; x.fillStyle = c.dim; x.lineWidth = 1; L(x, [[50, top], [50, bot]]); x.save(); x.translate(40, (top + bot) / 2); x.rotate(-Math.PI / 2); x.textAlign = "center"; x.font = "11px system-ui"; x.fillText("d = 5 mm", 0, 0); x.restore();
         ro({ m: de(drop.m * 1e15, 3) + " · 10⁻¹⁵ kg", fel: de(fel * 1e15, 3) + " · 10⁻¹⁵ N", fg: de(fg * 1e15, 3) + " · 10⁻¹⁵ N", v: de((drop.v || 0) * 1e3, 2) + " mm/s" });
-        info.textContent = floating ? "Das Tröpfchen schwebt: F_el = F_G. Jetzt Spannung ablesen und q berechnen." : net() > 0 ? "Die elektrische Kraft überwiegt: Das Tröpfchen steigt." : "Die Gewichtskraft überwiegt: Das Tröpfchen sinkt.";
+        info.textContent = U > 0 && dir() < 0 ? "Die elektrische Kraft zeigt nach unten (" + (drop.neg ? "negatives" : "positives") + " Tröpfchen). Polung umkehren!" : floating ? "Das Tröpfchen schwebt: F_el = F_G. Jetzt Spannung ablesen und q berechnen." : net() > 0 ? "Die elektrische Kraft überwiegt: Das Tröpfchen steigt." : "Die Gewichtskraft überwiegt: Das Tröpfchen sinkt.";
       }
       return { step, draw };
     }

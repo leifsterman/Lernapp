@@ -25,7 +25,10 @@ Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 - **Differenzialgleichung**: die Kurve Schritt für Schritt per Euler-Verfahren aus dU/dt aufbauen, Schrittweite einstellbar
 - **Kondensator-Labor**: d, A, εᵣ und U verändern, angeschlossen oder getrennt, live C, Q, U, E und W
 - **Influenz & Polarisation**: Animationen zu Influenz (mit Erdung), Orientierungs- und Verschiebungspolarisation, Faradayscher Käfig
-- **Millikan-Versuch**: Schwebespannung einstellen, q berechnen, Messreihe mit Mittelwert
+- **Q-U-Messung**: Kapazität eines unbekannten Kondensators per Messreihe, Diagramm und Ausgleichsgerade bestimmen, Energie als Fläche
+- **Reihe & Parallel**: zwei Kondensatoren, Ladungen, Teilspannungen und Ersatzkapazität
+- **Millikan-Versuch**: Schwebespannung einstellen, Polung umkehren (positive und negative Tröpfchen), q berechnen, Messreihe mit Mittelwert
+- **Millikan-Auswertung**: viele Tröpfchen messen, Häufungen bei Vielfachen von e sehen, e bestimmen
 - **Feldlinien-Labor**: Ladungen setzen und verschieben, Feldlinien und Probeladung
 - **Schaltung beschriften** (unter „Lernen“): Potenziale an der RC-Schaltung eintragen, mit Erklärung je Punkt
 

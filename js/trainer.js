@@ -203,7 +203,12 @@
   }
   function fmtAns(task) {
     const a = task.ans, abs = Math.abs(a);
-    const t = abs >= 1e4 || (abs < 1e-2 && a !== 0) ? a.toExponential(2).replace(".", ",") : String(Number(a.toPrecision(3))).replace(".", ",");
+    let t;
+    if (abs >= 1e4 || (abs < 1e-2 && a !== 0)) {
+      const [m, e] = a.toExponential(2).split("e");
+      const sup = String(parseInt(e, 10)).replace(/-/g, "⁻").replace(/\d/g, d => "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]);
+      t = m.replace(".", ",") + "·10" + sup;
+    } else t = String(Number(a.toPrecision(3))).replace(".", ",");
     return t + " " + task.unit;
   }
 

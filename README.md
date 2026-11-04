@@ -38,7 +38,7 @@ Mit `node build.mjs` wird daraus `public/index.html` gebaut. Lokal testen: `pyth
 
 ## Synchronisation
 
-Beim ersten Start „Neuen Code erstellen“ (Name eintragen). Der Code (z. B. `K7M2-QX9P`) wird auf dem anderen Gerät unter „Verbinden“ eingegeben.
+Beim ersten Start „Neuen Code erstellen“ (Name und Einladungscode der Gruppe eintragen). Der Code (z. B. `K7M2-QX9P`) wird auf dem anderen Gerät unter „Verbinden“ eingegeben.
 Jede Person hat ihren eigenen Code. Die Tabelle ist per RLS gesperrt, Zugriff nur über zwei Funktionen (`supabase/schema.sql`),
 der Code ist das Geheimnis. Der Publishable-Key in `js/config.js` ist für den Browser gedacht.
 
@@ -48,3 +48,10 @@ Unter jeder Karte (und jeder Quizfrage) gibt es zwei Knöpfe. Beide setzen eine 
 - **Nur für mich löschen**: wird in deinem Profil gespeichert und mit deinen Geräten synchronisiert.
 - **Für alle löschen**: blendet die Karte bei allen aus (Tabelle `lern_global`, mit Bestätigung).
 Beides lässt sich unter *Mehr → Gelöschte Karten* wieder rückgängig machen.
+
+## Sicherheit
+
+- Der Lerncode ist das Geheimnis eines Profils. Wer ihn kennt, kann den Fortschritt lesen und ändern.
+- Neue Profile entstehen nur mit dem **Einladungscode** (steht in Supabase in der Tabelle `lern_config`, nicht im Repo). Dadurch kann niemand ohne Einladung Profile anlegen oder Karten für alle löschen.
+- Einladungscode ändern: `update public.lern_config set v = 'NEUERCODE' where k = 'invite';`
+- Der Publishable-Key in `js/config.js` ist für den Browser gedacht. Alle Tabellen sind per RLS gesperrt, Zugriff nur über die Funktionen in `supabase/schema.sql`.

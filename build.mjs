@@ -24,10 +24,11 @@ const noSw = js.replace(/if \("serviceWorker" in navigator[\s\S]*?\n  }\n/, "");
 mkdirSync(new URL("dist/", import.meta.url), { recursive: true });
 mkdirSync(new URL("public/", import.meta.url), { recursive: true });
 copyFileSync(new URL("icon.svg", import.meta.url), new URL("public/icon.svg", import.meta.url));
+copyFileSync(new URL("manifest.webmanifest", import.meta.url), new URL("public/manifest.webmanifest", import.meta.url));
 writeFileSync(new URL("public/index.html", import.meta.url),
 `<!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>${title}</title><link rel="icon" href="icon.svg" type="image/svg+xml"><meta name="theme-color" content="#0e1117"><style>${css}</style></head><body>${body}<script>${noSw}</script></body></html>`);
+<title>${title}</title><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0e1117"><style>${css}</style></head><body>${body}<script>${noSw}</script></body></html>`);
 
 const noSync = noSw.replace(/window\.PHYS_SYNC = \{[\s\S]*?\};/, "window.PHYS_SYNC = null;");
 writeFileSync(new URL("dist/artifact.html", import.meta.url),

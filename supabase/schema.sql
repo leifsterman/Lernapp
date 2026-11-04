@@ -60,3 +60,27 @@ revoke all on function public.lern_global_list() from public;
 revoke all on function public.lern_global_set(text, text, boolean) from public;
 grant execute on function public.lern_global_list() to anon, authenticated;
 grant execute on function public.lern_global_set(text, text, boolean) to anon, authenticated;
+
+-- Einladungscode: neue Profile dürfen nur mit dem Code angelegt werden. Den echten Code NICHT ins Repo schreiben.
+create table public.lern_config (k text primary key, v text not null);
+alter table public.lern_config enable row level security;
+-- insert into public.lern_config (k, v) values ('invite', 'DEINCODE');   -- 8 Zeichen, nur Großbuchstaben und Ziffern
+-- Ändern: update public.lern_config set v = 'NEUERCODE' where k = 'invite';
+
+create or replace function public.lern_save(p_code text, p_name text, p_data jsonb) returns void
+language plpgsql security definer set search_path = '' as $$
+declare v_exists boolean;
+begin
+  if p_code is null or char_length(p_code) < 8 or char_length(p_code) > 40 then raise exception 'invalid code'; end if;
+  if pg_column_size(p_data) > 200000 then raise exception 'data too large'; end if;
+  select exists (select 1 from public.lern_profile where code = p_code) into v_exists;
+  if not v_exists then
+    if upper(regexp_replace(coalesce(p_data->>'_invite', ''), '[^A-Za-z0-9]', '', 'g')) is distinct from
+       (select v from public.lern_config where k = 'invite') then
+      raise exception 'invite required';
+    end if;
+  end if;
+  insert into public.lern_profile (code, name, data, updated_at)
+  values (p_code, left(coalesce(p_name, ''), 40), coalesce(p_data, '{}'::jsonb) - '_invite', now())
+  on conflict (code) do update set name = excluded.name, data = excluded.data, updated_at = now();
+end; $$;

@@ -119,9 +119,10 @@
         <div class="panel" id="sync-panel">
           <div class="panel-head"><h2>Sync zwischen Geräten</h2></div>
           <div id="sync-off">
-            <p class="fine tight">Mit einem Lerncode siehst du deinen Fortschritt auf Handy und Laptop. Jede Person hat ihren eigenen Code.</p>
+            <p class="fine tight">Mit einem Lerncode siehst du deinen Fortschritt auf Handy und Laptop. Ein neuer Code braucht den Einladungscode der Gruppe. Hast du schon einen Lerncode, gib ihn unten ein.</p>
             <div class="row">
               <input id="sync-name" type="text" maxlength="30" placeholder="Dein Name" autocomplete="off">
+              <input id="sync-invite" type="text" maxlength="12" placeholder="Einladungscode" autocomplete="off" autocapitalize="characters" spellcheck="false">
               <button type="button" id="sync-create" class="btn">Neuen Code erstellen</button>
             </div>
             <div class="row">
@@ -168,7 +169,7 @@
       <p class="left"><span id="cards-left">0</span> offen</p>
 
       <div class="card-wrap">
-        <div id="card" class="card" tabindex="0" role="button" aria-label="Karte umdrehen">
+        <div id="card" class="card" tabindex="0" aria-label="Karteikarte, Leertaste zum Umdrehen">
           <div class="card-inner">
             <div class="face front">
               <div class="face-head"><span class="tag"><i class="dot"></i><span id="front-tag"></span></span><span class="chips-r"><span class="lvlchip" id="front-lvl"></span><span class="boxchip" id="front-box"></span></span></div>

@@ -73,8 +73,22 @@
     window.scrollTo(0, 0);
     active = name === "quiz";
     if (!active) setFullscreen(false);
+    try {
+      if (name !== "start" && !location.hash) history.pushState(null, "", "#" + name);
+      else if (name !== "start") history.replaceState(null, "", "#" + name);
+    } catch (e) { /* History nicht verfügbar */ }
     showHooks.forEach(fn => fn(name));
   }
+  // Zurück-Taste / Wischgeste: zur Übersicht statt die Seite zu verlassen
+  window.addEventListener("popstate", () => {
+    if (!location.hash && screens.start.hidden) {
+      for (const k in screens) screens[k].hidden = k !== "start";
+      active = false; setFullscreen(false);
+      window.scrollTo(0, 0);
+      renderTopics();
+      showHooks.forEach(fn => fn("start"));
+    }
+  });
 
   // ------------------------------------------------------------ Karteikasten
   function selectedCards() { return liveCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
@@ -131,14 +145,17 @@
   }
 
   // ------------------------------------------------------------ Übersicht
+  const EXAM = new Date(2026, 10, 6); // Freitag, 6. November 2026
   function countdownText() {
-    const d = new Date().getDay(); // 0 So … 5 Fr
-    const n = (5 - d + 7) % 7;
-    if (n === 0) return "Heute ist Freitag. Viel Erfolg!";
-    if (n === 1) return "Morgen ist Freitag";
-    return "Noch " + n + " Tage bis Freitag";
+    const now = new Date();
+    const n = Math.round((EXAM - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+    if (n < 0) return "";
+    if (n === 0) return "Heute ist die Klausur. Viel Erfolg!";
+    if (n === 1) return "Morgen ist die Klausur";
+    return "Noch " + n + " Tage bis zur Klausur";
   }
   $("#countdown").textContent = countdownText();
+  $("#countdown").hidden = !$("#countdown").textContent;
 
   function renderTopics() {
     const ul = $("#topic-list");
@@ -470,13 +487,16 @@
   $("#btn-weak").addEventListener("click", () => startSession("weak"));
   $("#btn-again").addEventListener("click", () => startSession("all"));
   $("#btn-end-weak").addEventListener("click", () => startSession("weak"));
-  function home() { renderTopics(); show("start"); }
+  function home() {
+    if (location.hash) { try { history.back(); return; } catch (e) { /* weiter */ } }
+    renderTopics(); show("start");
+  }
   $("#btn-end-home").addEventListener("click", home);
   $("#btn-quit").addEventListener("click", home);
   $("#btn-home").addEventListener("click", home);
 
   document.addEventListener("keydown", e => {
-    if (!active || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!active || e.metaKey || e.ctrlKey || e.altKey || $("#dlg")) return;
     const tag = e.target.tagName;
     if (e.key === "Escape") {
       if (document.documentElement.classList.contains("fs")) setFullscreen(false); else home();
@@ -509,8 +529,8 @@
       headers: { apikey: CFG.key, "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    if (!r.ok) throw new Error("HTTP " + r.status);
     const t = await r.text();
+    if (!r.ok) throw new Error((t.match(/"message":"([^"]*)"/) || [])[1] || "HTTP " + r.status);
     return t ? JSON.parse(t) : null;
   }
   // Neuere Einträge gewinnen; ein Zurücksetzen (resetAt) löscht ältere Einträge auf allen Geräten
@@ -556,7 +576,8 @@
       setStatus("Synchronisiert um " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " Uhr");
       if (!active) renderTopics();
     } catch (e) {
-      setStatus("Gerade offline. Es wird später synchronisiert.", true);
+      if (/invite required/.test(e.message)) setStatus("Dein Profil gibt es nicht mehr. Trenne dieses Gerät und melde dich neu an.", true);
+      else setStatus("Gerade offline. Es wird später synchronisiert.", true);
     }
     syncing = false;
     if (again) { again = false; syncNow(); }
@@ -579,8 +600,18 @@
   }
   $("#sync-create").addEventListener("click", async () => {
     const name = $("#sync-name").value.trim();
+    const invite = normCode($("#sync-invite").value);
     if (!name) { setStatus("Bitte zuerst deinen Namen eintragen.", true); $("#sync-name").focus(); return; }
-    store.sync = { code: newCode(), name };
+    if (invite.length !== 8) { setStatus("Bitte den Einladungscode eintragen (8 Zeichen). Den bekommst du von der Gruppe.", true); $("#sync-invite").focus(); return; }
+    const code = newCode();
+    setStatus("Lege Profil an …");
+    try {
+      await rpc("lern_save", { p_code: code, p_name: name, p_data: { _invite: invite, progress: store.progress, resetAt: store.resetAt, hidden: store.hidden } });
+    } catch (e) {
+      setStatus(/invite required/.test(e.message) ? "Der Einladungscode stimmt nicht." : "Keine Verbindung. Versuche es gleich nochmal.", true);
+      return;
+    }
+    store.sync = { code, name };
     save(); renderSync(); await syncNow();
   });
   $("#sync-join").addEventListener("click", async () => {
@@ -726,6 +757,7 @@
   $("#del-all").addEventListener("click", () => delCurrent("all"));
 
   // ------------------------------------------------------------ Start
+  try { if (location.hash) history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* ignorieren */ }
   renderTopics();
   renderSync();
   setTab(store.tab);
@@ -737,7 +769,11 @@
   window.PHYS_APP = {
     store, save, show, home, render, setTab, topicTitle, topicHue, LVL_NAME, reduceMotion, confetti,
     onShow: fn => showHooks.push(fn),
-    startCards: only => { if (only) { store.sel = [only]; store.pick = null; save(); renderTopics(); } startSession("all"); },
+    startCards: only => {
+      if (only) { store.sel = [only]; store.pick = null; save(); renderTopics(); }
+      if (!poolFor(store.pick).length) { home(); toast("Mit den aktuellen Einstellungen gibt es hier keine Karten. Stelle Schwierigkeit oder Art um."); return; }
+      startSession("all");
+    },
     refresh: renderTopics,
     isHidden, liveCards, hideItem, restoreItem, hiddenList, toast, dialog, plain, onChange: fn => changeHooks.push(fn)
   };

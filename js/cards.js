@@ -294,7 +294,8 @@
     R`<ul><li>Zerstäubte <b>Öltröpfchen</b> fallen zwischen zwei waagerechte Kondensatorplatten (Abstand $d$, einstellbare Spannung $U$).</li>
       <li>Durch Reibung/Strahlung tragen sie Ladung $q$.</li>
       <li>Beobachtung der Tröpfchen mit dem <b>Mikroskop</b>.</li>
-      <li>Kräfte: <b>Gewichtskraft</b> nach unten, <b>elektrische Kraft</b> $F_{\mathrm{el}} = E\cdot q$ nach oben (bei passender Polung).</li></ul>`, { diagram: "millikan" });
+      <li>Kräfte: <b>Gewichtskraft</b> nach unten, <b>elektrische Kraft</b> $F_{\mathrm{el}} = E\cdot q$ nach oben.</li>
+      <li>Das geht nur bei <b>negativem</b> Tröpfchen und <b>oberer Platte +</b>, denn dann zeigt $F_{\mathrm{el}}$ <b>entgegen</b> der Feldrichtung.</li></ul>`, { diagram: "millikan" });
   Q("millikan", "Wie funktioniert die <b>Schwebemethode</b> und welche Formel gilt?",
     R`<p>Spannung so einstellen, dass das Tröpfchen <b>schwebt</b> (ruht): Kräftegleichgewicht.</p>
       <p>$$F_{\mathrm{el}} = F_G \;\Rightarrow\; q\cdot\dfrac{U}{d} = m\cdot g$$</p>

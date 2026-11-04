@@ -52,7 +52,9 @@
       items = Array.from({ length: 8 }, () => mkCalc(S.levels, S.sel));
     } else {
       // Klausur: gemischte Stufen, nur Themenfilter
-      const pool = mcPool(false);
+      // Klausurfragen bevorzugt aus den handgeschriebenen Fragen (nicht aus den automatischen Größenfragen)
+      const all = mcPool(false), hand = all.filter(q => !q.cardId);
+      const pool = hand.length >= 6 ? hand : all;
       const pick = lv => { const c = pool.filter(q => q.lvl === lv); return c.length ? rnd(c) : rnd(pool.length ? pool : MC_ALL().filter(q => !mcHidden(q))); };
       const used = new Set();
       const mcs = [1, 2, 2, 3].map(lv => { let q, k = 0; do { q = pick(lv); k++; } while (used.has(q.id) && k < 12); used.add(q.id); return mkMC(q); });
@@ -193,18 +195,20 @@
   $("#tdel-all").addEventListener("click", () => delTask("all"));
 
   $("#task-next").addEventListener("click", nextTask);
+  // Antwort der gerade angezeigten Klausuraufgabe festhalten
+  function captureExamAnswer() {
+    const it = run.items[run.i];
+    if (!it) return;
+    let ok = false, given = "";
+    if (it.kind === "mc") { if (run.chosen != null) { ok = it.opts[run.chosen].ok; given = it.opts[run.chosen].t; } }
+    else { given = $("#task-input").value; if (given.trim()) { const r = TR.check(it.task, given); ok = !!r.ok; } }
+    run.results.push({ it, ok, given });
+    if (ok) run.pts += it.points;
+    run.chosen = null;
+  }
   function nextTask() {
     if (!run) return;
-    const it = run.items[run.i];
-    if (run.mode === "exam") {
-      // Antwort der Aufgabe festhalten
-      let ok = false, given = "";
-      if (it.kind === "mc") { if (run.chosen != null) { ok = it.opts[run.chosen].ok; given = it.opts[run.chosen].t; } }
-      else { given = $("#task-input").value; if (given.trim()) { const r = TR.check(it.task, given); ok = !!r.ok; } }
-      run.results.push({ it, ok, given });
-      if (ok) run.pts += it.points;
-      run.chosen = null;
-    }
+    if (run.mode === "exam") captureExamAnswer();
     run.i++;
     if (run.i >= run.items.length) finishTasks(false); else renderTask();
   }
@@ -213,7 +217,8 @@
     clearInterval(timer);
     if (!run) return;
     if (run.mode === "exam") {
-      // nicht bearbeitete Aufgaben zählen als falsch (nur bei Zeitablauf)
+      // Bei Zeitablauf zählt die gerade eingetragene Antwort noch mit, nicht bearbeitete Aufgaben gelten als falsch
+      if (timeout && run.results.length === run.i) captureExamAnswer();
       for (let k = run.results.length; k < run.items.length; k++) run.results.push({ it: run.items[k], ok: false, given: "" });
     }
     const exam = run.mode === "exam";
@@ -349,7 +354,7 @@
 
   // ------------------------------------------------------------ Tasten und Hooks
   document.addEventListener("keydown", e => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector("#dlg")) return;
     const cur = document.querySelector("main > .screen:not([hidden])");
     if (!cur) return;
     const id = cur.id;

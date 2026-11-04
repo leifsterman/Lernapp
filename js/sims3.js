@@ -140,8 +140,8 @@
         const nq = clamp(10 * Math.sqrt(Math.max(0, Q) / 240), 0, 10), n = Math.ceil(nq);
         for (let i = 0; i < n; i++) {
           const a = clamp(nq - i, 0, 1), tt = (i + 0.5) / Math.max(n, 4) - 0.5;
-          if (horizontal) { GX.ball(x, cx - 15, cy + tt * w, 3.4, c.pos, "+", { alpha: a }); GX.minus(x, c, cx + 15, cy + tt * w, 3.4, { alpha: a }); }
-          else { GX.ball(x, cx + tt * w, cy - 15, 3.4, c.pos, "+", { alpha: a }); GX.minus(x, c, cx + tt * w, cy + 15, 3.4, { alpha: a }); }
+          if (horizontal) { GX.ball(x, cx - 15, cy + tt * w, 4.4, c.pos, "+", { alpha: a }); GX.minus(x, c, cx + 15, cy + tt * w, 4.4, { alpha: a }); }
+          else { GX.ball(x, cx + tt * w, cy - 15, 4.4, c.pos, "+", { alpha: a }); GX.minus(x, c, cx + tt * w, cy + 15, 4.4, { alpha: a }); }
         }
         if (horizontal) { GX.text(x, c.fg, label, cx, cy - w / 2 - 12, { weight: 700, size: 11 }); GX.pill(x, c, de(Uv, 3) + " V", cx, cy + w / 2 + 16, { col: c.accent, size: 10 }); }
         else { GX.text(x, c.fg, label, cx + w / 2 + 8, cy - 8, { align: "left", weight: 700, size: 11 }); GX.pill(x, c, de(Uv, 3) + " V", cx + w / 2 + 8, cy + 10, { align: "left", col: c.accent, size: 10 }); }

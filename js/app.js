@@ -28,6 +28,16 @@
   if (!Array.isArray(store.levels) || !store.levels.length) store.levels = [1, 2, 3];
   if (!Array.isArray(store.kinds) || !store.kinds.length) store.kinds = ["abfrage", "rechnen"];
   if (!store.stats || typeof store.stats !== "object") store.stats = {};
+  if (!store.seen || typeof store.seen !== "object") store.seen = {};
+  // Merkt sich, was schon einmal richtig gelöst wurde. true = erstes Mal (volle Punkte), false = Wiederholung (ein Viertel).
+  function firstTime(key) {
+    let h = 5381; for (let i = 0; i < key.length; i++) h = ((h * 33) ^ key.charCodeAt(i)) >>> 0;
+    const k = h.toString(36);
+    if (store.seen[k]) return false;
+    store.seen[k] = 1; return true;
+  }
+  // Zählt eine richtige Lösung in stats[name]: ok = alle, okr = davon Wiederholungen
+  function countOk(st, key) { st.ok = (st.ok || 0) + 1; if (!firstTime(key)) st.okr = (st.okr || 0) + 1; }
   const LVL_NAME = ["", "Leicht", "Mittel", "Schwer"];
   // Gelöschte Karten: hidden = nur für mich (am Profil), ghidden = für alle (aus Supabase)
   if (!store.hidden || typeof store.hidden !== "object") store.hidden = {};
@@ -546,18 +556,22 @@
   function scoreInfo() {
     const live = liveCards(), st = store.stats || {}, g = k => st[k] || {};
     const ex = st.exam && st.exam.best != null ? notenpunkte(st.exam.best) : 0;
+    // Erstes richtiges Lösen zählt voll, jede Wiederholung nur ein Viertel
+    const eff = (n, rep) => Math.max(0, n - rep) + rep / 4;
+    const e = (k, n) => eff(g(k)[n] || 0, Math.min(g(k).okr || 0, g(k)[n] || 0));
     const parts = {
       cards: live.reduce((a, c) => a + (BOX_PTS[boxOf(c.id)] || 0), 0),
-      mc: Math.min(g("mc").ok || 0, 150),
-      tr: 2 * Math.min(g("tr").ok || 0, 75),
-      label: 3 * Math.min(g("label").ok || 0, 10),
-      match: Math.min(g("match").rounds || 0, 20),
+      mc: Math.min(e("mc", "ok"), 150),
+      tr: 2 * Math.min(e("tr", "ok"), 75),
+      label: 3 * Math.min(e("label", "ok"), 10),
+      match: Math.min(eff(g("match").rounds || 0, g("match").rep || 0), 20),
       exam: 4 * ex
     };
+    Object.keys(parts).forEach(k => { parts[k] = Math.round(parts[k]); });
     const score = Object.keys(parts).reduce((a, k) => a + parts[k], 0);
     return { score, mastered: live.filter(c => boxOf(c.id) >= 4).length, parts };
   }
-  const payload = () => Object.assign({ progress: store.progress, resetAt: store.resetAt, hidden: store.hidden, stats: store.stats, board: store.board !== false }, (({ score, mastered }) => ({ score, mastered }))(scoreInfo()));
+  const payload = () => Object.assign({ progress: store.progress, resetAt: store.resetAt, hidden: store.hidden, stats: store.stats, seen: store.seen, board: store.board !== false }, (({ score, mastered }) => ({ score, mastered }))(scoreInfo()));
 
   // Neuere Einträge gewinnen; ein Zurücksetzen (resetAt) löscht ältere Einträge auf allen Geräten
   function mergeData(remote) {
@@ -580,6 +594,8 @@
       if (pick && typeof pick.t === "number") hh[id] = { on: !!pick.on, t: pick.t };
     });
     store.hidden = hh;
+    const rsn = remote.seen;
+    if (rsn && typeof rsn === "object") for (const k in rsn) if (rsn[k]) store.seen[k] = 1;
     // Statistik: Zähler wachsen nur, also gewinnt der größere Wert
     const rs = remote.stats;
     if (rs && typeof rs === "object") {
@@ -660,7 +676,7 @@
   async function afterLogin(r, user) {
     // Gehörte der Fortschritt auf diesem Gerät einem anderen Konto, wird er nicht übernommen
     if (store.owner && store.owner !== r.code) {
-      store.progress = {}; store.hidden = {}; store.stats = {}; store.resetAt = 0; store.board = undefined;
+      store.progress = {}; store.hidden = {}; store.stats = {}; store.seen = {}; store.resetAt = 0; store.board = undefined;
     }
     store.owner = r.code;
     store.sync = { code: r.code, name: r.name, user };
@@ -932,6 +948,7 @@
       startSession("all");
     },
     refresh: renderTopics,
+    firstTime, countOk,
     isHidden, liveCards, hideItem, restoreItem, hiddenList, toast, dialog, plain, onChange: fn => changeHooks.push(fn)
   };
 

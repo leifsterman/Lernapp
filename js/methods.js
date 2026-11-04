@@ -119,7 +119,7 @@
   function recordResult(it, ok, given) {
     run.results.push({ it, ok, given });
     if (ok) { run.pts += 1; }
-    if (run.mode !== "exam") { const k = stat(run.mode === "mc" ? "mc" : "tr"); k.n++; if (ok) k.ok++; A.save(); }
+    if (run.mode !== "exam") { const k = stat(run.mode === "mc" ? "mc" : "tr"); k.n++; if (ok) A.countOk(k, (run.mode === "mc" ? "mc:" + it.id : "tr:" + it.task.name + "|" + it.q)); A.save(); }
   }
 
   function showFeedback(it, ok, extra) {
@@ -311,7 +311,7 @@
     }
   }
   function endMatchRound() {
-    const m = stat("match"); m.rounds = (m.rounds || 0) + 1; m.err = (m.err || 0) + match.round.err; A.save();
+    const m = stat("match"); m.rounds = (m.rounds || 0) + 1; if (!A.firstTime("match:" + match.round.pairs.map(p => JSON.stringify(p)).sort().join("|"))) m.rep = (m.rep || 0) + 1; m.err = (m.err || 0) + match.round.err; A.save();
     $("#match-hint").textContent = match.round.err === 0 ? "Perfekt, kein Fehler!" : "Geschafft mit " + match.round.err + (match.round.err === 1 ? " Fehler." : " Fehlern.");
     $("#match-actions").hidden = false;
     if (match.round.err === 0) A.confetti();

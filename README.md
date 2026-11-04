@@ -21,6 +21,7 @@ Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 
 ## Labor (Simulationen)
 
+- **Herleitung live**: 8 Schritte mit Animation zur Differenzialgleichung: Q, C und U_C (Tank-Vergleich), U_R = R·I, I = dQ/dt, Maschenregel, (Q₀−Q)/τ, Entladen mit dem Minus, Variablentrennung (ln als Fläche) und Lösung mit Probe. Jeder Formelteil ist farbig, antippbar und leuchtet im Bild auf
 - **RC-Schaltung** wie im Schaltbild der Aufgabe: Umschalter, R₁ zum Laden, R₂ zum Entladen, Voltmeter, bewegte Elektronen, Kurven Uc(t), I(t), Q(t), τ-Marke und Potenziale an den Punkten A bis F
 - **Differenzialgleichung**: die Kurve Schritt für Schritt per Euler-Verfahren aus dU/dt aufbauen, Schrittweite einstellbar
 - **Kondensator-Labor**: d, A, εᵣ und U verändern, angeschlossen oder getrennt, live C, Q, U, E und W

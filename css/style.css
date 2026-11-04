@@ -567,3 +567,21 @@ html.nosync .cardtools { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .hfly .wing, .hfly .blur, .fly-wrap, .fly-shadow { animation: none; }
 }
+
+/* ---------- Herleitung live ---------- */
+.her-nav { display: flex; align-items: center; gap: 8px; }
+.her-nav .her-step { flex: 1; text-align: center; font-weight: 700; font-size: .92rem; line-height: 1.25; }
+.her-nav .btn { margin: 0; white-space: nowrap; }
+.her-nav .btn:disabled { opacity: .4; }
+.her-dots { display: flex; justify-content: center; gap: 2px; margin-top: 2px; }
+.her-dot { appearance: none; border: 0; background: none; padding: 8px 5px; cursor: pointer; }
+.her-dot::before { content: ""; display: block; width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
+.her-dot.done::before { background: var(--b5); }
+.her-dot.on::before { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.her-lead { margin: 4px 2px 2px; font-size: .95rem; }
+.her-terms { display: grid; gap: 8px; margin-top: 10px; }
+.her-term { appearance: none; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--tc, var(--accent)); border-radius: 12px; padding: 8px 12px; color: var(--fg); font: inherit; cursor: pointer; }
+.her-term[aria-pressed="true"] { border-color: var(--tc, var(--accent)); background: var(--surface-2); box-shadow: 0 0 0 2px color-mix(in srgb, var(--tc, var(--accent)) 28%, transparent); }
+.her-term .sym { display: block; font-size: 1.05rem; }
+.her-term .txt { display: block; font-size: .88rem; color: var(--fg-dim); margin-top: 2px; }
+.sim-ctl > .seg { margin: 4px 0 6px; }

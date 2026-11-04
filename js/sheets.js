@@ -145,6 +145,7 @@
 <ul class="check"><li>Dgl. aus der Maschenregel aufstellen und lösen (Variablentrennung).</li><li>Kurven zeichnen, $\tau$ einzeichnen.</li></ul>`, ["rc"]);
 
   sheet("herleitung", "Herleitung Schritt für Schritt", "Auf- und Entladen ohne Vorwissen verstehen und selbst herleiten", R`
+<p class="hint"><b>Zum Anschauen:</b> Im Labor gibt es dazu die Simulation <b>„Herleitung live“</b>. Dort siehst du in 8 Schritten am Kondensator, was jeder Teil der Formel bedeutet und warum er dasteht.</p>
 <p>Ziel: Du kannst am Ende die Formeln für Auf- und Entladen <b>selbst auf einem leeren Blatt</b> herleiten. Lies jeden Schritt, decke dann die Rechnung ab und versuche sie allein. Im Labor („RC-Schaltung“ und „Differenzialgleichung“) siehst du alles live.</p>
 
 <h3>0 · Was du vorher wissen musst</h3>

@@ -111,7 +111,7 @@
     A.show("sim");
     startLoop(def.make(host));
   }
-  const ORDER = ["rc", "euler", "kond", "qu", "rp", "mill", "millq", "pol", "feld"];
+  const ORDER = ["herleitung", "rc", "euler", "kond", "qu", "rp", "mill", "millq", "pol", "feld"];
   function renderSimList() {
     SIMS.sort((a, b) => (ORDER.indexOf(a.id) + 99) % 99 - (ORDER.indexOf(b.id) + 99) % 99);
     $("#sim-list").innerHTML = SIMS.map(s => '<button type="button" class="method" data-sim="' + s.id + '"><span class="micon">' + (s.icon || "") + '</span><span class="mname">' + s.title + '</span><span class="mdesc">' + s.desc + "</span></button>").join("");

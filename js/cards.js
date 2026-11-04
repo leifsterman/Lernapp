@@ -414,6 +414,46 @@
     R`<p>$$\bar{e} = \dfrac{1{,}55 + 1{,}63 + 1{,}60 + 1{,}58 + 1{,}64}{5}\cdot10^{-19}\,\mathrm{C}$$</p>
       <p>$$\bar{e} = 1{,}60\cdot10^{-19}\,\mathrm{C}$$</p>`);
 
+  // ============================================================ AUF-/ENTLADUNG: Herleitung Schritt für Schritt
+  // (Neue Karten hinten angehängt, damit die Nummern und der Lernfortschritt der alten Karten gleich bleiben.)
+  Q("ladung", "Welche <b>Bausteine</b> brauchst du für die Herleitung, und was bedeutet jeder am Kondensator?",
+    R`<ul><li>$U_C = \dfrac{Q}{C}$: Je mehr Ladung auf den Platten, desto höher die Spannung (Tank: Wasserstand = Wasser ÷ Grundfläche).</li>
+      <li>$U_R = R\cdot I$: Der Widerstand bremst die Elektronen, dafür braucht es ein Potenzialgefälle.</li>
+      <li>$I = \dfrac{\mathrm{d}Q}{\mathrm{d}t}$: Strom ist Ladung pro Zeit, also die Steigung der $Q(t)$-Kurve.</li>
+      <li><b>Maschenregel:</b> Alle Spannungen im geschlossenen Kreis ergeben zusammen null (Quelle gegen die Verbraucher).</li></ul>`);
+  Q("ladung", "Leite die Differenzialgleichung der <b>Aufladung</b> Schritt für Schritt her.",
+    R`<ol><li>Maschenregel: $U_0 = U_R + U_C$</li>
+      <li>Bausteine einsetzen: $U_0 = R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} + \dfrac{Q}{C}$</li>
+      <li>Mit $Q_0 = C\,U_0$ gilt $U_0 = \dfrac{Q_0}{C}$, also $R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{C}$</li>
+      <li>Durch $R$ teilen, $\tau = RC$: $$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{\tau}$$</li></ol>
+      <p>Lies es so: Die Rate ist der <b>Abstand zum Ziel</b>, geteilt durch $\tau$.</p>`);
+  Q("ladung", "Löse die Dgl. der <b>Aufladung</b> mit Variablentrennung (alle Schritte, mit Grenzen).",
+    R`<ol><li>Trennen: $\dfrac{\mathrm{d}Q}{Q_0 - Q} = \dfrac{\mathrm{d}t}{\tau}$</li>
+      <li>Integrieren von $t = 0$ ($Q = 0$) bis $t$: $$-\ln(Q_0 - Q)\Big|_0^{Q} = \dfrac{t}{\tau}$$ (Minus wegen der inneren Ableitung $-1$.)</li>
+      <li>Einsetzen: $-\ln(Q_0 - Q) + \ln Q_0 = \dfrac{t}{\tau}$, also $\ln\dfrac{Q_0 - Q}{Q_0} = -\dfrac{t}{\tau}$</li>
+      <li>Mit $e$ auflösen: $\dfrac{Q_0 - Q}{Q_0} = e^{-t/\tau}$</li>
+      <li>Nach $Q$ umstellen: $$Q(t) = Q_0\bigl(1 - e^{-t/\tau}\bigr)$$</li></ol>`);
+  Q("ladung", "Leite die Gleichung der <b>Entladung</b> her. Woher kommt das <b>Minus</b>?",
+    R`<ol><li>Keine Quelle: $U_C + U_R = 0$, also $\dfrac{Q}{C} + R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} = 0$</li>
+      <li>Umstellen: $\dfrac{\mathrm{d}Q}{\mathrm{d}t} = -\dfrac{Q}{\tau}$</li>
+      <li>Trennen: $\dfrac{\mathrm{d}Q}{Q} = -\dfrac{\mathrm{d}t}{\tau}$</li>
+      <li>Integrieren von $Q_0$ bis $Q$ und $0$ bis $t$: $\ln\dfrac{Q}{Q_0} = -\dfrac{t}{\tau}$</li>
+      <li>Mit $e$ auflösen: $$Q(t) = Q_0\,e^{-t/\tau}$$</li></ol>
+      <p><b>Das Minus:</b> Der Strom fließt entgegen der Laderichtung, $\mathrm{d}Q/\mathrm{d}t$ ist negativ, $Q$ wird kleiner.</p>`);
+  Q("ladung", "Wie machst du die <b>Probe</b>, dass $Q(t) = Q_0(1 - e^{-t/\\tau})$ die Dgl. löst?",
+    R`<ul><li>Ableiten: $\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0}{\tau}\,e^{-t/\tau}$</li>
+      <li>Rechte Seite der Dgl.: $\dfrac{Q_0 - Q}{\tau} = \dfrac{Q_0\,e^{-t/\tau}}{\tau}$. Beide Seiten sind <b>gleich</b>. ✓</li>
+      <li>Anfangsbedingung: $t = 0$ gibt $Q = Q_0(1 - 1) = 0$. ✓</li>
+      <li>Endwert: $t \to \infty$ gibt $Q \to Q_0$. ✓</li></ul>`);
+  Q("ladung", "Warum ist $\\tau = R\\cdot C$ eine <b>Zeit</b> und woher kommt es?",
+    R`<ul><li><b>Herkunft:</b> Beim Umstellen von $R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{C}$ bleibt im Nenner $RC$ stehen.</li>
+      <li><b>Einheit:</b> $\Omega\cdot\mathrm{F} = \dfrac{\mathrm{V}}{\mathrm{A}}\cdot\dfrac{\mathrm{C}}{\mathrm{V}} = \dfrac{\mathrm{C}}{\mathrm{A}} = \mathrm{s}$.</li>
+      <li><b>Anschaulich:</b> Großes $R$ bremst den Strom, großes $C$ muss mehr Ladung aufnehmen. Beides macht den Vorgang langsamer.</li></ul>`);
+  Q("ladung", "Welche <b>typischen Fehler</b> passieren bei der Herleitung?",
+    R`<ul><li>Vorzeichen bei $\mathrm{d}Q/\mathrm{d}t$ oder das Minus vor dem $\ln$ beim Aufladen vergessen.</li>
+      <li>Die Anfangsbedingung (Integrationsgrenzen) nicht einsetzen.</li>
+      <li>$\tau$ mit falschen Einheiten ($\mu\mathrm{F}$ und $\mathrm{k\Omega}$ umrechnen!).</li>
+      <li>Probe vergessen: Ableiten und $t = 0$ prüfen.</li></ul>`);
 
   // ---------------------------------------------------------------- Metadaten
   // lvl: 1 = leicht (Grundwissen), 2 = mittel, 3 = schwer (Herleitung, Dgl., mehrere Schritte)
@@ -426,7 +466,8 @@
     43:1, 44:3, 45:2, 46:1, 47:1, 48:3, 49:2, 50:3, 51:3, 52:1, 53:1, 54:2, 55:2,
     56:3, 57:3, 58:2, 59:2, 60:2, 61:2, 62:3, 63:1, 64:2, 65:1, 66:2, 67:3, 68:2,
     69:1, 70:1, 71:1, 72:1, 73:2, 74:2, 75:2, 76:1,
-    77:2, 78:2, 79:1, 80:1, 81:2, 82:2, 83:2, 84:2, 85:2, 86:3, 87:3, 88:1, 89:3, 90:3, 91:1
+    77:2, 78:2, 79:1, 80:1, 81:2, 82:2, 83:2, 84:2, 85:2, 86:3, 87:3, 88:1, 89:3, 90:3, 91:1,
+    92:2, 93:3, 94:3, 95:3, 96:3, 97:2, 98:2
   };
   const CALC_TOPIC = { 77: "kraft", 78: "kraft", 79: "kraft", 80: "kondensator", 81: "kondensator", 82: "kondensator",
     83: "kondensator", 84: "schaltung", 85: "ladung", 86: "ladung", 87: "ladung", 88: "groessen", 89: "kraft",
@@ -443,6 +484,7 @@
     c.lvl = LVL[num] || 2;
     c.kind = c.calc ? "rechnen" : "abfrage";
     if (CALC_TOPIC[num]) c.topic = CALC_TOPIC[num];
+    if (c.topic === "ladung" && !c.calc) c.sim = "herleitung";
   });
 
   window.PHYS_TOPICS = TOPICS;

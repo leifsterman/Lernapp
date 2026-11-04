@@ -1,4 +1,4 @@
-/* Labor, Teil 4: „Herleitung live“. Acht Schritte, in denen jede Größe der Differenzialgleichung
+/* Labor, Teil 4: „Herleitung live“. Neun Schritte, in denen jede Größe der Differenzialgleichung
    am Kondensator sichtbar wird: Q, C, U_C, R, I = dQ/dt, Maschenregel, (Q₀−Q)/τ, ln und e-Funktion. */
 (function () {
   "use strict";
@@ -67,7 +67,7 @@
   // ------------------------------------------------------------ Hauptgerät
   const SC = []; // Schritte, unten definiert
   K.add({
-    id: "herleitung", title: "Herleitung live", desc: "Die Dgl. in 8 Schritten am Kondensator sehen: was jeder Teil bedeutet und woher er kommt", sheet: "herleitung",
+    id: "herleitung", title: "Herleitung live", desc: "Die Dgl. in 9 Schritten am Kondensator sehen: was jeder Teil bedeutet, woher er kommt, dann selbst herleiten", sheet: "herleitung",
     icon: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4h6v6H5zM13 14h6v6h-6zM8 10v4h5M16 14v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     make(host) {
       const st = stage(W, H);
@@ -79,13 +79,13 @@
       host.append(st.c);
       const eq = el("div", "sim-eq"); host.append(eq);
       const terms = el("div", "her-terms"); host.append(terms);
-      const ctl = el("div", "sim-ctl"), acts = el("div", "sim-acts"), roBox = el("div"), notesBox = el("div");
-      host.append(ctl, acts, roBox, notesBox);
+      const extra = el("div"), ctl = el("div", "sim-ctl"), acts = el("div", "sim-acts"), roBox = el("div"), notesBox = el("div");
+      host.append(extra, ctl, acts, roBox, notesBox);
       const dotEls = SC.map((s, i) => { const b = el("button", "her-dot"); b.type = "button"; b.setAttribute("aria-label", "Schritt " + (i + 1) + ": " + s.title); b.addEventListener("click", () => go(i)); dots.append(b); return b; });
 
       let idx = -1, cur = null, eqF = null, termsF = null, lastC = null, T = 0;
       const ui = {
-        ctl, acts, ro: roBox,
+        ctl, acts, extra, ro: roBox,
         setEq(fn) { eqF = fn; },
         setTerms(fn) { termsF = fn; },
         button: (t, fn, cls) => button(acts, t, fn, cls),
@@ -105,6 +105,7 @@
         A.render(terms);
       }
       function refresh() {
+        eq.hidden = !eqF;
         if (eqF) { eq.innerHTML = "$$" + eqF(pal(colors())) + "$$"; A.render(eq); }
         renderTerms();
       }
@@ -112,7 +113,7 @@
         i = clamp(i, 0, SC.length - 1);
         if (i === idx) return;
         idx = i; const d = SC[i];
-        ctl.innerHTML = ""; acts.innerHTML = ""; roBox.innerHTML = ""; notesBox.innerHTML = "";
+        ctl.innerHTML = ""; acts.innerHTML = ""; extra.innerHTML = ""; roBox.innerHTML = ""; notesBox.innerHTML = "";
         eqF = null; termsF = null; hl = null;
         cur = d.make(ui);
         lead.innerHTML = d.lead; A.render(lead);
@@ -578,6 +579,105 @@
           GX.pill(x, c, "Q/Q₀ = " + Math.round(q * 100) + " %", clamp(X(s.t), 60, 300), Y(q) < 100 ? Y(q) + 18 : Y(q) - 18, { size: 10, col: P.UR });
           const fm = v => (v < 0 ? "−" : "") + Math.abs(v).toFixed(3).replace(".", ",");
           ro({ tau: f1(tu) + " s", q: Math.round(q * 100) + " %", a: fm(slopeNum) + " /s", b: fm(slopeEq) + " /s" });
+        }
+      };
+    }
+  });
+
+  // ============================================================ 9 · Selbst herleiten (Übung)
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const DERIV = {
+    charge: [
+      { lab: "Maschenregel", tex: "U_0 = U_R + U_C", hint: "Wie hängen die Quellspannung, $U_R$ und $U_C$ im Kreis zusammen?", why: "Die Quelle liefert so viel Spannung, wie an $R$ und $C$ zusammen abfällt." },
+      { lab: "Bausteine einsetzen", tex: "U_0 = R\\,\\dfrac{\\mathrm{d}Q}{\\mathrm{d}t} + \\dfrac{Q}{C}", hint: "Ersetze $U_R$ und $U_C$ durch ihre Formeln mit $Q$.", why: "$U_R = R\\cdot I$ mit $I = \\mathrm{d}Q/\\mathrm{d}t$ und $U_C = Q/C$." },
+      { lab: "Umstellen mit $Q_0$ und $\\tau$", tex: "\\dfrac{\\mathrm{d}Q}{\\mathrm{d}t} = \\dfrac{Q_0 - Q}{\\tau}", hint: "Stelle nach $\\mathrm{d}Q/\\mathrm{d}t$ um und führe $Q_0 = C\\,U_0$ und $\\tau = RC$ ein.", why: "Die Rate ist der fehlende Rest geteilt durch $\\tau$." },
+      { lab: "Variablen trennen", tex: "\\dfrac{\\mathrm{d}Q}{Q_0 - Q} = \\dfrac{\\mathrm{d}t}{\\tau}", hint: "Bringe alles mit $Q$ nach links und alles mit $t$ nach rechts.", why: "Nur so kann man beide Seiten getrennt integrieren." },
+      { lab: "Integrieren (0 bis t)", tex: "-\\ln\\dfrac{Q_0 - Q}{Q_0} = \\dfrac{t}{\\tau}", hint: "Beide Seiten aufsummieren. Start: $t = 0$, $Q = 0$.", why: "Links die Fläche unter $1/(Q_0-Q)$, rechts das Rechteck $t/\\tau$." },
+      { lab: "Mit e auflösen", tex: "\\dfrac{Q_0 - Q}{Q_0} = e^{-t/\\tau}", hint: "Nimm beide Seiten als Exponent von $e$ und achte auf das Minus.", why: "$e$ ist die Umkehrung des $\\ln$." },
+      { lab: "Nach Q umstellen", tex: "Q(t) = Q_0\\left(1 - e^{-t/\\tau}\\right)", hint: "Löse nach $Q$ auf.", why: "Das ist die Lösung: Endwert mal „erledigter Anteil“." }
+    ],
+    discharge: [
+      { lab: "Maschenregel", tex: "U_C + U_R = 0", hint: "Es gibt keine Quelle. Was ergibt die Summe der Spannungen im Kreis?", why: "Der Kondensator treibt den Strom allein, $U_R$ ist das Gegenstück zu $U_C$." },
+      { lab: "Bausteine einsetzen", tex: "\\dfrac{Q}{C} + R\\,\\dfrac{\\mathrm{d}Q}{\\mathrm{d}t} = 0", hint: "Setze $U_C = Q/C$ und $U_R = R\\,\\mathrm{d}Q/\\mathrm{d}t$ ein.", why: "Wieder nur eine Unbekannte: $Q(t)$." },
+      { lab: "Umstellen (Minus!)", tex: "\\dfrac{\\mathrm{d}Q}{\\mathrm{d}t} = -\\dfrac{Q}{\\tau}", hint: "Stelle nach $\\mathrm{d}Q/\\mathrm{d}t$ um. Das Vorzeichen ist wichtig.", why: "Das Minus: $Q$ nimmt ab, proportional zum Vorrat." },
+      { lab: "Variablen trennen", tex: "\\dfrac{\\mathrm{d}Q}{Q} = -\\dfrac{\\mathrm{d}t}{\\tau}", hint: "Alles mit $Q$ nach links, alles mit $t$ nach rechts.", why: "Jetzt kann man beide Seiten getrennt aufsummieren." },
+      { lab: "Integrieren (0 bis t)", tex: "\\ln\\dfrac{Q}{Q_0} = -\\dfrac{t}{\\tau}", hint: "Beide Seiten integrieren. Start: $t = 0$, $Q = Q_0$.", why: "Das Integral von $1/Q$ ist $\\ln Q$." },
+      { lab: "Mit e auflösen", tex: "Q(t) = Q_0\\,e^{-t/\\tau}", hint: "Nimm beide Seiten als Exponent von $e$ und löse nach $Q$ auf.", why: "Das ist die Lösung: exponentieller Abfall mit der Zeitkonstante $\\tau$." }
+    ]
+  };
+  SC.push({
+    title: "Selbst herleiten (Übung)",
+    lead: R`<b>Jetzt du:</b> Tippe die Schritte der Herleitung in der richtigen Reihenfolge an. Richtige Schritte wandern nach oben und lassen die Kurve wachsen. Bei einem Fehler bekommst du einen Tipp. Die Reihenfolge ist neu gemischt, sobald du „Neu mischen“ drückst.`,
+    notes: [
+      "Schaffst du <b>Aufladen</b> ohne Fehlversuch? Danach <b>Entladen</b>: Welcher Schritt unterscheidet sich vom Aufladen, und warum?",
+      "Decke danach die Lösung ab und schreibe die Herleitung auf ein leeres Blatt. Die Schritte darfst du dann mit der Liste oben vergleichen."
+    ],
+    make(ui) {
+      const s = { mode: "charge", placed: 0, mistakes: 0, pm: 0, flash: 0 };
+      const modeBtns = [];
+      const segW = el("div", "seg"); ui.ctl.append(segW);
+      [["charge", "Aufladen"], ["discharge", "Entladen"]].forEach(([m, t]) => {
+        const b = el("button", "", t); b.type = "button"; b.setAttribute("aria-pressed", String(m === s.mode));
+        b.addEventListener("click", () => { s.mode = m; modeBtns.forEach(([mm, bb]) => bb.setAttribute("aria-pressed", String(mm === m))); newRound(); });
+        segW.append(b); modeBtns.push([m, b]);
+      });
+      ui.button("Neu mischen", () => newRound(), "primary");
+      const ro = readouts(ui.ro, [["ok", "Richtig platziert"], ["bad", "Fehlversuche"]]);
+      const path = el("div", "her-path"), msg = el("p", "her-msg"), pool = el("div", "her-pool");
+      ui.extra.append(path, msg, pool);
+      const steps = () => DERIV[s.mode];
+      function newRound() {
+        s.placed = 0; s.mistakes = 0; s.pm = 0; s.flash = 0;
+        path.innerHTML = ""; pool.innerHTML = "";
+        msg.className = "her-msg"; msg.textContent = "Mit welchem Schritt beginnt die Herleitung?";
+        let ord = shuffle(steps().map((_, i) => i));
+        if (ord.every((v, i) => v === i)) ord.reverse();
+        ord.forEach(i => {
+          const b = el("button", "her-pick", "$" + steps()[i].tex + "$"); b.type = "button";
+          b.addEventListener("click", () => pick(i, b)); pool.append(b);
+        });
+        A.render(pool);
+      }
+      function pick(i, b) {
+        const st = steps();
+        if (i === s.placed) {
+          const d = el("div", "her-ok", '<span class="num">' + (s.placed + 1) + '</span><span class="lab"><b>' + st[i].lab + "</b><br>" + st[i].why + '</span><span class="fm">$' + st[i].tex + "$</span>");
+          path.append(d); A.render(d); b.remove(); s.placed++; s.pm = 0;
+          if (s.placed === st.length) { s.flash = 1; msg.className = "her-msg good"; msg.textContent = s.mistakes ? "Geschafft mit " + s.mistakes + " Fehlversuch(en). Versuche es noch einmal ohne Tipp." : "Geschafft ohne Fehler! Schreibe die Herleitung jetzt einmal ohne Hilfe auf."; }
+          else { msg.className = "her-msg good"; msg.textContent = "Richtig. Was kommt als Nächstes?"; }
+        } else {
+          s.mistakes++; s.pm++;
+          msg.className = "her-msg bad";
+          msg.innerHTML = "Noch nicht. " + st[s.placed].hint + (s.pm >= 2 ? " Stichwort: <b>" + st[s.placed].lab + "</b>." : "");
+          A.render(msg);
+          b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
+        }
+      }
+      newRound();
+      return {
+        step(dt) { s.flash = Math.max(0, s.flash - dt * 0.5); },
+        draw(x, c) {
+          const P = pal(c), n = steps().length, p = s.placed / n, ch = s.mode === "charge";
+          GX.bg(x, W, H, c, false);
+          const X0 = 40, X1 = 340, Y0 = 36, Y1 = 200, kx = (X1 - X0) / 5, ky = Y1 - Y0;
+          x.font = "10px system-ui, sans-serif"; x.lineWidth = 1;
+          for (let i = 0; i <= 4; i++) { const yy = Y1 - ky * i / 4; x.strokeStyle = c.border; L(x, [[X0, yy], [X1, yy]]); x.fillStyle = c.dim; x.textAlign = "right"; x.fillText(i * 25 + " %", X0 - 4, yy + 3); }
+          for (let i = 0; i <= 5; i++) { x.strokeStyle = c.border; L(x, [[X0 + kx * i, Y0], [X0 + kx * i, Y1]]); x.fillStyle = c.dim; x.textAlign = "center"; x.fillText(i + "τ", X0 + kx * i, Y1 + 13); }
+          x.strokeStyle = c.fg; x.lineWidth = 1.4; L(x, [[X0, Y1], [X1 + 6, Y1]]); L(x, [[X0, Y1], [X0, Y0 - 6]]);
+          GX.text(x, c.dim, "Q/Q₀", X0 + 4, Y0 - 14, { size: 10, align: "left" });
+          // Fortschritt als Punkte
+          for (let i = 0; i < n; i++) GX.ball(x, 180 + (i - (n - 1) / 2) * 22, 14, 6, i < s.placed ? c.ok : c.border);
+          const tmax = 5 * p, f = t => (ch ? 1 - Math.exp(-t) : Math.exp(-t));
+          if (p > 0) {
+            x.strokeStyle = P.UR; x.lineWidth = 2.8 + 2 * s.flash; x.lineJoin = "round"; x.beginPath();
+            for (let i = 0; i <= 100; i++) { const t = tmax * i / 100; i ? x.lineTo(X0 + kx * t, Y1 - ky * f(t)) : x.moveTo(X0 + kx * t, Y1 - ky * f(t)); } x.stroke();
+            GX.ball(x, X0 + kx * tmax, Y1 - ky * f(tmax), 4.5, P.UR);
+          } else GX.text(x, c.dim, "Die Kurve entsteht Schritt für Schritt aus deiner Herleitung.", 190, 118, { size: 11 });
+          if (p >= 1) {
+            x.setLineDash([2, 3]); x.strokeStyle = P.T; x.lineWidth = 1.4; L(x, [[X0 + kx, Y1], [X0 + kx, Y1 - ky * f(1)]]); L(x, [[X0, Y1 - ky * f(1)], [X0 + kx, Y1 - ky * f(1)]]); x.setLineDash([]);
+            GX.pill(x, c, "τ: " + (ch ? "63 %" : "37 %"), X0 + kx + 34, Y1 - ky * f(1) - 12, { size: 10, col: P.T });
+          }
+          ro({ ok: s.placed + " von " + n, bad: String(s.mistakes) });
         }
       };
     }

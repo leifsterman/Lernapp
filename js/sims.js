@@ -102,6 +102,7 @@
   function stopLoop() { cancelAnimationFrame(raf); raf = 0; cur = null; }
   A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
 
+  A.openSim = id => openSim(id);
   function openSim(id) {
     const def = SIMS.find(s => s.id === id); if (!def) return;
     const host = $("#sim-host"); host.innerHTML = "";

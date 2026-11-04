@@ -339,7 +339,8 @@
       $("#front-tag").textContent = c.calc ? "Rechenaufgabe" : topicTitle[c.topic];
       front.innerHTML = c.front;
       $("#back-tag").textContent = topicTitle[c.topic];
-      back.innerHTML = (c.calc ? '<div class="q-recap">' + c.front + "</div>" : "") + c.back + (c.diagram && DIA[c.diagram] ? DIA[c.diagram]() : "");
+      back.innerHTML = (c.calc ? '<div class="q-recap">' + c.front + "</div>" : "") + c.back + (c.diagram && DIA[c.diagram] ? DIA[c.diagram]() : "") +
+        (c.sim ? '<p class="sim-link"><button type="button" class="btn small" data-sim-link="' + c.sim + '">Im Labor ansehen: Herleitung live</button></p>' : "");
     }
 
     // ohne Drehanimation zurücksetzen, damit die neue Rückseite nicht kurz sichtbar ist
@@ -476,6 +477,8 @@
 
   // ------------------------------------------------------------ Ereignisse
   cardEl.addEventListener("click", e => {
+    const sl = e.target.closest("[data-sim-link]");
+    if (sl) { if (window.PHYS_APP.openSim) window.PHYS_APP.openSim(sl.dataset.simLink); return; }
     if (e.target.closest(".unit-btn")) {
       const info = $("#unit-info");
       if (info) { info.hidden = !info.hidden; render(info); }

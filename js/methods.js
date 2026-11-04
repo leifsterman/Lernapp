@@ -18,8 +18,10 @@
     $("#stat-mc").textContent = mc.n ? Math.round(mc.ok / mc.n * 100) + " % richtig · " + mc.n + " Fragen" : "Noch nicht gespielt";
     $("#stat-tr").textContent = tr.n ? Math.round(tr.ok / tr.n * 100) + " % richtig · " + tr.n + " Aufgaben" : "Noch nicht gespielt";
     $("#stat-match").textContent = m.rounds ? m.rounds + " Runden · " + (m.err || 0) + " Fehler" : "Noch nicht gespielt";
+    if (!S.calc) $("#stat-tr").textContent = "Nur mit Taschenrechner";
     $("#stat-exam").textContent = ex && ex.best != null ? "Beste: " + ex.best + " % (" + notenpunkte(ex.best) + " Punkte)" : "Noch nicht gespielt";
   }
+  window.PHYS_METHODS_REFRESH = renderStats;
   function notenpunkte(p) {
     const t = [95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 39, 33, 27, 20];
     for (let i = 0; i < t.length; i++) if (p >= t[i]) return 15 - i;
@@ -49,6 +51,7 @@
       if (!pool.length) { toast("Für diesen Filter gibt es keine Fragen. Wähle mehr Themen oder Stufen."); return; }
       items = sample(pool, 10).map(mkMC);
     } else if (mode === "trainer") {
+      if (!S.calc) { toast("Der Rechentrainer braucht den Taschenrechner. Stelle ihn unter Einstellungen auf „Mit“."); return; }
       items = Array.from({ length: 8 }, () => mkCalc(S.levels, S.sel));
     } else {
       // Klausur: gemischte Stufen, nur Themenfilter
@@ -58,7 +61,9 @@
       const pick = lv => { const c = pool.filter(q => q.lvl === lv); return c.length ? rnd(c) : rnd(pool.length ? pool : MC_ALL().filter(q => !mcHidden(q))); };
       const used = new Set();
       const mcs = [1, 2, 2, 3].map(lv => { let q, k = 0; do { q = pick(lv); k++; } while (used.has(q.id) && k < 12); used.add(q.id); return mkMC(q); });
-      const calcs = [1, 2, 2, 3].map(lv => mkCalc([lv], S.sel));
+      // Ohne Taschenrechner: nur Verständnisfragen statt Rechenaufgaben
+      const calcs = S.calc ? [1, 2, 2, 3].map(lv => mkCalc([lv], S.sel))
+        : [1, 2, 2, 3].map(lv => { let q, k = 0; do { q = pick(lv); k++; } while (used.has(q.id) && k < 12); used.add(q.id); return mkMC(q); });
       items = shuffle(mcs.concat(calcs));
     }
     run = { mode, items, i: 0, results: [], answered: false, pts: 0, max: 0 };

@@ -34,6 +34,8 @@
   if (!store.ghidden || typeof store.ghidden !== "object") store.ghidden = {};
   const isHidden = id => !!((store.hidden[id] && store.hidden[id].on) || store.ghidden[id]);
   const liveCards = () => CARDS.filter(c => !isHidden(c.id));
+  // Ohne Taschenrechner: Rechenkarten ausblenden
+  const availCards = () => liveCards().filter(c => store.calc || !c.calc);
   const plain = h => String(h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
     .replace(/\\cdot/g, "·").replace(/\\(?:mathrm|text|mu|varepsilon|sigma|tau)\b/g, m => ({ "\\mu": "µ", "\\varepsilon": "ε", "\\sigma": "σ", "\\tau": "τ" }[m] || ""))
     .replace(/\\[a-zA-Z]+/g, "").replace(/[${}]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
@@ -93,7 +95,7 @@
   });
 
   // ------------------------------------------------------------ Karteikasten
-  function selectedCards() { return liveCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
+  function selectedCards() { return availCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
   function counts(cards) {
     const n = [0, 0, 0, 0, 0, 0];
     cards.forEach(c => { n[boxOf(c.id)]++; });
@@ -121,7 +123,7 @@
   }
 
   function renderRing() {
-    const live = liveCards();
+    const live = availCards();
     const all = live.length || 1;
     const done = live.filter(c => boxOf(c.id) >= 4).length;
     const pct = Math.round(done / all * 100);
@@ -163,7 +165,7 @@
     const ul = $("#topic-list");
     ul.innerHTML = "";
     TOPICS.forEach(t => {
-      const cs = liveCards().filter(c => c.topic === t.id);
+      const cs = availCards().filter(c => c.topic === t.id);
       const nc = cs.length || 1;
       const g = cs.filter(c => boxOf(c.id) >= 4).length;
       const y = cs.filter(c => boxOf(c.id) === 3).length;
@@ -224,7 +226,7 @@
   });
   $("#chips-calc").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
-    store.calc = b.dataset.calc === "1"; save(); refreshFilters();
+    store.calc = b.dataset.calc === "1"; save(); renderTopics(); if (window.PHYS_METHODS_REFRESH) window.PHYS_METHODS_REFRESH();
   });
   $("#chips-kind").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;

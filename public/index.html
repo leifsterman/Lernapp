@@ -2769,6 +2769,8 @@ window.PHYS_SYNC = {
   if (!store.ghidden || typeof store.ghidden !== "object") store.ghidden = {};
   const isHidden = id => !!((store.hidden[id] && store.hidden[id].on) || store.ghidden[id]);
   const liveCards = () => CARDS.filter(c => !isHidden(c.id));
+  // Ohne Taschenrechner: Rechenkarten ausblenden
+  const availCards = () => liveCards().filter(c => store.calc || !c.calc);
   const plain = h => String(h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
     .replace(/\\cdot/g, "·").replace(/\\(?:mathrm|text|mu|varepsilon|sigma|tau)\b/g, m => ({ "\\mu": "µ", "\\varepsilon": "ε", "\\sigma": "σ", "\\tau": "τ" }[m] || ""))
     .replace(/\\[a-zA-Z]+/g, "").replace(/[${}]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
@@ -2828,7 +2830,7 @@ window.PHYS_SYNC = {
   });
 
   // ------------------------------------------------------------ Karteikasten
-  function selectedCards() { return liveCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
+  function selectedCards() { return availCards().filter(c => store.sel.includes(c.topic) && store.levels.includes(c.lvl) && store.kinds.includes(c.kind)); }
   function counts(cards) {
     const n = [0, 0, 0, 0, 0, 0];
     cards.forEach(c => { n[boxOf(c.id)]++; });
@@ -2856,7 +2858,7 @@ window.PHYS_SYNC = {
   }
 
   function renderRing() {
-    const live = liveCards();
+    const live = availCards();
     const all = live.length || 1;
     const done = live.filter(c => boxOf(c.id) >= 4).length;
     const pct = Math.round(done / all * 100);
@@ -2898,7 +2900,7 @@ window.PHYS_SYNC = {
     const ul = $("#topic-list");
     ul.innerHTML = "";
     TOPICS.forEach(t => {
-      const cs = liveCards().filter(c => c.topic === t.id);
+      const cs = availCards().filter(c => c.topic === t.id);
       const nc = cs.length || 1;
       const g = cs.filter(c => boxOf(c.id) >= 4).length;
       const y = cs.filter(c => boxOf(c.id) === 3).length;
@@ -2959,7 +2961,7 @@ window.PHYS_SYNC = {
   });
   $("#chips-calc").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
-    store.calc = b.dataset.calc === "1"; save(); refreshFilters();
+    store.calc = b.dataset.calc === "1"; save(); renderTopics(); if (window.PHYS_METHODS_REFRESH) window.PHYS_METHODS_REFRESH();
   });
   $("#chips-kind").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
@@ -3669,8 +3671,10 @@ window.PHYS_SYNC = {
     $("#stat-mc").textContent = mc.n ? Math.round(mc.ok / mc.n * 100) + " % richtig · " + mc.n + " Fragen" : "Noch nicht gespielt";
     $("#stat-tr").textContent = tr.n ? Math.round(tr.ok / tr.n * 100) + " % richtig · " + tr.n + " Aufgaben" : "Noch nicht gespielt";
     $("#stat-match").textContent = m.rounds ? m.rounds + " Runden · " + (m.err || 0) + " Fehler" : "Noch nicht gespielt";
+    if (!S.calc) $("#stat-tr").textContent = "Nur mit Taschenrechner";
     $("#stat-exam").textContent = ex && ex.best != null ? "Beste: " + ex.best + " % (" + notenpunkte(ex.best) + " Punkte)" : "Noch nicht gespielt";
   }
+  window.PHYS_METHODS_REFRESH = renderStats;
   function notenpunkte(p) {
     const t = [95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 39, 33, 27, 20];
     for (let i = 0; i < t.length; i++) if (p >= t[i]) return 15 - i;
@@ -3700,6 +3704,7 @@ window.PHYS_SYNC = {
       if (!pool.length) { toast("Für diesen Filter gibt es keine Fragen. Wähle mehr Themen oder Stufen."); return; }
       items = sample(pool, 10).map(mkMC);
     } else if (mode === "trainer") {
+      if (!S.calc) { toast("Der Rechentrainer braucht den Taschenrechner. Stelle ihn unter Einstellungen auf „Mit“."); return; }
       items = Array.from({ length: 8 }, () => mkCalc(S.levels, S.sel));
     } else {
       // Klausur: gemischte Stufen, nur Themenfilter
@@ -3709,7 +3714,9 @@ window.PHYS_SYNC = {
       const pick = lv => { const c = pool.filter(q => q.lvl === lv); return c.length ? rnd(c) : rnd(pool.length ? pool : MC_ALL().filter(q => !mcHidden(q))); };
       const used = new Set();
       const mcs = [1, 2, 2, 3].map(lv => { let q, k = 0; do { q = pick(lv); k++; } while (used.has(q.id) && k < 12); used.add(q.id); return mkMC(q); });
-      const calcs = [1, 2, 2, 3].map(lv => mkCalc([lv], S.sel));
+      // Ohne Taschenrechner: nur Verständnisfragen statt Rechenaufgaben
+      const calcs = S.calc ? [1, 2, 2, 3].map(lv => mkCalc([lv], S.sel))
+        : [1, 2, 2, 3].map(lv => { let q, k = 0; do { q = pick(lv); k++; } while (used.has(q.id) && k < 12); used.add(q.id); return mkMC(q); });
       items = shuffle(mcs.concat(calcs));
     }
     run = { mode, items, i: 0, results: [], answered: false, pts: 0, max: 0 };

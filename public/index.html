@@ -335,7 +335,7 @@ html.fs .formula-box { font-size: 1.5rem; }
 .lvlchip.lvl-3 { color: var(--b1); border-color: color-mix(in srgb, var(--b1) 55%, transparent); }
 .chips-r { display: inline-flex; gap: 6px; align-items: center; flex: none; }
 
-.methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; }
 .method { appearance: none; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: transform .12s, border-color .15s; min-width: 0; }
 .method:hover { border-color: var(--accent); transform: translateY(-2px); }
 .micon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 18%, var(--surface-2)); color: var(--accent); margin-bottom: 6px; }
@@ -467,6 +467,53 @@ html.nosync .cardtools { display: none; }
 .d-m { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
 .badge { font-size: .7rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); color: var(--fg-dim); }
 .badge.all { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
+
+/* ---------- Labor: Simulationen ---------- */
+.sim-host { display: flex; flex-direction: column; gap: 12px; }
+.sim-host > *, .sim-host > div > * { min-width: 0; }
+.sim-canvas { display: block; width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.sim-canvas.touch-none { touch-action: none; cursor: crosshair; }
+.sim-info { font-size: .9rem; color: var(--fg-dim); min-height: 2.6em; margin: 8px 2px 0; }
+.sim-ctl { display: grid; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 8px 14px; margin-top: 10px; }
+.sim-row { display: grid; grid-template-columns: minmax(110px, 38%) 1fr auto; gap: 10px; align-items: center; padding: 6px 0; }
+.sim-lab { font-size: .85rem; color: var(--fg-dim); }
+.sim-val { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 4.5em; text-align: right; font-size: .9rem; }
+.sim-row input[type=range] { width: 100%; accent-color: var(--accent); min-width: 0; }
+.sim-seg { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.seg button { flex: 1 1 auto; appearance: none; border: 0; background: none; color: var(--fg-dim); font: inherit; font-weight: 600; font-size: .86rem; padding: 8px 10px; border-radius: 9px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.sim-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.btn.small { padding: 8px 14px; font-size: .86rem; border-radius: 10px; }
+.sim-notes { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 10px 16px 6px; margin-top: 12px; }
+.sim-notes h3 { margin: 0 0 6px; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.sim-notes ul { margin: 0; padding-left: 20px; } .sim-notes li { margin-bottom: 6px; font-size: .92rem; }
+.readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 10px; }
+.ro { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; display: flex; flex-direction: column; }
+.ro-l { font-size: .72rem; color: var(--fg-dim); text-transform: uppercase; letter-spacing: .05em; }
+.ro-v { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 1.02rem; overflow-wrap: anywhere; }
+.sim-eq { margin: 10px 0 0; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+.sim-table { margin-top: 10px; overflow-x: auto; }
+.sim-table table.cmp { display: table; width: 100%; }
+
+/* ---------- Übung: Schaltung beschriften ---------- */
+.label-card { padding: 14px 14px 16px; }
+.label-q { margin: 0 0 12px; }
+.circuit-wrap { position: relative; }
+.circuit-wrap .node { position: absolute; transform: translate(-50%, -50%); appearance: none; min-width: 30px; height: 30px; padding: 0 8px; border-radius: 15px; border: 2px solid var(--accent); background: var(--surface); color: var(--fg); font: 700 .8rem var(--font); cursor: pointer; white-space: nowrap; z-index: 1; }
+.circuit-wrap .node.sel { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); }
+.circuit-wrap .node.has { border-color: var(--warn); }
+.circuit-wrap .node.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 22%, var(--surface)); color: var(--fg); }
+.circuit-wrap .node.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, var(--surface)); color: var(--fg); }
+.chips-tray { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; }
+.chip.val { padding: 9px 16px; font-size: .95rem; color: var(--fg); }
+.node-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.nl { font-size: .82rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--fg-dim); }
+.nl b { color: var(--fg); }
+.nl.ok { border-color: var(--ok); } .nl.bad { border-color: var(--bad); }
+@media (max-width: 460px) { .sim-row { grid-template-columns: 1fr auto; } .sim-row .sim-lab { grid-column: 1 / 2; } .sim-row .sim-val { grid-column: 2 / 3; grid-row: 1; } .sim-row input { grid-column: 1 / 3; } }
+
+.mname, .mdesc { overflow-wrap: anywhere; hyphens: auto; }
 </style></head><body>
   <header class="top">
     <button id="btn-home" class="brand" type="button" aria-label="Zur Übersicht">
@@ -490,6 +537,7 @@ html.nosync .cardtools { display: none; }
 
       <nav class="tabs" role="tablist" aria-label="Bereiche">
         <button type="button" class="tab-btn" role="tab" data-tab="learn">Lernen</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="lab">Labor</button>
         <button type="button" class="tab-btn" role="tab" data-tab="sheets">Übersichten</button>
         <button type="button" class="tab-btn" role="tab" data-tab="more">Mehr</button>
       </nav>
@@ -554,6 +602,12 @@ html.nosync .cardtools { display: none; }
             <span class="mdesc">Größen mit Symbol, Einheit oder Formel verbinden</span>
             <span class="mstat" id="stat-match"></span>
           </button>
+          <button type="button" class="method" id="m-label">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="mname">Schaltung beschriften</span>
+            <span class="mdesc">Potenziale an den Punkten der RC-Schaltung eintragen</span>
+            <span class="mstat" id="stat-label"></span>
+          </button>
           <button type="button" class="method" id="m-exam">
             <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9v4l3 2M9.5 3h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></span>
             <span class="mname">Klausur-Simulation</span>
@@ -562,6 +616,12 @@ html.nosync .cardtools { display: none; }
           </button>
         </div>
         <p class="fine">Tasten im Karteikasten: <kbd>Leertaste</kbd> umdrehen · <kbd>1</kbd> nicht gewusst · <kbd>2</kbd> teilweise · <kbd>3</kbd> gewusst · <kbd>F</kbd> Vollbild · <kbd>Esc</kbd> Übersicht</p>
+      </div>
+
+      <!-- Tab: Labor -->
+      <div class="tabpane" id="tab-lab" hidden>
+        <p class="fine tight">Simulationen zum Ausprobieren. Verändere Werte und beobachte, was passiert.</p>
+        <div class="methods" id="sim-list"></div>
       </div>
 
       <!-- Tab: Übersichten -->
@@ -731,6 +791,28 @@ html.nosync .cardtools { display: none; }
         <button id="result-again" class="btn primary" type="button">Nochmal</button>
         <button id="result-home" class="btn" type="button">Zur Übersicht</button>
       </div>
+    </section>
+
+    <!-- Simulation -->
+    <section id="screen-sim" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="sim-back" class="link">← Labor</button>
+        <span id="sim-title" class="task-title"></span>
+        <button type="button" id="sim-sheet" class="link">Übersicht</button>
+      </div>
+      <div id="sim-host" class="sim-host"></div>
+    </section>
+
+    <!-- Schaltung beschriften -->
+    <section id="screen-label" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="label-quit" class="link">← Übersicht</button>
+        <span class="task-title">Schaltung beschriften</span>
+        <span class="grow"></span>
+      </div>
+      <div class="progress"><div id="label-progress-bar"></div></div>
+      <p class="left" id="label-count"></p>
+      <div id="label-host"></div>
     </section>
 
     <!-- Kernübersicht -->
@@ -1137,7 +1219,8 @@ window.PHYS_SYNC = {
       <p>$$F = 8{,}99\cdot10^{9}\cdot\dfrac{2{,}0\cdot10^{-6}\cdot3{,}0\cdot10^{-6}}{(0{,}20)^2}\,\mathrm{N}$$</p>
       <p>$$F \approx 1{,}35\,\mathrm{N}$$</p><p><b>Anziehend</b>, da ungleichnamige Ladungen.</p>`);
   Calc(R`<b>Feld einer Punktladung.</b> $Q = 5{,}0\,\mathrm{nC}$. Wie groß ist $E$ im Abstand $r = 3{,}0\,\mathrm{cm}$?`,
-    R`<p>$$E = \dfrac{1}{4\pi\varepsilon_0}\dfrac{Q}{r^2} = 8{,}99\cdot10^{9}\cdot\dfrac{5{,}0\cdot10^{-9}}{(0{,}030)^2}\,\dfrac{\mathrm{V}}{\mathrm{m}}$$</p>
+    R`<p>$$E = \dfrac{1}{4\pi\varepsilon_0}\dfrac{Q}{r^2}$$</p>
+      <p>$$E = 8{,}99\cdot10^{9}\cdot\dfrac{5{,}0\cdot10^{-9}}{(0{,}030)^2}\,\tfrac{\mathrm{V}}{\mathrm{m}}$$</p>
       <p>$$E \approx 5{,}0\cdot10^{4}\,\dfrac{\mathrm{V}}{\mathrm{m}}$$</p>`);
   Calc(R`<b>Kraft im Feld.</b> $E = 2{,}0\cdot10^{4}\,\mathrm{N/C}$, $Q = 15\,\mathrm{nC}$. Welche Kraft wirkt?`,
     R`<p>$$F = E\cdot Q = 2{,}0\cdot10^{4}\cdot15\cdot10^{-9}\,\mathrm{N} = 3{,}0\cdot10^{-4}\,\mathrm{N}$$</p>`);
@@ -2207,10 +2290,10 @@ window.PHYS_SYNC = {
   });
   // Reiter
   function setTab(t) {
-    if (!["learn", "sheets", "more"].includes(t)) t = "learn";
+    if (!["learn", "lab", "sheets", "more"].includes(t)) t = "learn";
     store.tab = t; save();
     document.querySelectorAll(".tab-btn").forEach(b => { const on = b.dataset.tab === t; b.setAttribute("aria-selected", on); b.classList.toggle("on", on); });
-    ["learn", "sheets", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
+    ["learn", "lab", "sheets", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
   }
   document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest(".tab-btn"); if (b) setTab(b.dataset.tab); });
 
@@ -2810,7 +2893,7 @@ window.PHYS_SYNC = {
   }
 
   function startTasks(mode) {
-    lastMode = mode;
+    lastMode = mode; A.customAgain = null;
     let items = [];
     if (mode === "mc") {
       const pool = mcPool(true);
@@ -3019,8 +3102,8 @@ window.PHYS_SYNC = {
   }
 
   $("#task-quit").addEventListener("click", () => { clearInterval(timer); A.home(); });
-  $("#result-home").addEventListener("click", () => A.home());
-  $("#result-again").addEventListener("click", () => startTasks(lastMode));
+  $("#result-home").addEventListener("click", () => { A.customAgain = null; A.home(); });
+  $("#result-again").addEventListener("click", () => { if (A.customAgain) A.customAgain(); else startTasks(lastMode); });
   $("#m-mc").addEventListener("click", () => startTasks("mc"));
   $("#m-trainer").addEventListener("click", () => startTasks("trainer"));
   $("#m-exam").addEventListener("click", () => startTasks("exam"));
@@ -3119,6 +3202,7 @@ window.PHYS_SYNC = {
   $("#sheet-practice").addEventListener("click", () => A.startCards(SHEETS[sheetIdx].id));
   $("#sheet-print").addEventListener("click", () => { try { window.print(); } catch (e) { toast("Drucken geht hier nicht."); } });
   renderSheetList();
+  A.openSheet = id => { const i = SHEETS.findIndex(s => s.id === id); if (i >= 0) openSheet(i); };
 
   // ------------------------------------------------------------ Tasten und Hooks
   document.addEventListener("keydown", e => {
@@ -3126,7 +3210,7 @@ window.PHYS_SYNC = {
     const cur = document.querySelector("main > .screen:not([hidden])");
     if (!cur) return;
     const id = cur.id;
-    if (e.key === "Escape" && ["screen-task", "screen-match", "screen-result", "screen-sheet"].includes(id)) { clearInterval(timer); A.home(); return; }
+    if (e.key === "Escape" && ["screen-task", "screen-match", "screen-result", "screen-sheet", "screen-sim", "screen-label"].includes(id)) { clearInterval(timer); A.home(); return; }
     if (id === "screen-task" && run) {
       const inField = e.target.tagName === "INPUT";
       const it = run.items[run.i];
@@ -3166,5 +3250,926 @@ window.PHYS_SYNC = {
   });
   renderStats();
   renderDeleted();
+})();
+
+;
+/* Labor: interaktive Simulationen (Canvas) und die Übung „Schaltung beschriften“.
+   Gerüst, RC-Schaltung, Euler-Verfahren. Weitere Simulationen stehen in sims2.js. */
+(function () {
+  "use strict";
+  const A = window.PHYS_APP;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const S = A.store;
+  const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  const rnd = a => a[Math.floor(Math.random() * a.length)];
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const de = (x, n) => String(Number(x.toPrecision(n || 3))).replace(".", ",");
+
+  // ------------------------------------------------------------ Farben aus dem Theme
+  function colors() {
+    const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
+    return { fg: g("--fg"), dim: g("--fg-dim"), line: g("--line"), border: g("--border"), surf: g("--surface"), surf2: g("--surface-2"),
+      pos: g("--pos"), neg: g("--neg"), ok: g("--ok"), bad: g("--bad"), warn: g("--warn"), accent: g("--accent") };
+  }
+
+  // ------------------------------------------------------------ Zeichenfläche mit festem Seitenverhältnis
+  function stage(w, h, cls) {
+    const c = document.createElement("canvas");
+    c.className = "sim-canvas" + (cls ? " " + cls : "");
+    c.style.aspectRatio = w + " / " + h;
+    const o = { c, w, h, ctx: c.getContext("2d"), scale: 1 };
+    o.fit = () => {
+      const cw = c.clientWidth || w, dpr = window.devicePixelRatio || 1;
+      const pw = Math.round(cw * dpr), ph = Math.round(cw * h / w * dpr);
+      if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; }
+      o.scale = pw / w;
+      o.ctx.setTransform(o.scale, 0, 0, o.scale, 0, 0);
+      o.ctx.clearRect(0, 0, w, h);
+    };
+    o.pos = e => { const r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * w / r.width, y: (e.clientY - r.top) * h / r.height }; };
+    return o;
+  }
+
+  // ------------------------------------------------------------ kleine Bedienelemente
+  function slider(host, o) {
+    const row = el("label", "sim-row");
+    const lab = el("span", "sim-lab"), val = el("output", "sim-val");
+    const inp = document.createElement("input");
+    inp.type = "range"; inp.min = o.min; inp.max = o.max; inp.step = o.step; inp.value = o.value;
+    const fmt = o.fmt || (v => de(+v));
+    const upd = () => { val.textContent = fmt(+inp.value); lab.textContent = o.label; };
+    inp.addEventListener("input", () => { upd(); o.onInput && o.onInput(+inp.value); });
+    upd();
+    row.append(lab, inp, val); host.append(row);
+    return { set(v) { inp.value = v; upd(); }, get: () => +inp.value, el: row };
+  }
+  function seg(host, o) {
+    const wrap = el("div", "sim-seg");
+    if (o.label) wrap.append(el("span", "sim-lab", o.label));
+    const box = el("div", "seg");
+    const btns = o.options.map(op => {
+      const b = el("button", "", op.t); b.type = "button";
+      b.addEventListener("click", () => { set(op.v); o.onChange && o.onChange(op.v); });
+      box.append(b); return b;
+    });
+    function set(v) { o.options.forEach((op, i) => btns[i].setAttribute("aria-pressed", op.v === v)); }
+    set(o.value);
+    wrap.append(box); host.append(wrap);
+    return { set };
+  }
+  function button(host, text, fn, cls) { const b = el("button", "btn small " + (cls || ""), text); b.type = "button"; b.addEventListener("click", fn); host.append(b); return b; }
+  function notes(host, title, items) {
+    const d = el("div", "sim-notes", "<h3>" + title + "</h3><ul>" + items.map(i => "<li>" + i + "</li>").join("") + "</ul>");
+    host.append(d); A.render(d); return d;
+  }
+  function readouts(host, keys) {
+    const box = el("div", "readouts");
+    const spans = {};
+    keys.forEach(([k, label]) => { const d = el("div", "ro", '<span class="ro-l">' + label + '</span><span class="ro-v">–</span>'); spans[k] = d.querySelector(".ro-v"); box.append(d); });
+    host.append(box);
+    return o => { for (const k in o) if (spans[k]) spans[k].textContent = o[k]; };
+  }
+
+  // ------------------------------------------------------------ Schleife
+  const SIMS = [];
+  let cur = null, raf = 0, last = 0;
+  function loop(now) {
+    raf = requestAnimationFrame(loop);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (cur) { cur.step && cur.step(dt); cur.draw && cur.draw(); }
+  }
+  function startLoop(obj) { stopLoop(); cur = obj; last = performance.now(); raf = requestAnimationFrame(loop); }
+  function stopLoop() { cancelAnimationFrame(raf); raf = 0; cur = null; }
+  A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
+
+  function openSim(id) {
+    const def = SIMS.find(s => s.id === id); if (!def) return;
+    const host = $("#sim-host"); host.innerHTML = "";
+    $("#sim-title").textContent = def.title;
+    $("#sim-sheet").dataset.sheet = def.sheet || "";
+    $("#sim-sheet").hidden = !def.sheet;
+    A.show("sim");
+    startLoop(def.make(host));
+  }
+  function renderSimList() {
+    $("#sim-list").innerHTML = SIMS.map(s => '<button type="button" class="method" data-sim="' + s.id + '"><span class="micon">' + (s.icon || "") + '</span><span class="mname">' + s.title + '</span><span class="mdesc">' + s.desc + "</span></button>").join("");
+  }
+  $("#sim-list").addEventListener("click", e => { const b = e.target.closest("[data-sim]"); if (b) openSim(b.dataset.sim); });
+  $("#sim-back").addEventListener("click", () => { A.setTab("lab"); A.home(); });
+  $("#sim-sheet").addEventListener("click", () => { const id = $("#sim-sheet").dataset.sheet; if (id) A.openSheet(id); });
+
+  // ------------------------------------------------------------ Schaltung (gemeinsam für Simulation und Übung)
+  // Koordinaten im Bild 360 x 250, Bezug: unterer Draht = 0 V
+  const G = { topY: 40, botY: 230, bx: 40, by1: 112, by2: 136, r1: [80, 140], r2: [268, 328], cl: [172, 40], cr: [248, 40], pv: [210, 100], rx: 345, pt: 150, pb: 170, vm: [290, 160] };
+  const NODES = { // Messpunkte A–F für die Übung
+    A: { x: 40, y: 78, t: "A" }, B: { x: 156, y: 40, t: "B" }, C: { x: 210, y: 126, t: "C" },
+    D: { x: 258, y: 40, t: "D" }, E: { x: 322, y: 110, t: "E" }, F: { x: 120, y: 230, t: "F" }
+  };
+  const L = (ctx, pts) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); };
+  function drawCircuit(ctx, c, o) {
+    ctx.lineWidth = 2.2; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = c.fg; ctx.fillStyle = c.fg;
+    ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
+    // Quelle links
+    L(ctx, [[G.bx, G.by1], [G.bx, G.topY], [G.r1[0], G.topY]]);
+    L(ctx, [[G.bx, G.by2], [G.bx, G.botY], [G.rx, G.botY], [G.rx, G.topY], [G.r2[1], G.topY]]);
+    ctx.lineWidth = 3; L(ctx, [[G.bx - 14, G.by1], [G.bx + 14, G.by1]]); ctx.lineWidth = 2; L(ctx, [[G.bx - 8, G.by2], [G.bx + 8, G.by2]]); ctx.lineWidth = 2.2;
+    ctx.fillText("+", G.bx + 24, G.by1 - 2); ctx.fillText("−", G.bx + 24, G.by2 + 11);
+    ctx.textAlign = "right"; ctx.fillText(o.U0lab || "U₀", G.bx - 18, (G.by1 + G.by2) / 2 + 4); ctx.textAlign = "center";
+    // Widerstände
+    [[G.r1, o.R1lab || "R₁"], [G.r2, o.R2lab || "R₂"]].forEach(([r, t]) => {
+      ctx.fillStyle = c.surf; ctx.fillRect(r[0], G.topY - 11, r[1] - r[0], 22); ctx.strokeRect(r[0], G.topY - 11, r[1] - r[0], 22);
+      ctx.fillStyle = c.fg; ctx.fillText(t, (r[0] + r[1]) / 2, G.topY + 4);
+    });
+    L(ctx, [[G.r1[1], G.topY], [G.cl[0], G.cl[1]]]);
+    L(ctx, [[G.cr[0], G.cr[1]], [G.r2[0], G.topY]]);
+    // Schalter
+    const blade = o.mode === "charge" ? [G.cl[0] + 2, G.cl[1] + 6] : o.mode === "discharge" ? [G.cr[0] - 2, G.cr[1] + 6] : [G.pv[0] + 18, G.pv[1] - 44];
+    ctx.lineWidth = 2.6; L(ctx, [G.pv, blade]); ctx.lineWidth = 2.2;
+    [G.cl, G.cr].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fillStyle = c.surf; ctx.fill(); ctx.stroke(); });
+    ctx.beginPath(); ctx.arc(G.pv[0], G.pv[1], 4, 0, 7); ctx.fillStyle = c.fg; ctx.fill();
+    // Kondensator, Leitungen
+    L(ctx, [G.pv, [G.pv[0], G.pt]]);
+    L(ctx, [[G.pv[0], G.pb], [G.pv[0], G.botY]]);
+    ctx.lineWidth = 3; L(ctx, [[170, G.pt], [250, G.pt]]); L(ctx, [[170, G.pb], [250, G.pb]]); ctx.lineWidth = 2.2;
+    ctx.fillStyle = c.dim; ctx.textAlign = "left"; ctx.fillText("C", 255, 164); ctx.textAlign = "center";
+    // Voltmeter
+    L(ctx, [[G.pv[0], 128], [G.vm[0], 128], [G.vm[0], G.vm[1] - 14]]);
+    L(ctx, [[G.vm[0], G.vm[1] + 14], [G.vm[0], G.botY]]);
+    ctx.beginPath(); ctx.arc(G.vm[0], G.vm[1], 14, 0, 7); ctx.fillStyle = c.surf; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = c.fg; ctx.font = "bold 13px system-ui, sans-serif"; ctx.fillText("V", G.vm[0], G.vm[1] + 4.5); ctx.font = "12px system-ui, sans-serif";
+    // Knoten unten
+    [[G.pv[0], G.botY], [G.vm[0], G.botY]].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fill(); });
+    [[G.pv[0], 128]].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fill(); });
+    // Masse-Zeichen
+    ctx.fillStyle = c.dim; ctx.textAlign = "left"; ctx.fillText("0 V", 52, G.botY - 6); ctx.textAlign = "center";
+  }
+  // Potenziale (Bezug: unterer Draht = 0 V) für Schalterstellung und Kondensatorspannung
+  function potentials(mode, U0, Uc) {
+    if (mode === "charge") return { A: U0, B: Uc, C: Uc, D: 0, E: 0, F: 0 };
+    if (mode === "discharge") return { A: U0, B: U0, C: Uc, D: Uc, E: 0, F: 0 };
+    return { A: U0, B: U0, C: Uc, D: 0, E: 0, F: 0 };
+  }
+  function pathLen(pts) { let s = 0; for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return s; }
+  function pointAt(pts, d) {
+    for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= l) { const t = d / l; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t]; } d -= l; }
+    return pts[pts.length - 1];
+  }
+  const P_CHARGE = [[[G.bx, G.by1], [G.bx, G.topY], [G.cl[0], G.topY], [G.pv[0], G.pv[1]], [G.pv[0], G.pt]], [[G.pv[0], G.pb], [G.pv[0], G.botY], [G.bx, G.botY], [G.bx, G.by2]]];
+  const P_DISCH = [[[G.pv[0], G.pt], [G.pv[0], G.pv[1]], [G.cr[0], G.topY], [G.rx, G.topY], [G.rx, G.botY], [G.pv[0], G.botY], [G.pv[0], G.pb]]];
+
+  // ------------------------------------------------------------ Simulation 1: RC-Schaltung
+  SIMS.push({
+    id: "rc", title: "RC-Schaltung", desc: "Laden und Entladen mit Schalter, Voltmeter und Kurven", sheet: "ladung",
+    icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 18c4 0 5-12 9-12s5 12 9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    make(host) {
+      const st = stage(360, 250), pl = stage(360, 175);
+      const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1 };
+      let mode = "open", Q = 0, t = 0, qty = "U", showTau = true, showPot = false, hist = [], histT = 0, ev = null, phase = 0;
+      const tau = m => (m === "charge" ? P.R1 : P.R2) * P.C / 1000; // kΩ·µF = ms
+      const Uc = () => Q / P.C;
+      function setMode(m) {
+        if (m === mode) return;
+        mode = m; segMode.set(m);
+        if (m !== "open") ev = { t0: t, Ustart: Uc(), Uinf: m === "charge" ? P.U0 : 0, tau: tau(m), mode: m };
+        else ev = null;
+      }
+      host.append(st.c);
+      const info = el("div", "sim-info"); host.append(info);
+      const segMode = seg(host, { label: "Schalter", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: "open", onChange: setMode });
+      const ctl = el("div", "sim-ctl"); host.append(ctl);
+      slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
+      slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
+      slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); } });
+      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { const u = Uc(); P.C = v; Q = u * v; if (ev) ev.tau = tau(ev.mode); } });
+      slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { P.speed = v; } });
+      const acts = el("div", "sim-acts"); host.append(acts);
+      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; histT = 0; ev = null; mode = "open"; segMode.set("open"); });
+      const tb = button(acts, "τ zeigen: an", () => { showTau = !showTau; tb.textContent = "τ zeigen: " + (showTau ? "an" : "aus"); });
+      const pb = button(acts, "Potenziale: aus", () => { showPot = !showPot; pb.textContent = "Potenziale: " + (showPot ? "an" : "aus"); });
+      host.append(pl.c);
+      seg(host, { label: "Kurve", options: [{ v: "U", t: "Uc(t)" }, { v: "I", t: "I(t)" }, { v: "Q", t: "Q(t)" }], value: "U", onChange: v => { qty = v; } });
+      const ro = readouts(host, [["u", "Kondensatorspannung"], ["i", "Stromstärke"], ["q", "Ladung"], ["tau", "Zeitkonstante"]]);
+      notes(host, "Aufgaben", [
+        "Lege den Schalter nach links und beobachte $U_C$. Wann ist der Kondensator nach etwa $5\\tau$ voll?",
+        "Verdopple $R_1$. Wie ändert sich $\\tau$, wie die Form der Kurve?",
+        "Lade bis fast voll, dann <b>Offen</b>: Was passiert mit $U_C$? Warum?",
+        "Schalte auf <b>Entladen</b> und lies die Spannung nach genau $\\tau$ ab. Welchen Bruchteil von $U_0$ erwartest du?",
+        "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen."
+      ]);
+
+      function step(dt) {
+        const ds = dt * P.speed;
+        t += ds;
+        if (mode !== "open") {
+          const tc = tau(mode), Qinf = mode === "charge" ? P.C * P.U0 : 0;
+          Q = Qinf + (Q - Qinf) * Math.exp(-ds / tc);
+        }
+        histT += ds;
+        while (histT >= 0.04) { histT -= 0.04; hist.push([t, Uc(), curI()]); if (hist.length > 5000) hist.shift(); }
+        const I = Math.abs(curI());
+        phase += (I > 0.005 ? 30 + 16 * I : 0) * dt * Math.min(P.speed, 2) * 0.8;
+      }
+      function curI() { return mode === "charge" ? (P.U0 - Uc()) / P.R1 : mode === "discharge" ? -Uc() / P.R2 : 0; } // mA
+
+      function draw() {
+        const c = colors(), x = st.ctx;
+        st.fit();
+        // Elektronen (zuerst, damit Widerstände und Beschriftung darüber liegen)
+        const paths = mode === "charge" ? P_CHARGE : mode === "discharge" ? P_DISCH : [];
+        paths.forEach(pts => {
+          const len = pathLen(pts), n = Math.max(4, Math.round(len / 22));
+          x.fillStyle = c.neg;
+          for (let i = 0; i < n; i++) {
+            const d = (((i * len / n) - phase) % len + len) % len;
+            const p = pointAt(pts, d);
+            x.beginPath(); x.arc(p[0], p[1], 2.6, 0, 7); x.fill();
+          }
+        });
+        drawCircuit(x, c, { mode, R1lab: "R₁=" + de(P.R1) + "k", R2lab: "R₂=" + de(P.R2) + "k", U0lab: P.U0 + " V" });
+        // Platten: Ladungen und Feld
+        const f = clamp(Uc() / 12, 0, 1), n = Math.round(f * 8);
+        x.font = "bold 12px system-ui, sans-serif"; x.textAlign = "center";
+        for (let i = 0; i < n; i++) { const px = 176 + i * (68 / Math.max(7, n - 1)) + 3; x.fillStyle = c.pos; x.fillText("+", px, G.pt - 5); x.fillStyle = c.neg; x.fillText("−", px, G.pb + 13); }
+        x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.2;
+        const na = Math.round(f * 5);
+        for (let i = 0; i < na; i++) { const px = 182 + i * 15, len = 4 + 10 * f; L(x, [[px, G.pt + 3], [px, G.pb - 3]]); x.beginPath(); x.moveTo(px, G.pb - 3); x.lineTo(px - 3, G.pb - 8); x.lineTo(px + 3, G.pb - 8); x.fill(); }
+        x.lineWidth = 2.2;
+        // Voltmeter-Anzeige
+        x.fillStyle = c.accent; x.font = "bold 13px system-ui, sans-serif"; x.textAlign = "left";
+        x.textAlign = "center"; x.fillText(de(Uc(), 3) + " V", 250, 206); x.textAlign = "left";
+        // Potenziale
+        if (showPot) {
+          const pot = potentials(mode, P.U0, Uc());
+          x.font = "bold 11px system-ui, sans-serif"; x.textAlign = "center";
+          Object.keys(NODES).forEach(k => {
+            const nd = NODES[k], v = pot[k], txt = k + ": " + de(v, 3) + " V";
+            const w = x.measureText(txt).width + 8;
+            x.fillStyle = c.surf; x.strokeStyle = c.accent; x.lineWidth = 1.2;
+            x.beginPath(); x.rect(nd.x - w / 2, nd.y - 16, w, 15); x.fill(); x.stroke();
+            x.fillStyle = c.accent; x.fillText(txt, nd.x, nd.y - 5);
+          });
+          x.lineWidth = 2.2;
+        }
+        // Zahlen
+        ro({ u: de(Uc(), 3) + " V", i: de(curI(), 3) + " mA", q: de(Q, 3) + " µC", tau: de(tau(mode === "open" ? "charge" : mode), 3) + " s" });
+        info.textContent = mode === "charge" ? "Laden: Strom fließt über R₁ zur Platte. Elektronen (blau) wandern entgegen der technischen Stromrichtung."
+          : mode === "discharge" ? "Entladen: Der Kondensator treibt den Strom über R₂. Die Spannung sinkt exponentiell."
+          : "Schalter offen: keine Verbindung, die Ladung bleibt (ideal).";
+        drawPlot(c);
+      }
+
+      function niceW(x) { const v = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200]; return v.find(a => a >= x) || 200; }
+      function drawPlot(c) {
+        pl.fit();
+        const x = pl.ctx, X0 = 44, X1 = 350, Y0 = 14, Y1 = 142;
+        const W = niceW(5.5 * Math.max(tau("charge"), tau("discharge")));
+        const t0 = Math.max(0, t - W), t1 = t0 + W;
+        let ymin = 0, ymax, unit, key;
+        if (qty === "U") { ymax = Math.max(P.U0, 1) * 1.08; unit = "V"; key = 1; }
+        else if (qty === "I") { const m = P.U0 / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; unit = "mA"; key = 2; }
+        else { ymax = P.C * P.U0 * 1.08; unit = "µC"; key = 3; }
+        const sx = tt => X0 + (tt - t0) / W * (X1 - X0), sy = v => Y1 - (v - ymin) / (ymax - ymin) * (Y1 - Y0);
+        x.font = "11px system-ui, sans-serif"; x.lineWidth = 1; x.textAlign = "right";
+        // Gitter und Achsen
+        for (let i = 0; i <= 4; i++) {
+          const v = ymin + (ymax - ymin) * i / 4, yy = sy(v);
+          x.strokeStyle = c.border; L(x, [[X0, yy], [X1, yy]]);
+          x.fillStyle = c.dim; x.fillText(de(v, 2), X0 - 5, yy + 4);
+        }
+        x.textAlign = "center";
+        for (let i = 0; i <= 5; i++) { const tt = t0 + W * i / 5, xx = sx(tt); x.strokeStyle = c.border; L(x, [[xx, Y0], [xx, Y1]]); x.fillStyle = c.dim; x.fillText(de(tt, 3), xx, Y1 + 14); }
+        x.fillStyle = c.dim; x.textAlign = "left"; x.fillText(qty === "U" ? "Uc in V" : qty === "I" ? "I in mA" : "Q in µC", X0 + 6, 11);
+        x.textAlign = "right"; x.fillText("t in s", X1, Y1 + 28);
+        if (qty === "I") { x.strokeStyle = c.dim; L(x, [[X0, sy(0)], [X1, sy(0)]]); }
+        x.save(); x.beginPath(); x.rect(X0, Y0 - 2, X1 - X0, Y1 - Y0 + 4); x.clip();
+        // ideale Kurve und τ-Marke (nur für Uc)
+        if (showTau && ev && qty === "U") {
+          x.strokeStyle = c.warn; x.fillStyle = c.warn; x.setLineDash([4, 4]); x.lineWidth = 1.4;
+          x.beginPath();
+          for (let i = 0; i <= 60; i++) { const tt = Math.max(ev.t0, t0) + (t1 - Math.max(ev.t0, t0)) * i / 60; const v = ev.Uinf + (ev.Ustart - ev.Uinf) * Math.exp(-(tt - ev.t0) / ev.tau); i ? x.lineTo(sx(tt), sy(v)) : x.moveTo(sx(tt), sy(v)); }
+          x.stroke();
+          const tt = ev.t0 + ev.tau, v = ev.Uinf + (ev.Ustart - ev.Uinf) / Math.E;
+          L(x, [[sx(tt), Y1], [sx(tt), sy(v)]]); L(x, [[X0, sy(v)], [sx(tt), sy(v)]]);
+          x.setLineDash([]); x.beginPath(); x.arc(sx(tt), sy(v), 3.5, 0, 7); x.fill();
+          x.font = "11px system-ui, sans-serif"; x.textAlign = "left"; x.fillText("τ", sx(tt) + 4, Y1 - 4);
+        }
+        x.setLineDash([]); x.lineWidth = 2.4; x.strokeStyle = qty === "U" ? c.accent : qty === "I" ? c.bad : c.ok;
+        x.beginPath(); let started = false;
+        for (let i = 0; i < hist.length; i++) { const h = hist[i]; if (h[0] < t0 - 0.1) continue; const px = sx(h[0]), py = sy(key === 3 ? h[1] * P.C : h[key]); started ? x.lineTo(px, py) : x.moveTo(px, py); started = true; }
+        x.stroke(); x.restore();
+        x.lineWidth = 1;
+      }
+      // Klick auf den Schalter wechselt die Stellung
+      st.c.addEventListener("click", e => { const p = st.pos(e); if (p.y < 110 && p.x > 150 && p.x < 270) setMode(mode === "open" ? "charge" : mode === "charge" ? "discharge" : "open"); });
+      return { step, draw };
+    }
+  });
+
+  // ------------------------------------------------------------ Simulation 2: Differenzialgleichung (Euler-Verfahren)
+  SIMS.push({
+    id: "euler", title: "Differenzialgleichung", desc: "Die Kurve Schritt für Schritt aus der Dgl. bauen (Euler-Verfahren)", sheet: "ladung",
+    icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 5l4 4 3 2 3 3 3 2 5 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    make(host) {
+      const st = stage(360, 235);
+      let m = "dis", dtau = 0.5, k = 0; // k = Anzahl gezeigter Schritte
+      host.append(st.c);
+      const eq = el("div", "sim-eq"); host.append(eq);
+      seg(host, { label: "Vorgang", options: [{ v: "dis", t: "Entladen" }, { v: "ch", t: "Aufladen" }], value: "dis", onChange: v => { m = v; k = 0; } });
+      const ctl = el("div", "sim-ctl"); host.append(ctl);
+      slider(ctl, { label: "Schrittweite Δt", min: 0.1, max: 1.5, step: 0.05, value: dtau, fmt: v => de(v) + " τ", onInput: v => { dtau = v; k = 0; } });
+      const acts = el("div", "sim-acts"); host.append(acts);
+      const N = () => Math.ceil(5 / dtau - 1e-9);
+      button(acts, "Nächster Schritt", () => { k = Math.min(N(), k + 1); }, "primary");
+      button(acts, "Alle Schritte", () => { k = N(); });
+      button(acts, "Zurück", () => { k = 0; });
+      const tbl = el("div", "sim-table"); host.append(tbl);
+      notes(host, "Aufgaben", [
+        "Klicke dich durch die Schritte. Jeder Schritt folgt der <b>Tangente</b> im aktuellen Punkt.",
+        "Wähle $\\Delta t = 1{,}5\\,\\tau$ und dann $0{,}1\\,\\tau$. Wie ändert sich der Abstand zur exakten Kurve?",
+        "Warum liegt das Näherungsverfahren beim Entladen immer <b>unter</b> der exakten Kurve und beim Aufladen auch?"
+      ]);
+      const f = y => m === "dis" ? -y : 1 - y, ex = t => m === "dis" ? Math.exp(-t) : 1 - Math.exp(-t);
+      function draw() {
+        const c = colors(), x = st.ctx; st.fit();
+        const X0 = 40, X1 = 350, Y0 = 14, Y1 = 195, sx = t => X0 + t / 5 * (X1 - X0), sy = y => Y1 - y * (Y1 - Y0);
+        x.font = "11px system-ui, sans-serif"; x.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) { const y = i / 4; x.strokeStyle = c.border; L(x, [[X0, sy(y)], [X1, sy(y)]]); x.fillStyle = c.dim; x.textAlign = "right"; x.fillText(de(y, 2), X0 - 5, sy(y) + 4); }
+        for (let i = 0; i <= 5; i++) { x.strokeStyle = c.border; L(x, [[sx(i), Y0], [sx(i), Y1]]); x.fillStyle = c.dim; x.textAlign = "center"; x.fillText(i + "τ", sx(i), Y1 + 14); }
+        x.textAlign = "left"; x.fillStyle = c.dim; x.fillText(m === "dis" ? "U / U₀" : "U / U₀", 4, 10);
+        // exakte Kurve
+        x.lineWidth = 2.4; x.strokeStyle = c.accent; x.beginPath();
+        for (let i = 0; i <= 100; i++) { const t = i / 20; i ? x.lineTo(sx(t), sy(ex(t))) : x.moveTo(sx(t), sy(ex(t))); } x.stroke();
+        x.fillStyle = c.accent; x.textAlign = "right"; x.fillText("exakt", X1, m === "dis" ? sy(ex(0.9)) - 4 : sy(ex(3.2)) + 14);
+        // Euler
+        let y = m === "dis" ? 1 : 0; const pts = [[0, y]];
+        for (let i = 0; i < k; i++) { const ny = y + f(y) * dtau; pts.push([(i + 1) * dtau, ny]); y = ny; }
+        x.lineWidth = 2; x.strokeStyle = c.warn; x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(sx(Math.min(p[0], 5.2)), sy(p[1])) : x.moveTo(sx(p[0]), sy(p[1]))); x.stroke();
+        pts.forEach((p, i) => {
+          x.fillStyle = c.warn; x.beginPath(); x.arc(sx(p[0]), sy(p[1]), 3.4, 0, 7); x.fill();
+          if (i > 0) { x.strokeStyle = c.dim; x.setLineDash([2, 3]); x.lineWidth = 1; L(x, [[sx(p[0]), sy(p[1])], [sx(p[0]), sy(ex(p[0]))]]); x.setLineDash([]); }
+        });
+        // aktuelle Tangente (nächster Schritt)
+        if (k < N()) { const p = pts[pts.length - 1]; x.strokeStyle = c.warn; x.setLineDash([5, 4]); x.lineWidth = 1.4; L(x, [[sx(p[0]), sy(p[1])], [sx(p[0] + dtau), sy(p[1] + f(p[1]) * dtau)]]); x.setLineDash([]); }
+        // Text
+        const cur = pts[pts.length - 1];
+        if (eq._k !== m) {
+          eq._k = m;
+          eq.innerHTML = m === "dis"
+            ? "$\\dfrac{\\mathrm{d}U}{\\mathrm{d}t} = -\\dfrac{U}{\\tau}\\;\\Rightarrow\\; U_{n+1} = U_n - \\dfrac{U_n}{\\tau}\\,\\Delta t$"
+            : "$\\dfrac{\\mathrm{d}U}{\\mathrm{d}t} = \\dfrac{U_0 - U}{\\tau}\\;\\Rightarrow\\; U_{n+1} = U_n + \\dfrac{U_0 - U_n}{\\tau}\\,\\Delta t$";
+          A.render(eq);
+        }
+        let rows = "";
+        const show = Math.min(k, 5); let yy = m === "dis" ? 1 : 0;
+        for (let i = 0; i < show; i++) { const ny = yy + f(yy) * dtau; rows += "<tr><td>" + i + "</td><td>" + de(i * dtau, 2) + " τ</td><td>" + de(yy, 3) + "</td><td>" + (f(yy) * dtau >= 0 ? "+" : "−") + de(Math.abs(f(yy) * dtau), 3) + "</td><td>" + de(ny, 3) + "</td></tr>"; yy = ny; }
+        const key = k + "|" + m + "|" + dtau;
+        if (tbl._k !== key) {
+          tbl._k = key;
+          let info = "";
+          if (k > 0) { const t = k * dtau, e = ex(t); info = "<p class='fine tight'>Nach " + k + " Schritten (t = " + de(t, 2) + " τ): Näherung " + de(cur[1], 3) + ", exakt " + de(e, 3) + ", Abweichung " + de(Math.abs(cur[1] - e) * 100, 2) + " Prozentpunkte.</p>"; }
+          tbl.innerHTML = k ? "<table class='cmp'><tr><th>n</th><th>t</th><th>Uₙ/U₀</th><th>ΔU/U₀</th><th>Uₙ₊₁/U₀</th></tr>" + rows + "</table>" + info : "<p class='fine tight'>Tippe auf „Nächster Schritt“. Start: " + (m === "dis" ? "U = U₀" : "U = 0") + ".</p>";
+        }
+      }
+      return { draw };
+    }
+  });
+
+  // ------------------------------------------------------------ Übung: Schaltung beschriften
+  const LABEL_N = 5;
+  let lab = null;
+  function newScenario(round) {
+    const lvl = lab.lvl;
+    const U0 = rnd([6, 9, 12]);
+    let mode, Uc, title;
+    if (lvl === 1) {
+      mode = rnd(["charge", "discharge"]);
+      if (mode === "charge") { Uc = rnd([0, U0]); title = Uc === 0 ? "Schalter links, ganz am Anfang (t = 0): Der Kondensator ist noch leer." : "Schalter links, lange gewartet (t → ∞): Der Kondensator ist voll."; }
+      else { Uc = U0; title = "Schalter rechts, ganz am Anfang des Entladens (t = 0): Der Kondensator ist voll."; }
+    } else {
+      mode = rnd(["charge", "discharge", lvl === 3 ? "open" : "charge"]);
+      Uc = U0 * rnd([1 / 3, 1 / 2, 2 / 3]);
+      title = mode === "charge" ? "Schalter links, Kondensator teilweise geladen: U_C = " + de(Uc) + " V."
+        : mode === "discharge" ? "Schalter rechts, Kondensator entlädt sich gerade: U_C = " + de(Uc) + " V."
+        : "Schalter offen, Kondensator hat U_C = " + de(Uc) + " V.";
+    }
+    const pot = potentials(mode, U0, Uc);
+    const nodes = lvl === 1 ? ["A", "B", "C", "D", "E"] : ["A", "B", "C", "D", "E", "F"];
+    const vals = Array.from(new Set([0, U0, Uc, U0 - Uc].map(v => Math.round(v * 100) / 100))).sort((a, b) => a - b);
+    return { mode, U0, Uc, title, pot, nodes, vals, answers: {}, sel: nodes[0], checked: false };
+  }
+  function why(sc, k) {
+    const { mode, U0, Uc } = sc, v = sc.pot[k];
+    const R1 = "Am Widerstand R₁", R2 = "Am Widerstand R₂";
+    const txt = {
+      A: "A liegt direkt am Pluspol der Quelle: " + de(U0) + " V.",
+      F: "F liegt am unteren Draht, das ist der Bezugspunkt: 0 V.",
+      C: "C ist die obere Kondensatorplatte. Ihr Potenzial ist die Kondensatorspannung: " + de(Uc) + " V.",
+      B: mode === "charge" ? "B hängt über den geschlossenen Schalter an der oberen Platte: " + de(Uc) + " V. Der Spannungsabfall an R₁ ist " + de(U0 - Uc) + " V."
+        : "Der linke Zweig führt keinen Strom. Ohne Strom fällt an R₁ nichts ab, also hat B dasselbe Potenzial wie A: " + de(U0) + " V.",
+      D: mode === "discharge" ? "D hängt über den geschlossenen Schalter an der oberen Platte: " + de(Uc) + " V."
+        : "Der rechte Zweig führt keinen Strom, an R₂ fällt nichts ab. D liegt wie der untere Draht bei 0 V.",
+      E: mode === "discharge" ? "E liegt hinter R₂ am unteren Draht: 0 V. An R₂ fallen " + de(Uc) + " V ab." : "E liegt über den rechten Draht am unteren Draht: 0 V."
+    }[k];
+    return txt;
+  }
+  function renderLabel() {
+    const host = $("#label-host"); host.innerHTML = "";
+    const sc = lab.sc;
+    $("#label-count").textContent = "Aufgabe " + (lab.i + 1) + " von " + LABEL_N + " · " + lab.pts + " richtig";
+    $("#label-progress-bar").style.width = (lab.i / LABEL_N * 100) + "%";
+    const card = el("div", "panel label-card");
+    card.append(el("p", "label-q", "<b>" + sc.title + "</b><br><span class='fine'>Quelle: U₀ = " + de(sc.U0) + " V. Der untere Draht ist Bezugspunkt (0 V). Trage die Potenziale an den Punkten A bis " + sc.nodes[sc.nodes.length - 1] + " ein.</span>"));
+    const wrap = el("div", "circuit-wrap");
+    const cv = stage(360, 250); wrap.append(cv.c);
+    sc.nodes.forEach(k => {
+      const b = el("button", "node", k); b.type = "button"; b.dataset.k = k;
+      b.style.left = (NODES[k].x / 360 * 100) + "%"; b.style.top = (NODES[k].y / 250 * 100) + "%";
+      b.addEventListener("click", () => { if (sc.checked) return; sc.sel = k; paint(); });
+      wrap.append(b);
+    });
+    card.append(wrap);
+    const tray = el("div", "chips-tray");
+    tray.append(el("span", "sim-lab", "Wert wählen:"));
+    sc.vals.forEach(v => { const b = el("button", "chip val", de(v) + " V"); b.type = "button"; b.addEventListener("click", () => { if (sc.checked || !sc.sel) { if (!sc.sel) A.toast("Tippe zuerst einen Punkt (A, B, …) an."); return; } sc.answers[sc.sel] = v; const i = sc.nodes.indexOf(sc.sel); sc.sel = sc.nodes[i + 1] || sc.sel; paint(); }); tray.append(b); });
+    card.append(tray);
+    const list = el("div", "node-list"); card.append(list);
+    const fb = el("div", "fb", ""); fb.hidden = true; card.append(fb);
+    const acts = el("div", "start-actions");
+    const chk = button(acts, "Prüfen", () => check(), "primary"); const nxt = button(acts, "Weiter", () => next()); nxt.hidden = true;
+    card.append(acts); host.append(card);
+
+    function paint() {
+      list.innerHTML = sc.nodes.map(k => '<span class="nl' + (sc.checked ? (Math.abs((sc.answers[k] ?? NaN) - sc.pot[k]) < 1e-6 ? " ok" : " bad") : "") + '"><b>' + k + "</b> " + (k in sc.answers ? de(sc.answers[k]) + " V" : "–") + "</span>").join("");
+      wrap.querySelectorAll(".node").forEach(b => {
+        const k = b.dataset.k, has = k in sc.answers;
+        b.classList.toggle("sel", sc.sel === k); b.classList.toggle("has", has);
+        b.textContent = has ? k + " = " + de(sc.answers[k]) : k;
+        if (sc.checked) { const ok = Math.abs((sc.answers[k] ?? NaN) - sc.pot[k]) < 1e-6; b.classList.toggle("ok", ok); b.classList.toggle("bad", !ok); }
+      });
+      chk.disabled = !sc.nodes.every(k => k in sc.answers) || sc.checked;
+    }
+    function check() {
+      sc.checked = true;
+      const wrong = sc.nodes.filter(k => Math.abs((sc.answers[k] ?? NaN) - sc.pot[k]) > 1e-6);
+      if (!wrong.length) lab.pts++;
+      fb.hidden = false; fb.className = "fb " + (wrong.length ? "bad" : "good");
+      fb.innerHTML = '<p class="fb-title">' + (wrong.length ? "Nicht ganz: " + wrong.join(", ") + " stimmt nicht" : "Alles richtig") + "</p>" +
+        sc.nodes.map(k => "<p><b>" + k + "</b> = " + de(sc.pot[k]) + " V. " + why(sc, k) + "</p>").join("");
+      chk.hidden = true; nxt.hidden = false; nxt.textContent = lab.i === LABEL_N - 1 ? "Ergebnis" : "Weiter"; paint();
+      const s = (S.stats.label || (S.stats.label = { n: 0, ok: 0 })); s.n++; if (!wrong.length) s.ok++; A.save();
+    }
+    function next() {
+      lab.i++;
+      if (lab.i >= LABEL_N) { finishLabel(); return; }
+      lab.sc = newScenario(lab.i); renderLabel();
+    }
+    paint();
+    lab.draw = () => {
+      const c = colors(); cv.fit();
+      drawCircuit(cv.ctx, c, { mode: sc.mode, R1lab: "R₁", R2lab: "R₂", U0lab: "U₀" });
+    };
+  }
+  function finishLabel() {
+    stopLoop();
+    $("#result-title").textContent = "Übung beendet";
+    $("#result-sub").textContent = lab.pts + " von " + LABEL_N + " Schaltungen komplett richtig.";
+    const sc = $("#result-score"); sc.hidden = false; const pct = Math.round(lab.pts / LABEL_N * 100);
+    sc.innerHTML = '<div class="scorebar"><div style="width:' + pct + '%"></div></div><p class="bignum">' + pct + " %</p>";
+    $("#result-review").hidden = true;
+    A.customAgain = startLabel;
+    A.show("result");
+    if (pct >= 80) A.confetti();
+  }
+  function startLabel() {
+    const lvls = S.levels;
+    lab = { i: 0, pts: 0, lvl: rnd(lvls), draw: null };
+    lab.sc = newScenario(0);
+    A.show("label");
+    renderLabel();
+    startLoop({ draw: () => lab.draw && lab.draw() });
+  }
+  $("#m-label").addEventListener("click", startLabel);
+  $("#label-quit").addEventListener("click", () => A.home());
+  const origStat = () => { const s = S.stats.label; $("#stat-label").textContent = s && s.n ? Math.round(s.ok / s.n * 100) + " % richtig · " + s.n + " Schaltungen" : "Noch nicht gespielt"; };
+  A.onShow(n => { if (n === "start") origStat(); });
+  origStat();
+
+  // Öffentliche Schnittstelle für sims2.js
+  window.PHYS_SIMKIT = { labState: () => (lab ? lab.sc : null), potentials, A, S, $, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L, add: s => { SIMS.push(s); renderSimList(); }, G };
+  renderSimList();
+})();
+
+;
+/* Labor, Teil 2: Kondensator, Polarisation und Influenz, Millikan, Feldlinien. */
+(function () {
+  "use strict";
+  const K = window.PHYS_SIMKIT; if (!K) return;
+  const { A, el, clamp, rnd, de, colors, stage, slider, seg, button, notes, readouts, L } = K;
+  const E0 = 8.854e-12, QE = 1.602e-19, G = 9.81;
+  const arrow = (x, x1, y1, x2, y2, head) => {
+    x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke();
+    const a = Math.atan2(y2 - y1, x2 - x1), h = head || 6;
+    x.beginPath(); x.moveTo(x2, y2); x.lineTo(x2 - h * Math.cos(a - 0.45), y2 - h * Math.sin(a - 0.45)); x.lineTo(x2 - h * Math.cos(a + 0.45), y2 - h * Math.sin(a + 0.45)); x.closePath(); x.fill();
+  };
+  // deterministische Zufallszahlen für feste Anordnungen
+  const prng = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const ICON = p => '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' + p + "</svg>";
+
+  // ============================================================ Kondensator-Labor
+  K.add({
+    id: "kond", title: "Kondensator-Labor", desc: "Abstand, Fläche und Dielektrikum verändern: C, Q, U, E live", sheet: "kondensator",
+    icon: ICON('<path d="M4 9h16M4 15h16M12 3v6M12 15v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>'),
+    make(host) {
+      const st = stage(360, 250);
+      const P = { d: 3, A: 150, er: 1, U: 9, connected: true };
+      let Q0 = 0; // feste Ladung im getrennten Zustand
+      const C = () => E0 * P.er * (P.A * 1e-4) / (P.d * 1e-3);
+      const U = () => P.connected ? P.U : Q0 / C();
+      const Q = () => P.connected ? C() * P.U : Q0;
+      host.append(st.c);
+      seg(host, { label: "Quelle", options: [{ v: true, t: "Angeschlossen (U fest)" }, { v: false, t: "Getrennt (Q fest)" }], value: true, onChange: v => { if (!v) Q0 = C() * P.U; P.connected = v; } });
+      const ctl = el("div", "sim-ctl"); host.append(ctl);
+      const sU = slider(ctl, { label: "Spannung U (Quelle)", min: 1, max: 12, step: 1, value: P.U, fmt: v => v + " V", onInput: v => { P.U = v; } });
+      slider(ctl, { label: "Plattenabstand d", min: 1, max: 10, step: 0.5, value: P.d, fmt: v => de(v) + " mm", onInput: v => { P.d = v; } });
+      slider(ctl, { label: "Plattenfläche A", min: 50, max: 400, step: 10, value: P.A, fmt: v => v + " cm²", onInput: v => { P.A = v; } });
+      slider(ctl, { label: "Dielektrikum εᵣ", min: 1, max: 6, step: 0.5, value: P.er, fmt: v => v === 1 ? "Luft (1)" : de(v), onInput: v => { P.er = v; } });
+      const ro = readouts(host, [["c", "Kapazität C"], ["q", "Ladung Q"], ["u", "Spannung U"], ["e", "Feldstärke E"], ["w", "Energie W"]]);
+      notes(host, "Aufgaben", [
+        "<b>Angeschlossen:</b> Verdopple den Plattenabstand. Was passiert mit $C$, $Q$ und $E$?",
+        "<b>Getrennt:</b> Verdopple den Plattenabstand. Jetzt bleibt $Q$ gleich. Was macht $U$? Was macht $E$?",
+        "Setze $\\varepsilon_r$ hoch (Dielektrikum): Wie ändert sich $C$ bei angeschlossener, wie $U$ bei getrennter Quelle?",
+        "Prüfe $C = \\varepsilon_0\\varepsilon_r\\dfrac{A}{d}$ mit den angezeigten Werten."
+      ]);
+      function draw() {
+        const c = colors(), x = st.ctx; st.fit();
+        const gap = 14 + P.d * 7, len = 40 + Math.sqrt(P.A) * 10, cx = 180, y0 = 135 - gap / 2, y1 = y0 + gap;
+        const xl = cx - len / 2, xr = cx + len / 2;
+        // Zuleitungen
+        x.lineWidth = 2.2; x.strokeStyle = c.fg; x.lineCap = "round";
+        if (P.connected) { L(x, [[cx, y0], [cx, 40]]); L(x, [[cx, y1], [cx, 230], [60, 230], [60, 76]]); L(x, [[60, 40], [cx, 40]]); L(x, [[48, 60], [72, 60]]); x.lineWidth = 3.4; L(x, [[52, 76], [68, 76]]); x.lineWidth = 2.2; x.fillStyle = c.fg; x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("+", 76, 58); x.fillText("−", 76, 86); L(x, [[60, 40], [60, 60]]); x.textAlign = "right"; x.fillText(P.U + " V", 40, 72); }
+        else { L(x, [[cx, y0], [cx, 70]]); L(x, [[cx, y1], [cx, 200]]); x.setLineDash([3, 4]); x.strokeStyle = c.dim; x.fillStyle = c.dim; x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("von der Quelle getrennt", cx + 8, 60); x.setLineDash([]); }
+        // Dielektrikum
+        if (P.er > 1) {
+          x.fillStyle = "rgba(90,169,255," + (0.08 + 0.05 * P.er) + ")"; x.fillRect(xl, y0 + 2, len, gap - 4);
+          const a = clamp(U() / 12, 0, 1) * (1 - 1 / P.er) / (1 - 1 / 6) + 0.0; // Ausrichtung
+          x.lineWidth = 1.2;
+          const cols = Math.floor(len / 22), rows = Math.max(1, Math.floor((gap - 6) / 16));
+          for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+            const px = xl + 12 + i * (len - 24) / Math.max(1, cols - 1), py = y0 + (gap) * (j + 0.5) / rows;
+            x.strokeStyle = c.dim; L(x, [[px, py - 3.5], [px, py + 3.5]]);
+            x.fillStyle = c.pos; x.beginPath(); x.arc(px, py + 4, 1.6, 0, 7); x.fill();
+            x.fillStyle = c.neg; x.beginPath(); x.arc(px, py - 4, 1.6, 0, 7); x.fill();
+          }
+        }
+        // Platten
+        x.lineWidth = 4; x.strokeStyle = c.fg; L(x, [[xl, y0], [xr, y0]]); L(x, [[xl, y1], [xr, y1]]); x.lineWidth = 1;
+        // Ladungen und Feld
+        const E = U() / (P.d * 1e-3), Qmax = E0 * 1 * 0.04 * 12 / 1e-3;
+        const nq = Math.round(clamp(Q() / Qmax, 0, 1) * 14), ne = Math.round(clamp(E / 12000, 0, 1) * 12) + (E > 0 ? 1 : 0);
+        x.font = "bold 13px system-ui"; x.textAlign = "center";
+        for (let i = 0; i < nq; i++) { const px = xl + 8 + i * (len - 16) / Math.max(13, nq - 1); x.fillStyle = c.pos; x.fillText("+", px, y0 - 6); x.fillStyle = c.neg; x.fillText("−", px, y1 + 14); }
+        x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4;
+        for (let i = 0; i < ne; i++) { const px = xl + 10 + i * (len - 20) / Math.max(1, ne - 1); arrow(x, px, y0 + 2, px, y1 - 2, 5); }
+        // Maße
+        x.strokeStyle = c.dim; x.fillStyle = c.dim; x.lineWidth = 1; x.font = "11px system-ui"; x.textAlign = "left";
+        L(x, [[xr + 12, y0], [xr + 12, y1]]); x.fillText("d", xr + 18, 138);
+        x.textAlign = "center"; L(x, [[xl, y1 + 26], [xr, y1 + 26]]); x.fillText("A", cx, y1 + 40);
+        const cc = C(), qq = Q(), uu = U();
+        ro({ c: de(cc * 1e12, 3) + " pF", q: de(qq * 1e9, 3) + " nC", u: de(uu, 3) + " V", e: de(E / 1e3, 3) + " kV/m", w: de(0.5 * qq * uu * 1e9, 3) + " nJ" });
+      }
+      return { draw };
+    }
+  });
+
+  // ============================================================ Influenz, Polarisation, Faraday
+  K.add({
+    id: "pol", title: "Influenz & Polarisation", desc: "Animationen: Ladungstrennung, Dipole im Dielektrikum, Faradayscher Käfig", sheet: "influenz",
+    icon: ICON('<circle cx="9" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17 8v8M20 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
+    make(host) {
+      let tab = "inf";
+      const tabs = seg(host, { options: [{ v: "inf", t: "Influenz" }, { v: "pol", t: "Polarisation" }, { v: "far", t: "Faraday-Käfig" }], value: "inf", onChange: v => { tab = v; build(); } });
+      const body = el("div", ""); host.append(body);
+      let sim = null;
+      function build() { body.innerHTML = ""; sim = tab === "inf" ? influenz(body) : tab === "pol" ? polar(body) : faraday(body); }
+      build();
+      return { step: dt => sim.step && sim.step(dt), draw: () => sim.draw() };
+
+      // ---- Influenz: Metallkugel und negativer Stab
+      function influenz(h) {
+        const st = stage(360, 250); h.append(st.c);
+        const rd = prng(7), N = 28, pts = [];
+        for (let i = 0; i < N; i++) { const r = 46 * Math.sqrt((i + 0.5) / N), a = i * 2.39996; pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
+        void rd;
+        let gap = 80, grounded = false, shift = 0, removed = 0;
+        const status = el("div", "sim-info"); h.append(status);
+        const s = slider(h, { label: "Abstand Stab ↔ Kugel", min: 0, max: 100, step: 1, value: 80, fmt: v => v < 15 ? "sehr nah" : v > 85 ? "weit weg" : v + " %", onInput: v => { gap = v; } });
+        const acts = el("div", "sim-acts"); h.append(acts);
+        const gb = button(acts, "Erden: aus", () => { grounded = !grounded; gb.textContent = "Erden: " + (grounded ? "an" : "aus"); });
+        button(acts, "Neu beginnen", () => { gap = 80; s.set(80); grounded = false; gb.textContent = "Erden: aus"; removed = 0; shift = 0; });
+        notes(h, "Aufgaben", ["Führe den negativen Stab an die Kugel heran. Wohin wandern die beweglichen Elektronen?",
+          "Erde die Kugel (an), entferne dann die Erdung (aus) und erst danach den Stab. Wie ist die Kugel geladen?",
+          "Warum bleibt die Kugel ohne Erdung insgesamt neutral?"]);
+        const CX = 235, CY = 125, R = 62;
+        function step(dt) {
+          const k = clamp(1 - (6 + gap * 1.2) / 135, 0, 1);
+          shift += (k * 26 - shift) * Math.min(1, dt * 6);
+          if (grounded) { const target = Math.round(k * 8); removed += Math.sign(target - removed) * Math.min(Math.abs(target - removed), dt * 5); }
+        }
+        function draw() {
+          const c = colors(), x = st.ctx; st.fit();
+          const k = clamp(1 - (6 + gap * 1.2) / 135, 0, 1), edge = CX - R - (6 + gap * 1.2);
+          // Kugel
+          x.fillStyle = c.surf2; x.strokeStyle = c.fg; x.lineWidth = 2.4; x.beginPath(); x.arc(CX, CY, R, 0, 7); x.fill(); x.stroke();
+          const nRemoved = Math.round(removed);
+          const order = pts.map((p, i) => i).sort((a, b) => pts[b][0] - pts[a][0]);
+          const gone = new Set(order.slice(0, nRemoved));
+          x.font = "bold 12px system-ui"; x.textAlign = "center";
+          pts.forEach((p, i) => {
+            x.fillStyle = c.pos; x.fillText("+", CX + p[0], CY + p[1] + 4);
+            if (gone.has(i)) return;
+            let ex = p[0] + shift, ey = p[1]; const d = Math.hypot(ex, ey), lim = R - 9; if (d > lim) { ex *= lim / d; ey *= lim / d; }
+            x.fillStyle = c.neg; x.beginPath(); x.arc(CX + ex, CY + ey, 4.4, 0, 7); x.fill();
+            x.fillStyle = "#fff"; x.fillRect(CX + ex - 2.2, CY + ey - 0.5, 4.4, 1.1);
+          });
+          // Stab
+          x.fillStyle = c.surf; x.strokeStyle = c.neg; x.lineWidth = 2.4; x.beginPath(); x.rect(edge - 100, CY - 22, 100, 44); x.fill(); x.stroke();
+          x.fillStyle = c.neg; x.font = "bold 16px system-ui";
+          for (let i = 0; i < 5; i++) x.fillText("−", edge - 90 + i * 20, CY + 6);
+          // Erdung
+          if (grounded) {
+            x.strokeStyle = c.fg; x.lineWidth = 2; L(x, [[CX, CY + R], [CX, 225]]); L(x, [[CX - 14, 225], [CX + 14, 225]]); L(x, [[CX - 9, 232], [CX + 9, 232]]); L(x, [[CX - 4, 239], [CX + 4, 239]]);
+            if (Math.abs(removed - Math.round(removed)) > 0.01 || Math.abs(Math.round(k * 8) - removed) > 0.05) { x.fillStyle = c.neg; for (let i = 0; i < 3; i++) { const yy = CY + R + ((performance.now() / 12 + i * 22) % 66); x.beginPath(); x.arc(CX, yy, 3, 0, 7); x.fill(); } }
+          }
+          const net = Math.round(removed);
+          const farAndFree = !grounded && gap > 70;
+          status.textContent = net > 0 && farAndFree ? "Die Kugel ist jetzt positiv geladen: " + net + " Elektronen fehlen (Aufladung durch Influenz)."
+            : net > 0 && !grounded ? "Elektronen sind abgeflossen. Entferne den Stab, um die Ladung zu verteilen."
+            : grounded && k > 0.1 ? "Erdung: Die abgestoßenen Elektronen fließen zur Erde ab."
+            : k > 0.15 ? "Influenz: Die beweglichen Elektronen werden vom negativen Stab abgestoßen. Die Kugel ist insgesamt neutral."
+            : "Der Stab ist weit weg: Die Ladungen sind gleichmäßig verteilt.";
+        }
+        return { step, draw };
+      }
+
+      // ---- Polarisation: Dipole im Dielektrikum
+      function polar(h) {
+        const st = stage(360, 250); h.append(st.c);
+        let kind = "or", Es = 0, er = 4, t = 0;
+        const rd = prng(11), mol = [];
+        for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) mol.push({ x: 108 + i * 28, y: 82 + j * 26, th: rd() * 6.28, ph: rd() * 6.28, w: (rd() - 0.5) * 2 });
+        seg(h, { label: "Art", options: [{ v: "or", t: "Orientierung (polar, z. B. Wasser)" }, { v: "ve", t: "Verschiebung (Atome)" }], value: "or", onChange: v => { kind = v; } });
+        const ctl = el("div", "sim-ctl"); h.append(ctl);
+        slider(ctl, { label: "Feldstärke E₀", min: 0, max: 100, step: 1, value: 0, fmt: v => v + " %", onInput: v => { Es = v / 100; } });
+        slider(ctl, { label: "Dielektrikum εᵣ", min: 1.5, max: 6, step: 0.5, value: er, fmt: v => de(v), onInput: v => { er = v; } });
+        const info = el("div", "sim-info"); h.append(info);
+        notes(h, "Aufgaben", ["Schalte das Feld ein. Was machen die Dipole bzw. Atome?", "Wo entstehen die <b>Polarisationsladungen</b>? Welches Vorzeichen haben sie oben und unten?",
+          "Wie ändert sich das Feld im Dielektrikum? Vergleiche $E_0$ und $E_0/\\varepsilon_r$."]);
+        const align = () => Es * (1 - 1 / er) / (1 - 1 / 6);
+        function step(dt) {
+          t += dt; const a = align();
+          mol.forEach(m => {
+            if (kind === "or") {
+              const target = Math.PI / 2; // Pluspol zeigt in Feldrichtung (nach unten)
+              let d = ((target - m.th + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+              m.th += d * Math.min(1, dt * 4 * a) + (Math.sin(t * 3 + m.ph) * 1.8 * (1 - 0.85 * a) + m.w * 0.6) * dt * (1 - a * 0.9);
+            }
+          });
+        }
+        function draw() {
+          const c = colors(), x = st.ctx; st.fit();
+          const a = align();
+          // Platten
+          x.fillStyle = c.fg; x.fillRect(60, 28, 240, 6); x.fillRect(60, 216, 240, 6);
+          x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillStyle = c.pos; for (let i = 0; i < 8; i++) x.fillText("+", 74 + i * 30, 24);
+          x.fillStyle = c.neg; for (let i = 0; i < 8; i++) x.fillText("−", 74 + i * 30, 238);
+          // Feldpfeile außerhalb des Blocks
+          x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4;
+          if (Es > 0) [74, 286].forEach(px => arrow(x, px, 38, px, 38 + 20 + 120 * Es * 0.4 + 14, 6));
+          // Block
+          x.fillStyle = "rgba(90,169,255,.10)"; x.strokeStyle = c.dim; x.lineWidth = 1.5; x.fillRect(92, 62, 176, 116); x.strokeRect(92, 62, 176, 116);
+          // Moleküle
+          mol.forEach(m => {
+            if (kind === "or") {
+              const dx = Math.cos(m.th) * 9, dy = Math.sin(m.th) * 9;
+              x.strokeStyle = c.dim; x.lineWidth = 2; L(x, [[m.x - dx, m.y - dy], [m.x + dx, m.y + dy]]);
+              x.fillStyle = c.pos; x.beginPath(); x.arc(m.x + dx, m.y + dy, 3.6, 0, 7); x.fill();
+              x.fillStyle = c.neg; x.beginPath(); x.arc(m.x - dx, m.y - dy, 3.6, 0, 7); x.fill();
+            } else {
+              const sh = a * 7;
+              x.fillStyle = "rgba(62,123,255,.35)"; x.strokeStyle = c.neg; x.lineWidth = 1; x.beginPath(); x.arc(m.x, m.y - sh, 9.5, 0, 7); x.fill(); x.stroke();
+              x.fillStyle = c.pos; x.beginPath(); x.arc(m.x, m.y, 3.2, 0, 7); x.fill();
+            }
+          });
+          // Polarisationsladungen an der Oberfläche
+          const n = Math.round(a * 8);
+          x.font = "bold 13px system-ui"; x.textAlign = "center";
+          for (let i = 0; i < n; i++) { const px = 104 + i * 22; x.fillStyle = c.neg; x.fillText("−", px, 58); x.fillStyle = c.pos; x.fillText("+", px, 196); }
+          // Feld im Inneren
+          if (Es > 0) { x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.4; const len = 30 + 40 * Es * (1 / (1 + a * (er - 1) * 0.5)); arrow(x, 316, 70, 316, 70 + len, 6); x.font = "11px system-ui"; x.fillStyle = c.dim; x.textAlign = "left"; x.fillText("E", 322, 86); }
+          info.textContent = Es === 0 ? "Ohne Feld sind die Dipole ungeordnet bzw. die Atome unverformt."
+            : kind === "or" ? "Orientierungspolarisation: Die Dipole richten sich aus. Es entstehen gebundene Oberflächenladungen. E im Inneren: " + de(Es * 100) + " % von E₀ geteilt durch " + de(1 + a * (er - 1)) + "."
+            : "Verschiebungspolarisation: Die Elektronenhüllen verschieben sich gegen die Kerne. Es entstehen gebundene Oberflächenladungen. E im Inneren ist kleiner als E₀ (E = E₀/εᵣ).";
+        }
+        return { step, draw };
+      }
+
+      // ---- Faradayscher Käfig
+      function faraday(h) {
+        const st = stage(360, 250); h.append(st.c);
+        let cage = true, E = 0.6, t = 0;
+        seg(h, { label: "Käfig", options: [{ v: true, t: "Mit Käfig" }, { v: false, t: "Ohne Käfig" }], value: true, onChange: v => { cage = v; } });
+        slider(h, { label: "Feldstärke E", min: 10, max: 100, step: 1, value: 60, fmt: v => v + " %", onInput: v => { E = v / 100; } });
+        const info = el("div", "sim-info"); h.append(info);
+        notes(h, "Aufgaben", ["Schalte den Käfig ein. Was passiert mit dem Feld im Inneren?", "Wo sitzen die Influenzladungen auf dem Käfig und welches Vorzeichen haben sie?",
+          "Warum ist man in einem Auto bei Blitzschlag geschützt?"]);
+        const bx0 = 130, bx1 = 230, by0 = 85, by1 = 175;
+        function step(dt) { t += dt * (0.4 + 1.6 * E); }
+        function draw() {
+          const c = colors(), x = st.ctx; st.fit();
+          // Platten links (+) und rechts (−)
+          x.fillStyle = c.fg; x.fillRect(22, 30, 6, 190); x.fillRect(332, 30, 6, 190);
+          x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillStyle = c.pos; for (let i = 0; i < 6; i++) x.fillText("+", 14, 46 + i * 30);
+          x.fillStyle = c.neg; for (let i = 0; i < 6; i++) x.fillText("−", 346, 46 + i * 30);
+          // Feldlinien (animierte Pfeilspitzen)
+          x.strokeStyle = c.line; x.fillStyle = c.line; x.lineWidth = 1.6;
+          const ys = [45, 65, 85, 105, 125, 145, 165, 185, 205];
+          ys.forEach(y => {
+            const inside = cage && y > by0 && y < by1;
+            const segs = inside ? [[30, bx0], [bx1, 330]] : [[30, 330]];
+            segs.forEach(sg => {
+              L(x, [[sg[0], y], [sg[1], y]]);
+              const sp = 40, off = (t * 40) % sp;
+              for (let px = sg[0] + off; px < sg[1] - 4; px += sp) { x.beginPath(); x.moveTo(px + 6, y); x.lineTo(px, y - 3.5); x.lineTo(px, y + 3.5); x.fill(); }
+            });
+          });
+          if (cage) {
+            x.setLineDash([7, 4]); x.strokeStyle = c.fg; x.lineWidth = 3; x.fillStyle = c.surf2; x.fillRect(bx0, by0, bx1 - bx0, by1 - by0); x.strokeRect(bx0, by0, bx1 - bx0, by1 - by0); x.setLineDash([]);
+            const n = Math.round(2 + 6 * E); x.font = "bold 13px system-ui"; x.textAlign = "center";
+            for (let i = 0; i < n; i++) { const yy = by0 + 10 + i * (by1 - by0 - 20) / Math.max(1, n - 1); x.fillStyle = c.neg; x.fillText("−", bx0 + 9, yy + 4); x.fillStyle = c.pos; x.fillText("+", bx1 - 9, yy + 4); }
+            x.fillStyle = c.fg; x.font = "bold 14px system-ui"; x.fillText("E = 0", (bx0 + bx1) / 2, 133);
+          } else {
+            x.fillStyle = c.pos; x.beginPath(); x.arc(180, 130, 7, 0, 7); x.fill(); x.fillStyle = "#fff"; x.font = "bold 11px system-ui"; x.textAlign = "center"; x.fillText("+", 180, 134);
+            x.strokeStyle = c.warn; x.fillStyle = c.warn; x.lineWidth = 2.6; arrow(x, 190, 130, 190 + 50 * E, 130, 8); x.font = "11px system-ui"; x.textAlign = "left"; x.fillText("F = E·Q", 190, 150);
+          }
+          info.textContent = cage ? "Die Influenzladungen auf dem Käfig erzeugen ein Gegenfeld. Im Inneren heben sich beide Felder auf: E = 0, es wirkt keine Kraft."
+            : "Ohne Käfig wirkt auf die Probeladung die Kraft F = E·Q in Feldrichtung.";
+        }
+        return { step, draw };
+      }
+    }
+  });
+
+  // ============================================================ Millikan
+  K.add({
+    id: "mill", title: "Millikan-Versuch", desc: "Schwebespannung finden, Ladung berechnen, Messreihe auswerten", sheet: "millikan",
+    icon: ICON('<circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4 5h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
+    make(host) {
+      const st = stage(360, 260); host.append(st.c);
+      const d = 5e-3, eta = 1.8e-5, rho = 880, SPEED = 300; // Zeitraffer
+      let U = 0, drop, rows = [], y = 0.5;
+      function newDrop() {
+        const r = (0.75 + Math.random() * 0.25) * 1e-6, n = 1 + Math.floor(Math.random() * 5);
+        drop = { r, n, m: 4 / 3 * Math.PI * r ** 3 * rho, q: n * QE };
+        y = 0.55; U = 0; sU.set(0);
+      }
+      const ctl = el("div", "sim-ctl"); host.append(ctl);
+      const sU = slider(ctl, { label: "Spannung U", min: 0, max: 1500, step: 1, value: 0, fmt: v => v + " V", onInput: v => { U = v; } });
+      const acts = el("div", "sim-acts"); host.append(acts);
+      [[-10, "−10 V"], [-1, "−1 V"], [1, "+1 V"], [10, "+10 V"]].forEach(([dv, t]) => button(acts, t, () => { U = clamp(U + dv, 0, 1500); sU.set(U); }));
+      const acts2 = el("div", "sim-acts"); host.append(acts2);
+      button(acts2, "Neues Tröpfchen", () => newDrop());
+      button(acts2, "Schwebespannung notieren", () => record(), "primary");
+      const info = el("div", "sim-info"); host.append(info);
+      const ro = readouts(host, [["m", "Masse m (bekannt)"], ["fel", "elektrische Kraft"], ["fg", "Gewichtskraft"], ["v", "Geschwindigkeit"]]);
+      const tbl = el("div", "sim-table"); host.append(tbl);
+      notes(host, "Aufgaben", ["Stelle die Spannung so ein, dass das Tröpfchen <b>schwebt</b>. Nutze die Feinstufen.",
+        "Berechne $q = \\dfrac{m\\,g\\,d}{U}$ und vergleiche mit $e = 1{,}602\\cdot10^{-19}\\,\\mathrm{C}$. Wie viele Elementarladungen sind es?",
+        "Notiere mehrere Tröpfchen. Welche gemeinsame Einheit haben alle Ladungen? Bilde den Mittelwert für $e$."]);
+      const net = () => drop.q * U / d - drop.m * G;
+      function record() {
+        const fg = drop.m * G;
+        if (U <= 0 || Math.abs(net()) > 0.05 * fg) { A.toast("Das Tröpfchen schwebt noch nicht. Stelle die Spannung genauer ein."); return; }
+        const q = drop.m * G * d / U, nEst = Math.max(1, Math.round(q / QE));
+        rows.push({ U, q, nEst }); renderTable(); newDrop();
+      }
+      function renderTable() {
+        if (!rows.length) { tbl.innerHTML = ""; return; }
+        const es = rows.map(r => r.q / r.nEst), mean = es.reduce((a, b) => a + b, 0) / es.length;
+        tbl.innerHTML = "<table class='cmp'><tr><th>Nr.</th><th>U in V</th><th>q in 10⁻¹⁹ C</th><th>n ≈</th></tr>" +
+          rows.map((r, i) => "<tr><td>" + (i + 1) + "</td><td>" + de(r.U, 4) + "</td><td>" + de(r.q * 1e19, 3) + "</td><td>" + r.nEst + "</td></tr>").join("") + "</table>" +
+          "<p class='fine tight'>Mittelwert aus q/n: <b>" + de(mean * 1e19, 3) + " · 10⁻¹⁹ C</b> (Literaturwert 1,602 · 10⁻¹⁹ C)</p>";
+      }
+      newDrop();
+      function step(dt) {
+        const v = net() / (6 * Math.PI * eta * drop.r); // m/s (positiv: nach oben)
+        drop.v = v;
+        y += v * dt * SPEED / d;
+        if (y > 0.97 || y < 0.03) y = 0.55;
+      }
+      function draw() {
+        const c = colors(), x = st.ctx; st.fit();
+        const top = 34, bot = 226, yy = bot - y * (bot - top);
+        x.fillStyle = c.fg; x.fillRect(60, top - 8, 240, 6); x.fillRect(60, bot + 2, 240, 6);
+        x.font = "bold 14px system-ui"; x.textAlign = "left"; x.fillStyle = c.pos; x.fillText("+", 308, top - 2); x.fillStyle = c.neg; x.fillText("−", 308, bot + 10);
+        // Feldlinien schwach
+        x.strokeStyle = c.line; x.fillStyle = c.line; x.globalAlpha = 0.35; x.lineWidth = 1.2;
+        if (U > 0) for (let i = 0; i < 6; i++) arrow(x, 80 + i * 40, top, 80 + i * 40, bot, 5);
+        x.globalAlpha = 1;
+        // Tröpfchen
+        const floating = U > 0 && Math.abs(net()) < 0.02 * drop.m * G;
+        const rr = 7 + (drop.r / 1e-6 - 0.75) * 16;
+        if (floating) { x.fillStyle = "rgba(63,181,122,.25)"; x.beginPath(); x.arc(180, yy, rr + 8, 0, 7); x.fill(); }
+        x.fillStyle = c.warn; x.beginPath(); x.arc(180, yy, rr, 0, 7); x.fill();
+        x.fillStyle = "#1a1300"; x.font = "bold 11px system-ui"; x.textAlign = "center"; x.fillText("−", 180, yy + 4);
+        // Kräfte
+        const fel = drop.q * U / d, fg = drop.m * G, sc = 46 / fg;
+        x.lineWidth = 2.6;
+        x.strokeStyle = c.ok; x.fillStyle = c.ok; if (fel > 0) arrow(x, 214, yy, 214, yy - Math.min(90, fel * sc), 7);
+        x.strokeStyle = c.bad; x.fillStyle = c.bad; arrow(x, 238, yy, 238, yy + 46, 7);
+        x.font = "11px system-ui"; x.textAlign = "left"; x.fillStyle = c.ok; x.fillText("F_el", 196, top + 14); x.fillStyle = c.bad; x.fillText("F_G", 244, yy + 30);
+        // Abstand
+        x.strokeStyle = c.dim; x.fillStyle = c.dim; x.lineWidth = 1; L(x, [[50, top], [50, bot]]); x.save(); x.translate(40, (top + bot) / 2); x.rotate(-Math.PI / 2); x.textAlign = "center"; x.font = "11px system-ui"; x.fillText("d = 5 mm", 0, 0); x.restore();
+        ro({ m: de(drop.m * 1e15, 3) + " · 10⁻¹⁵ kg", fel: de(fel * 1e15, 3) + " · 10⁻¹⁵ N", fg: de(fg * 1e15, 3) + " · 10⁻¹⁵ N", v: de((drop.v || 0) * 1e3, 2) + " mm/s" });
+        info.textContent = floating ? "Das Tröpfchen schwebt: F_el = F_G. Jetzt Spannung ablesen und q berechnen." : net() > 0 ? "Die elektrische Kraft überwiegt: Das Tröpfchen steigt." : "Die Gewichtskraft überwiegt: Das Tröpfchen sinkt.";
+      }
+      return { step, draw };
+    }
+  });
+
+  // ============================================================ Feldlinien-Labor
+  K.add({
+    id: "feld", title: "Feldlinien-Labor", desc: "Ladungen setzen und verschieben, Feldlinien und Probeladung beobachten", sheet: "feldlinien",
+    icon: ICON('<circle cx="6" cy="12" r="2.5" fill="currentColor"/><circle cx="18" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 11c3-3 4-3 7 0M8.5 13c3 3 4 3 7 0" stroke="currentColor" stroke-width="1.6" fill="none"/>'),
+    make(host) {
+      const W = 360, H = 290, st = stage(W, H, "touch-none"); host.append(st.c);
+      let ch = [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: -1 }], mode = "+", probe = null, drag = null, dirty = true, lines = [], showProbe = true;
+      seg(host, { label: "Modus", options: [{ v: "+", t: "+ setzen" }, { v: "-", t: "− setzen" }, { v: "m", t: "Verschieben" }, { v: "d", t: "Löschen" }, { v: "p", t: "Probeladung" }], value: "+", onChange: v => { mode = v; } });
+      const acts = el("div", "sim-acts"); host.append(acts);
+      const pre = {
+        "Dipol": () => [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: -1 }],
+        "Gleichnamig": () => [{ x: 110, y: 145, q: 1 }, { x: 250, y: 145, q: 1 }],
+        "Platten": () => { const a = []; for (let i = 0; i < 6; i++) { a.push({ x: 90 + i * 36, y: 60, q: 1 }); } for (let i = 0; i < 6; i++) { a.push({ x: 90 + i * 36, y: 230, q: -1 }); } return a; },
+        "Einzeln": () => [{ x: 180, y: 145, q: 1 }]
+      };
+      Object.keys(pre).forEach(k => button(acts, k, () => { ch = pre[k](); probe = null; dirty = true; }));
+      button(acts, "Alle löschen", () => { ch = []; probe = null; dirty = true; });
+      const info = el("div", "sim-info", "Tippe auf die Fläche, um Ladungen zu setzen. Im Modus „Probeladung“ siehst du Richtung und relative Stärke von E an einem Punkt."); host.append(info);
+      notes(host, "Aufgaben", ["Setze + und − nebeneinander. Wo sind die Feldlinien am dichtesten? Was bedeutet das?",
+        "Setze zwei gleichnamige Ladungen. Finde mit der Probeladung den Punkt, an dem $E = 0$ gilt.",
+        "Lade „Platten“. Wo ist das Feld homogen, wo nicht?"]);
+      const fieldAt = (px, py) => { let ex = 0, ey = 0; ch.forEach(c => { const dx = px - c.x, dy = py - c.y, r2 = dx * dx + dy * dy + 1e-3, r3 = Math.pow(r2, 1.5); ex += c.q * dx / r3; ey += c.q * dy / r3; }); return [ex, ey]; };
+      function trace() {
+        lines = [];
+        const hasPos = ch.some(c => c.q > 0), src = ch.filter(c => hasPos ? c.q > 0 : c.q < 0), dir = hasPos ? 1 : -1;
+        src.forEach(s => {
+          const n = ch.length > 8 ? 6 : 14;
+          for (let i = 0; i < n; i++) {
+            const a = (i + 0.5) / n * 6.2832; let px = s.x + 9 * Math.cos(a), py = s.y + 9 * Math.sin(a); const pts = [[px, py]];
+            for (let k = 0; k < 800; k++) {
+              const f = fieldAt(px, py), m = Math.hypot(f[0], f[1]) || 1; px += dir * f[0] / m * 3; py += dir * f[1] / m * 3;
+              if (px < 2 || px > W - 2 || py < 2 || py > H - 2) { pts.push([px, py]); break; }
+              let hit = false; for (const c of ch) if (Math.sign(c.q) !== Math.sign(s.q) && Math.hypot(px - c.x, py - c.y) < 9) { hit = true; break; }
+              pts.push([px, py]); if (hit) break;
+            }
+            lines.push({ pts, dir });
+          }
+        });
+      }
+      function pt(e) { return st.pos(e); }
+      st.c.addEventListener("pointerdown", e => {
+        const p = pt(e); st.c.setPointerCapture && st.c.setPointerCapture(e.pointerId);
+        const near = () => { let b = null, bd = 22; ch.forEach(c => { const d = Math.hypot(c.x - p.x, c.y - p.y); if (d < bd) { bd = d; b = c; } }); return b; };
+        if (mode === "+" || mode === "-") { if (near()) { drag = near(); } else if (ch.length < 12) { ch.push({ x: p.x, y: p.y, q: mode === "+" ? 1 : -1 }); dirty = true; } }
+        else if (mode === "m") drag = near();
+        else if (mode === "d") { const n = near(); if (n) { ch.splice(ch.indexOf(n), 1); dirty = true; } }
+        else if (mode === "p") { probe = p; drag = "probe"; }
+      });
+      st.c.addEventListener("pointermove", e => { if (!drag) return; const p = pt(e); if (drag === "probe") probe = p; else { drag.x = clamp(p.x, 8, W - 8); drag.y = clamp(p.y, 8, H - 8); dirty = true; } });
+      const up = () => { drag = null; };
+      st.c.addEventListener("pointerup", up); st.c.addEventListener("pointercancel", up);
+      function draw() {
+        const c = colors(), x = st.ctx; st.fit();
+        if (dirty) { trace(); dirty = false; }
+        x.lineWidth = 1.4;
+        lines.forEach(l => {
+          x.strokeStyle = c.line; x.beginPath(); l.pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.stroke();
+          const mi = Math.floor(l.pts.length * 0.5);
+          if (mi > 1 && mi < l.pts.length - 1) {
+            const p = l.pts[mi], q = l.pts[mi + 1]; let a = Math.atan2(q[1] - p[1], q[0] - p[0]); if (l.dir < 0) a += Math.PI;
+            x.fillStyle = c.line; x.beginPath(); x.moveTo(p[0] + Math.cos(a) * 6, p[1] + Math.sin(a) * 6); x.lineTo(p[0] + Math.cos(a + 2.6) * 6, p[1] + Math.sin(a + 2.6) * 6); x.lineTo(p[0] + Math.cos(a - 2.6) * 6, p[1] + Math.sin(a - 2.6) * 6); x.fill();
+          }
+        });
+        ch.forEach(q => { x.fillStyle = q.q > 0 ? c.pos : c.neg; x.beginPath(); x.arc(q.x, q.y, 9, 0, 7); x.fill(); x.fillStyle = "#fff"; x.font = "bold 14px system-ui"; x.textAlign = "center"; x.fillText(q.q > 0 ? "+" : "−", q.x, q.y + 5); });
+        if (probe && ch.length) {
+          const f = fieldAt(probe.x, probe.y), m = Math.hypot(f[0], f[1]);
+          x.fillStyle = c.warn; x.beginPath(); x.arc(probe.x, probe.y, 6, 0, 7); x.fill();
+          if (m > 1e-7) { const len = clamp(Math.log10(m * 2e4) * 22, 6, 70); x.strokeStyle = c.warn; x.lineWidth = 2.8; arrow(x, probe.x, probe.y, probe.x + f[0] / m * len, probe.y + f[1] / m * len, 8); }
+          x.font = "11px system-ui"; x.fillStyle = c.warn; x.textAlign = "left"; x.fillText(m < 2e-5 ? "E ≈ 0" : "E (relativ): " + de(m * 1e4, 2), 8, H - 8);
+        }
+        if (!ch.length) { x.fillStyle = c.dim; x.font = "13px system-ui"; x.textAlign = "center"; x.fillText("Tippe hier, um eine Ladung zu setzen", W / 2, H / 2); }
+      }
+      return { draw };
+    }
+  });
 })();
 </script></body></html>

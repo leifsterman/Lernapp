@@ -34,6 +34,7 @@
 
       <nav class="tabs" role="tablist" aria-label="Bereiche">
         <button type="button" class="tab-btn" role="tab" data-tab="learn">Lernen</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="lab">Labor</button>
         <button type="button" class="tab-btn" role="tab" data-tab="sheets">Übersichten</button>
         <button type="button" class="tab-btn" role="tab" data-tab="more">Mehr</button>
       </nav>
@@ -98,6 +99,12 @@
             <span class="mdesc">Größen mit Symbol, Einheit oder Formel verbinden</span>
             <span class="mstat" id="stat-match"></span>
           </button>
+          <button type="button" class="method" id="m-label">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="mname">Schaltung beschriften</span>
+            <span class="mdesc">Potenziale an den Punkten der RC-Schaltung eintragen</span>
+            <span class="mstat" id="stat-label"></span>
+          </button>
           <button type="button" class="method" id="m-exam">
             <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9v4l3 2M9.5 3h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></span>
             <span class="mname">Klausur-Simulation</span>
@@ -106,6 +113,12 @@
           </button>
         </div>
         <p class="fine">Tasten im Karteikasten: <kbd>Leertaste</kbd> umdrehen · <kbd>1</kbd> nicht gewusst · <kbd>2</kbd> teilweise · <kbd>3</kbd> gewusst · <kbd>F</kbd> Vollbild · <kbd>Esc</kbd> Übersicht</p>
+      </div>
+
+      <!-- Tab: Labor -->
+      <div class="tabpane" id="tab-lab" hidden>
+        <p class="fine tight">Simulationen zum Ausprobieren. Verändere Werte und beobachte, was passiert.</p>
+        <div class="methods" id="sim-list"></div>
       </div>
 
       <!-- Tab: Übersichten -->
@@ -277,6 +290,28 @@
       </div>
     </section>
 
+    <!-- Simulation -->
+    <section id="screen-sim" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="sim-back" class="link">← Labor</button>
+        <span id="sim-title" class="task-title"></span>
+        <button type="button" id="sim-sheet" class="link">Übersicht</button>
+      </div>
+      <div id="sim-host" class="sim-host"></div>
+    </section>
+
+    <!-- Schaltung beschriften -->
+    <section id="screen-label" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="label-quit" class="link">← Übersicht</button>
+        <span class="task-title">Schaltung beschriften</span>
+        <span class="grow"></span>
+      </div>
+      <div class="progress"><div id="label-progress-bar"></div></div>
+      <p class="left" id="label-count"></p>
+      <div id="label-host"></div>
+    </section>
+
     <!-- Kernübersicht -->
     <section id="screen-sheet" class="screen" hidden>
       <div class="quizbar">
@@ -309,5 +344,7 @@
   <script src="js/sheets.js"></script>
   <script src="js/app.js"></script>
   <script src="js/methods.js"></script>
+  <script src="js/sims.js"></script>
+  <script src="js/sims2.js"></script>
 </body>
 </html>

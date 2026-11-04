@@ -331,7 +331,7 @@ html.fs .formula-box { font-size: 1.5rem; }
 .lvlchip.lvl-3 { color: var(--b1); border-color: color-mix(in srgb, var(--b1) 55%, transparent); }
 .chips-r { display: inline-flex; gap: 6px; align-items: center; flex: none; }
 
-.methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; }
 .method { appearance: none; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: transform .12s, border-color .15s; min-width: 0; }
 .method:hover { border-color: var(--accent); transform: translateY(-2px); }
 .micon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 18%, var(--surface-2)); color: var(--accent); margin-bottom: 6px; }
@@ -463,3 +463,50 @@ html.nosync .cardtools { display: none; }
 .d-m { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
 .badge { font-size: .7rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); color: var(--fg-dim); }
 .badge.all { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
+
+/* ---------- Labor: Simulationen ---------- */
+.sim-host { display: flex; flex-direction: column; gap: 12px; }
+.sim-host > *, .sim-host > div > * { min-width: 0; }
+.sim-canvas { display: block; width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.sim-canvas.touch-none { touch-action: none; cursor: crosshair; }
+.sim-info { font-size: .9rem; color: var(--fg-dim); min-height: 2.6em; margin: 8px 2px 0; }
+.sim-ctl { display: grid; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 8px 14px; margin-top: 10px; }
+.sim-row { display: grid; grid-template-columns: minmax(110px, 38%) 1fr auto; gap: 10px; align-items: center; padding: 6px 0; }
+.sim-lab { font-size: .85rem; color: var(--fg-dim); }
+.sim-val { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 4.5em; text-align: right; font-size: .9rem; }
+.sim-row input[type=range] { width: 100%; accent-color: var(--accent); min-width: 0; }
+.sim-seg { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.seg button { flex: 1 1 auto; appearance: none; border: 0; background: none; color: var(--fg-dim); font: inherit; font-weight: 600; font-size: .86rem; padding: 8px 10px; border-radius: 9px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.sim-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.btn.small { padding: 8px 14px; font-size: .86rem; border-radius: 10px; }
+.sim-notes { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 10px 16px 6px; margin-top: 12px; }
+.sim-notes h3 { margin: 0 0 6px; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.sim-notes ul { margin: 0; padding-left: 20px; } .sim-notes li { margin-bottom: 6px; font-size: .92rem; }
+.readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 10px; }
+.ro { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; display: flex; flex-direction: column; }
+.ro-l { font-size: .72rem; color: var(--fg-dim); text-transform: uppercase; letter-spacing: .05em; }
+.ro-v { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 1.02rem; overflow-wrap: anywhere; }
+.sim-eq { margin: 10px 0 0; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+.sim-table { margin-top: 10px; overflow-x: auto; }
+.sim-table table.cmp { display: table; width: 100%; }
+
+/* ---------- Übung: Schaltung beschriften ---------- */
+.label-card { padding: 14px 14px 16px; }
+.label-q { margin: 0 0 12px; }
+.circuit-wrap { position: relative; }
+.circuit-wrap .node { position: absolute; transform: translate(-50%, -50%); appearance: none; min-width: 30px; height: 30px; padding: 0 8px; border-radius: 15px; border: 2px solid var(--accent); background: var(--surface); color: var(--fg); font: 700 .8rem var(--font); cursor: pointer; white-space: nowrap; z-index: 1; }
+.circuit-wrap .node.sel { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); }
+.circuit-wrap .node.has { border-color: var(--warn); }
+.circuit-wrap .node.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 22%, var(--surface)); color: var(--fg); }
+.circuit-wrap .node.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, var(--surface)); color: var(--fg); }
+.chips-tray { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; }
+.chip.val { padding: 9px 16px; font-size: .95rem; color: var(--fg); }
+.node-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.nl { font-size: .82rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--fg-dim); }
+.nl b { color: var(--fg); }
+.nl.ok { border-color: var(--ok); } .nl.bad { border-color: var(--bad); }
+@media (max-width: 460px) { .sim-row { grid-template-columns: 1fr auto; } .sim-row .sim-lab { grid-column: 1 / 2; } .sim-row .sim-val { grid-column: 2 / 3; grid-row: 1; } .sim-row input { grid-column: 1 / 3; } }
+
+.mname, .mdesc { overflow-wrap: anywhere; hyphens: auto; }

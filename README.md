@@ -19,6 +19,16 @@ Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 - **Klausur-Simulation**: 20 Minuten, 4 Quizfragen und 4 Rechenaufgaben, Punkte und Notenpunkte
 - **Kernübersichten**: eine Seite pro Thema mit Formeln, Skizzen und Checkliste, dazu „Alle Formeln“
 
+## Labor (Simulationen)
+
+- **RC-Schaltung** wie im Schaltbild der Aufgabe: Umschalter, R₁ zum Laden, R₂ zum Entladen, Voltmeter, bewegte Elektronen, Kurven Uc(t), I(t), Q(t), τ-Marke und Potenziale an den Punkten A bis F
+- **Differenzialgleichung**: die Kurve Schritt für Schritt per Euler-Verfahren aus dU/dt aufbauen, Schrittweite einstellbar
+- **Kondensator-Labor**: d, A, εᵣ und U verändern, angeschlossen oder getrennt, live C, Q, U, E und W
+- **Influenz & Polarisation**: Animationen zu Influenz (mit Erdung), Orientierungs- und Verschiebungspolarisation, Faradayscher Käfig
+- **Millikan-Versuch**: Schwebespannung einstellen, q berechnen, Messreihe mit Mittelwert
+- **Feldlinien-Labor**: Ladungen setzen und verschieben, Feldlinien und Probeladung
+- **Schaltung beschriften** (unter „Lernen“): Potenziale an der RC-Schaltung eintragen, mit Erklärung je Punkt
+
 ## Lokal öffnen
 
 `public/index.html` im Browser öffnen. Das ist eine einzelne Datei, die auch auf dem Handy offline läuft.

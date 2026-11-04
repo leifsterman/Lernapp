@@ -223,10 +223,10 @@
   });
   // Reiter
   function setTab(t) {
-    if (!["learn", "sheets", "more"].includes(t)) t = "learn";
+    if (!["learn", "lab", "sheets", "more"].includes(t)) t = "learn";
     store.tab = t; save();
     document.querySelectorAll(".tab-btn").forEach(b => { const on = b.dataset.tab === t; b.setAttribute("aria-selected", on); b.classList.toggle("on", on); });
-    ["learn", "sheets", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
+    ["learn", "lab", "sheets", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
   }
   document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest(".tab-btn"); if (b) setTab(b.dataset.tab); });
 

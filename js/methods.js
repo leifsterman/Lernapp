@@ -42,7 +42,7 @@
   }
 
   function startTasks(mode) {
-    lastMode = mode;
+    lastMode = mode; A.customAgain = null;
     let items = [];
     if (mode === "mc") {
       const pool = mcPool(true);
@@ -251,8 +251,8 @@
   }
 
   $("#task-quit").addEventListener("click", () => { clearInterval(timer); A.home(); });
-  $("#result-home").addEventListener("click", () => A.home());
-  $("#result-again").addEventListener("click", () => startTasks(lastMode));
+  $("#result-home").addEventListener("click", () => { A.customAgain = null; A.home(); });
+  $("#result-again").addEventListener("click", () => { if (A.customAgain) A.customAgain(); else startTasks(lastMode); });
   $("#m-mc").addEventListener("click", () => startTasks("mc"));
   $("#m-trainer").addEventListener("click", () => startTasks("trainer"));
   $("#m-exam").addEventListener("click", () => startTasks("exam"));
@@ -351,6 +351,7 @@
   $("#sheet-practice").addEventListener("click", () => A.startCards(SHEETS[sheetIdx].id));
   $("#sheet-print").addEventListener("click", () => { try { window.print(); } catch (e) { toast("Drucken geht hier nicht."); } });
   renderSheetList();
+  A.openSheet = id => { const i = SHEETS.findIndex(s => s.id === id); if (i >= 0) openSheet(i); };
 
   // ------------------------------------------------------------ Tasten und Hooks
   document.addEventListener("keydown", e => {
@@ -358,7 +359,7 @@
     const cur = document.querySelector("main > .screen:not([hidden])");
     if (!cur) return;
     const id = cur.id;
-    if (e.key === "Escape" && ["screen-task", "screen-match", "screen-result", "screen-sheet"].includes(id)) { clearInterval(timer); A.home(); return; }
+    if (e.key === "Escape" && ["screen-task", "screen-match", "screen-result", "screen-sheet", "screen-sim", "screen-label"].includes(id)) { clearInterval(timer); A.home(); return; }
     if (id === "screen-task" && run) {
       const inField = e.target.tagName === "INPUT";
       const it = run.items[run.i];

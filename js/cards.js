@@ -369,7 +369,8 @@
       <p>$$F = 8{,}99\cdot10^{9}\cdot\dfrac{2{,}0\cdot10^{-6}\cdot3{,}0\cdot10^{-6}}{(0{,}20)^2}\,\mathrm{N}$$</p>
       <p>$$F \approx 1{,}35\,\mathrm{N}$$</p><p><b>Anziehend</b>, da ungleichnamige Ladungen.</p>`);
   Calc(R`<b>Feld einer Punktladung.</b> $Q = 5{,}0\,\mathrm{nC}$. Wie groß ist $E$ im Abstand $r = 3{,}0\,\mathrm{cm}$?`,
-    R`<p>$$E = \dfrac{1}{4\pi\varepsilon_0}\dfrac{Q}{r^2} = 8{,}99\cdot10^{9}\cdot\dfrac{5{,}0\cdot10^{-9}}{(0{,}030)^2}\,\dfrac{\mathrm{V}}{\mathrm{m}}$$</p>
+    R`<p>$$E = \dfrac{1}{4\pi\varepsilon_0}\dfrac{Q}{r^2}$$</p>
+      <p>$$E = 8{,}99\cdot10^{9}\cdot\dfrac{5{,}0\cdot10^{-9}}{(0{,}030)^2}\,\tfrac{\mathrm{V}}{\mathrm{m}}$$</p>
       <p>$$E \approx 5{,}0\cdot10^{4}\,\dfrac{\mathrm{V}}{\mathrm{m}}$$</p>`);
   Calc(R`<b>Kraft im Feld.</b> $E = 2{,}0\cdot10^{4}\,\mathrm{N/C}$, $Q = 15\,\mathrm{nC}$. Welche Kraft wirkt?`,
     R`<p>$$F = E\cdot Q = 2{,}0\cdot10^{4}\cdot15\cdot10^{-9}\,\mathrm{N} = 3{,}0\cdot10^{-4}\,\mathrm{N}$$</p>`);

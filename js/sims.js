@@ -617,7 +617,7 @@
       fb.innerHTML = '<p class="fb-title">' + (wrong.length ? "Nicht ganz: " + wrong.join(", ") + " stimmt nicht" : "Alles richtig") + "</p>" +
         sc.nodes.map(k => "<p><b>" + k + "</b> = " + de(sc.pot[k]) + " V. " + why(sc, k) + "</p>").join("");
       chk.hidden = true; nxt.hidden = false; nxt.textContent = lab.i === LABEL_N - 1 ? "Ergebnis" : "Weiter"; paint();
-      const s = (S.stats.label || (S.stats.label = { n: 0, ok: 0 })); s.n++; if (!wrong.length) s.ok++; A.save();
+      const s = (S.stats.label || (S.stats.label = { n: 0, ok: 0 })); s.n++; if (!wrong.length) A.countOk(s, "label:" + sc.title + JSON.stringify(sc.pot)); A.save();
     }
     function next() {
       lab.i++;

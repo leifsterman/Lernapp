@@ -206,19 +206,32 @@
       <div class="tabpane" id="tab-board" hidden>
         <div class="panel">
           <div class="panel-head"><h2>Rangliste</h2><button type="button" id="board-refresh" class="link">Aktualisieren</button></div>
+          <div class="seg" id="board-mode" role="group" aria-label="Wertung">
+            <button type="button" data-mode="day" aria-pressed="true">Heute</button>
+            <button type="button" data-mode="all" aria-pressed="false">Gesamt</button>
+          </div>
+          <div class="me-card" id="board-me" hidden>
+            <div class="me-top"><b id="me-rank"></b><span id="me-title"></span></div>
+            <div class="bar big"><i id="me-bar"></i></div>
+            <p class="fine tight" id="me-next"></p>
+            <ul class="me-parts" id="me-parts"></ul>
+          </div>
           <ol id="board-list" class="board"></ol>
           <p class="fine tight" id="board-note"></p>
         </div>
         <div class="panel">
           <h2>So gibt es Punkte</h2>
           <ul class="rules">
-            <li>Karteikasten: so viele Punkte, wie das Fach der Karte (Fach 5 = 5 Punkte)</li>
-            <li>Quiz: 2 Punkte pro richtige Antwort</li>
-            <li>Rechentrainer: 3 Punkte pro richtige Aufgabe</li>
-            <li>Schaltung beschriften: 5 Punkte pro komplett richtige Schaltung</li>
-            <li>Zuordnen: 3 Punkte pro Runde</li>
-            <li>Klausur-Simulation: 5 Punkte pro Notenpunkt deines besten Versuchs</li>
+            <li>Karteikasten (zählt am meisten): Fach 1 = 1, Fach 2 = 2, Fach 3 = 4, Fach 4 = 7, Fach 5 = 10 Punkte pro Karte. Wer Karten wirklich behält, kommt am weitesten.</li>
+            <li>Heute: In „Heute“ zählen nur die Punkte, die du seit Mitternacht (deutsche Zeit) gesammelt hast. Jeden Tag geht es bei 0 los.</li>
+            <li>Wiederholung: Wer dieselbe Frage, Aufgabe, Schaltung oder Zuordnung ein weiteres Mal richtig löst, bekommt nur noch ein Viertel der Punkte.</li>
+            <li>Quiz: 1 Punkt pro richtige Antwort (bis 150)</li>
+            <li>Rechentrainer: 2 Punkte pro richtige Aufgabe (bis 75 Aufgaben)</li>
+            <li>Schaltung beschriften: 3 Punkte pro komplett richtige Schaltung (bis 10)</li>
+            <li>Zuordnen: 1 Punkt pro Runde (bis 20)</li>
+            <li>Klausur-Simulation: 4 Punkte pro Notenpunkt deines besten Versuchs (bis 60)</li>
           </ul>
+          <p class="fine tight">Ab einer Punktzahl bekommst du einen neuen Titel. Alle Konten stehen automatisch in der Liste; ausblenden geht unter „Konto“.</p>
         </div>
       </div>
 

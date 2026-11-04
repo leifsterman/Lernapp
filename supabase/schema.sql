@@ -91,5 +91,5 @@ end; $$;
 --   lern_register(p_user, p_pw, p_invite, p_data) -> {ok, code, name}   (ohne Einladungscode)
 --   lern_login(p_user, p_pw)                      -> {ok, code, name}   (8 Fehlversuche = 5 Minuten Sperre)
 --   lern_set_login(p_code, p_user, p_pw)          -> {ok, name}         (Name/Passwort ändern, alter Lerncode aufwerten)
---   lern_board()                                  -> [{name, score, mastered, t}] (nur Benutzername und Punkte)
+--   lern_board()                                  -> [{name, score, mastered, today, t}] (Migration lernapp_board_today, max. 200)
 -- Der zurückgegebene "code" ist der geheime Profilschlüssel; das Passwort selbst wird nie gespeichert, nur der Hash.

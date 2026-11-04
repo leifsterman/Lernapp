@@ -541,6 +541,18 @@ html.nosync .cardtools { display: none; }
 .br .bs { font-weight: 800; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
 .br.me { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 10px; }
 .br .badge { display: inline-block; margin-left: 4px; }
+.br .bar { display: block; height: 4px; margin-top: 5px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.br .bar i, .bar.big i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .4s ease; }
+.br.me .bar { background: color-mix(in srgb, var(--accent) 20%, var(--surface-2)); }
+#board-mode { margin: 0 0 10px; }
+.me-card { margin: 4px 0 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.me-card[hidden] { display: none; }
+.me-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.me-top span { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar.big { height: 8px; margin: 8px 0 4px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.me-parts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px 14px; font-size: .88rem; }
+.me-parts li { display: flex; justify-content: space-between; gap: 8px; color: var(--fg-dim); } .me-parts b { color: var(--fg); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .br .bar i, .bar.big i { transition: none; } }
 .rules { margin: 8px 0 0; padding-left: 20px; color: var(--fg-dim); font-size: .92rem; } .rules li { margin-bottom: 4px; }
 .br .bn .badge { align-self: flex-start; margin: 2px 0; }
 
@@ -766,19 +778,32 @@ html.nosync .cardtools { display: none; }
       <div class="tabpane" id="tab-board" hidden>
         <div class="panel">
           <div class="panel-head"><h2>Rangliste</h2><button type="button" id="board-refresh" class="link">Aktualisieren</button></div>
+          <div class="seg" id="board-mode" role="group" aria-label="Wertung">
+            <button type="button" data-mode="day" aria-pressed="true">Heute</button>
+            <button type="button" data-mode="all" aria-pressed="false">Gesamt</button>
+          </div>
+          <div class="me-card" id="board-me" hidden>
+            <div class="me-top"><b id="me-rank"></b><span id="me-title"></span></div>
+            <div class="bar big"><i id="me-bar"></i></div>
+            <p class="fine tight" id="me-next"></p>
+            <ul class="me-parts" id="me-parts"></ul>
+          </div>
           <ol id="board-list" class="board"></ol>
           <p class="fine tight" id="board-note"></p>
         </div>
         <div class="panel">
           <h2>So gibt es Punkte</h2>
           <ul class="rules">
-            <li>Karteikasten: so viele Punkte, wie das Fach der Karte (Fach 5 = 5 Punkte)</li>
-            <li>Quiz: 2 Punkte pro richtige Antwort</li>
-            <li>Rechentrainer: 3 Punkte pro richtige Aufgabe</li>
-            <li>Schaltung beschriften: 5 Punkte pro komplett richtige Schaltung</li>
-            <li>Zuordnen: 3 Punkte pro Runde</li>
-            <li>Klausur-Simulation: 5 Punkte pro Notenpunkt deines besten Versuchs</li>
+            <li>Karteikasten (zählt am meisten): Fach 1 = 1, Fach 2 = 2, Fach 3 = 4, Fach 4 = 7, Fach 5 = 10 Punkte pro Karte. Wer Karten wirklich behält, kommt am weitesten.</li>
+            <li>Heute: In „Heute“ zählen nur die Punkte, die du seit Mitternacht (deutsche Zeit) gesammelt hast. Jeden Tag geht es bei 0 los.</li>
+            <li>Wiederholung: Wer dieselbe Frage, Aufgabe, Schaltung oder Zuordnung ein weiteres Mal richtig löst, bekommt nur noch ein Viertel der Punkte.</li>
+            <li>Quiz: 1 Punkt pro richtige Antwort (bis 150)</li>
+            <li>Rechentrainer: 2 Punkte pro richtige Aufgabe (bis 75 Aufgaben)</li>
+            <li>Schaltung beschriften: 3 Punkte pro komplett richtige Schaltung (bis 10)</li>
+            <li>Zuordnen: 1 Punkt pro Runde (bis 20)</li>
+            <li>Klausur-Simulation: 4 Punkte pro Notenpunkt deines besten Versuchs (bis 60)</li>
           </ul>
+          <p class="fine tight">Ab einer Punktzahl bekommst du einen neuen Titel. Alle Konten stehen automatisch in der Liste; ausblenden geht unter „Konto“.</p>
         </div>
       </div>
 
@@ -2269,6 +2294,16 @@ window.PHYS_SYNC = {
   if (!Array.isArray(store.levels) || !store.levels.length) store.levels = [1, 2, 3];
   if (!Array.isArray(store.kinds) || !store.kinds.length) store.kinds = ["abfrage", "rechnen"];
   if (!store.stats || typeof store.stats !== "object") store.stats = {};
+  if (!store.seen || typeof store.seen !== "object") store.seen = {};
+  // Merkt sich, was schon einmal richtig gelöst wurde. true = erstes Mal (volle Punkte), false = Wiederholung (ein Viertel).
+  function firstTime(key) {
+    let h = 5381; for (let i = 0; i < key.length; i++) h = ((h * 33) ^ key.charCodeAt(i)) >>> 0;
+    const k = h.toString(36);
+    if (store.seen[k]) return false;
+    store.seen[k] = 1; return true;
+  }
+  // Zählt eine richtige Lösung in stats[name]: ok = alle, okr = davon Wiederholungen
+  function countOk(st, key) { st.ok = (st.ok || 0) + 1; if (!firstTime(key)) st.okr = (st.okr || 0) + 1; }
   const LVL_NAME = ["", "Leicht", "Mittel", "Schwer"];
   // Gelöschte Karten: hidden = nur für mich (am Profil), ghidden = für alle (aus Supabase)
   if (!store.hidden || typeof store.hidden !== "object") store.hidden = {};
@@ -2780,14 +2815,37 @@ window.PHYS_SYNC = {
     for (let i = 0; i < t.length; i++) if (p >= t[i]) return 15 - i;
     return 0;
   }
+  // Bewertung: Wissen zählt am meisten (Karten nach Fach), Üben und Klausur ergänzen. Obergrenzen verhindern Dauerklicken.
+  const BOX_PTS = [0, 1, 2, 4, 7, 10];
+  const TITLES = [[0, "Einsteiger"], [40, "Lehrling"], [120, "Spannungsprofi"], [260, "Feldforscher"], [450, "Kondensator-Kenner"], [700, "Millikan-Meister"], [950, "Physik-Legende"]];
+  const titleOf = pts => { let i = 0; TITLES.forEach((t, k) => { if (pts >= t[0]) i = k; }); const nx = TITLES[i + 1]; return { name: TITLES[i][1], from: TITLES[i][0], next: nx ? nx[0] : null, nextName: nx ? nx[1] : null }; };
+  const dayKey = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date());
+  function dayPts(score) {
+    const d = dayKey();
+    if (!store.day || store.day.d !== d) store.day = { d, base: score, p: 0 };
+    const p = Math.max(store.day.p, score - store.day.base);
+    if (p !== store.day.p) { store.day.p = p; persist(); }
+    return store.day.p;
+  }
   function scoreInfo() {
     const live = liveCards(), st = store.stats || {}, g = k => st[k] || {};
-    const boxes = live.reduce((a, c) => a + boxOf(c.id), 0);
     const ex = st.exam && st.exam.best != null ? notenpunkte(st.exam.best) : 0;
-    const score = Math.round(boxes + 2 * (g("mc").ok || 0) + 3 * (g("tr").ok || 0) + 5 * (g("label").ok || 0) + 3 * (g("match").rounds || 0) + 5 * ex);
-    return { score, mastered: live.filter(c => boxOf(c.id) >= 4).length };
+    // Erstes richtiges Lösen zählt voll, jede Wiederholung nur ein Viertel
+    const eff = (n, rep) => Math.max(0, n - rep) + rep / 4;
+    const e = (k, n) => eff(g(k)[n] || 0, Math.min(g(k).okr || 0, g(k)[n] || 0));
+    const parts = {
+      cards: live.reduce((a, c) => a + (BOX_PTS[boxOf(c.id)] || 0), 0),
+      mc: Math.min(e("mc", "ok"), 150),
+      tr: 2 * Math.min(e("tr", "ok"), 75),
+      label: 3 * Math.min(e("label", "ok"), 10),
+      match: Math.min(eff(g("match").rounds || 0, g("match").rep || 0), 20),
+      exam: 4 * ex
+    };
+    Object.keys(parts).forEach(k => { parts[k] = Math.round(parts[k]); });
+    const score = Object.keys(parts).reduce((a, k) => a + parts[k], 0);
+    return { score, mastered: live.filter(c => boxOf(c.id) >= 4).length, parts, today: dayPts(score) };
   }
-  const payload = () => Object.assign({ progress: store.progress, resetAt: store.resetAt, hidden: store.hidden, stats: store.stats, board: store.board !== false }, scoreInfo());
+  const payload = () => Object.assign({ progress: store.progress, resetAt: store.resetAt, hidden: store.hidden, stats: store.stats, seen: store.seen, board: store.board !== false }, (({ score, mastered, today }) => ({ score, mastered, day: { d: store.day.d, p: today } }))(scoreInfo()));
 
   // Neuere Einträge gewinnen; ein Zurücksetzen (resetAt) löscht ältere Einträge auf allen Geräten
   function mergeData(remote) {
@@ -2810,6 +2868,9 @@ window.PHYS_SYNC = {
       if (pick && typeof pick.t === "number") hh[id] = { on: !!pick.on, t: pick.t };
     });
     store.hidden = hh;
+    if (remote.day && store.day && remote.day.d === store.day.d && remote.day.p > store.day.p) store.day.p = remote.day.p;
+    const rsn = remote.seen;
+    if (rsn && typeof rsn === "object") for (const k in rsn) if (rsn[k]) store.seen[k] = 1;
     // Statistik: Zähler wachsen nur, also gewinnt der größere Wert
     const rs = remote.stats;
     if (rs && typeof rs === "object") {
@@ -2890,7 +2951,7 @@ window.PHYS_SYNC = {
   async function afterLogin(r, user) {
     // Gehörte der Fortschritt auf diesem Gerät einem anderen Konto, wird er nicht übernommen
     if (store.owner && store.owner !== r.code) {
-      store.progress = {}; store.hidden = {}; store.stats = {}; store.resetAt = 0; store.board = undefined;
+      store.progress = {}; store.hidden = {}; store.stats = {}; store.seen = {}; store.day = null; store.resetAt = 0; store.board = undefined;
     }
     store.owner = r.code;
     store.sync = { code: r.code, name: r.name, user };
@@ -2957,27 +3018,55 @@ window.PHYS_SYNC = {
   });
 
   // Rangliste
-  let board = null, srvScore = null;
+  let board = null, srvScore = null, boardMode = "day";
+  $("#board-mode").addEventListener("click", e => {
+    const b = e.target.closest("button[data-mode]"); if (!b) return;
+    boardMode = b.dataset.mode;
+    document.querySelectorAll("#board-mode button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    renderBoard();
+  });
   async function fetchBoard() {
     if (!CFG) { renderBoard(); return; }
     try { board = await rpc("lern_board", {}); } catch (e) { board = board || null; }
     renderBoard();
   }
   function renderBoard() {
-    const ol = $("#board-list"), note = $("#board-note");
+    const ol = $("#board-list"), note = $("#board-note"), mine = $("#board-me");
     const me = store.sync && store.sync.user ? String(store.sync.name).toLowerCase() : null;
+    mine.hidden = true;
     if (!CFG) { ol.innerHTML = ""; note.textContent = "Die Rangliste gibt es nur auf der Webseite der App."; renderPts(); return; }
     if (!board) { ol.innerHTML = ""; note.textContent = "Rangliste wird geladen …"; renderPts(); return; }
-    ol.innerHTML = board.map((r, i) => {
-      const mine = me && String(r.name).toLowerCase() === me;
-      return '<li class="br' + (mine ? " me" : "") + (i < 3 ? " top" + (i + 1) : "") + '"><span class="rk">' + (i + 1) + '</span><span class="bn">' + escH(r.name) +
-        (mine ? ' <span class="badge">du</span>' : "") + '<small>' + r.mastered + " Karten sitzen</small></span><span class=\"bs\">" + r.score + "</span></li>";
+    const day = boardMode === "day", key = r => day ? (r.today || 0) : r.score;
+    const rows = board.slice().sort((a, b) => key(b) - key(a) || b.score - a.score || String(a.name).localeCompare(b.name));
+    const top = Math.max(1, rows.length ? key(rows[0]) : 1);
+    ol.innerHTML = rows.map((r, i) => {
+      const isMe = me && String(r.name).toLowerCase() === me;
+      return '<li class="br' + (isMe ? " me" : "") + (i < 3 && key(r) > 0 ? " top" + (i + 1) : "") + '"><span class="rk">' + (i + 1) + '</span><span class="bn">' + escH(r.name) +
+        (isMe ? ' <span class="badge">du</span>' : "") + '<small>' + (day ? "Gesamt " + r.score + " · " : "") + titleOf(r.score).name + " · " + r.mastered + ' Karten sitzen</small>' +
+        '<span class="bar"><i style="width:' + Math.round(key(r) / top * 100) + '%"></i></span></span><span class="bs">' + (day ? "+" : "") + key(r) + "</span></li>";
     }).join("");
     note.textContent = !board.length ? "Noch niemand in der Rangliste. Erstelle unter „Konto“ ein Konto."
-      : !store.sync ? "Melde dich unter „Konto“ an, um mitzumachen."
+      : !store.sync ? "Melde dich unter „Konto“ an, um mitzumachen. Alle Konten stehen automatisch in der Liste."
       : !store.sync.user ? "Lege unter „Konto“ Benutzername und Passwort fest, um in der Rangliste zu erscheinen."
       : store.board === false ? "Du bist in der Rangliste ausgeblendet (änderbar unter „Konto“)." : "";
+    renderMine();
     renderPts();
+  }
+  // Eigene Karte: Titel, Fortschritt zum nächsten Titel, Punkte je Bereich
+  function renderMine() {
+    const el = $("#board-me");
+    if (!store.sync || !store.sync.user) return;
+    const info = scoreInfo(), s = store.sync && srvScore && srvScore.score != null ? srvScore.score : info.score, t = titleOf(s);
+    const pl = board ? board.findIndex(r => String(r.name).toLowerCase() === String(store.sync.name).toLowerCase()) : -1;
+    const pct = t.next ? Math.round((s - t.from) / (t.next - t.from) * 100) : 100;
+    const names = { cards: "Karteikasten", mc: "Quiz", tr: "Rechentrainer", label: "Schaltung beschriften", match: "Zuordnen", exam: "Klausur" };
+    const dayRank = board ? board.slice().sort((a, b) => (b.today || 0) - (a.today || 0) || b.score - a.score).findIndex(r => String(r.name).toLowerCase() === String(store.sync.name).toLowerCase()) : -1;
+    $("#me-rank").textContent = pl >= 0 ? "Platz " + (pl + 1) + " von " + board.length + " · heute Platz " + (dayRank + 1) + " (+" + info.today + ")" : "Noch nicht gelistet";
+    $("#me-title").textContent = t.name + " · " + s + " Punkte";
+    $("#me-bar").style.width = pct + "%";
+    $("#me-next").textContent = t.next ? "Noch " + (t.next - s) + " Punkte bis „" + t.nextName + "“" : "Höchster Titel erreicht";
+    $("#me-parts").innerHTML = Object.keys(names).map(k => "<li><span>" + names[k] + "</span><b>" + info.parts[k] + "</b></li>").join("");
+    el.hidden = false;
   }
   function renderPts() {
     const s = store.sync && srvScore ? srvScore : scoreInfo();
@@ -3118,6 +3207,7 @@ window.PHYS_SYNC = {
   show("start");
   syncNow();
   fetchGlobal();
+  scoreInfo();
   fetchBoard();
 
   // Ladeanimation (Schwebfliege) ausblenden, sobald alles bereit ist
@@ -3142,6 +3232,7 @@ window.PHYS_SYNC = {
       startSession("all");
     },
     refresh: renderTopics,
+    firstTime, countOk,
     isHidden, liveCards, hideItem, restoreItem, hiddenList, toast, dialog, plain, onChange: fn => changeHooks.push(fn)
   };
 
@@ -3270,7 +3361,7 @@ window.PHYS_SYNC = {
   function recordResult(it, ok, given) {
     run.results.push({ it, ok, given });
     if (ok) { run.pts += 1; }
-    if (run.mode !== "exam") { const k = stat(run.mode === "mc" ? "mc" : "tr"); k.n++; if (ok) k.ok++; A.save(); }
+    if (run.mode !== "exam") { const k = stat(run.mode === "mc" ? "mc" : "tr"); k.n++; if (ok) A.countOk(k, (run.mode === "mc" ? "mc:" + it.id : "tr:" + it.task.name + "|" + it.q)); A.save(); }
   }
 
   function showFeedback(it, ok, extra) {
@@ -3462,7 +3553,7 @@ window.PHYS_SYNC = {
     }
   }
   function endMatchRound() {
-    const m = stat("match"); m.rounds = (m.rounds || 0) + 1; m.err = (m.err || 0) + match.round.err; A.save();
+    const m = stat("match"); m.rounds = (m.rounds || 0) + 1; if (!A.firstTime("match:" + match.round.pairs.map(p => JSON.stringify(p)).sort().join("|"))) m.rep = (m.rep || 0) + 1; m.err = (m.err || 0) + match.round.err; A.save();
     $("#match-hint").textContent = match.round.err === 0 ? "Perfekt, kein Fehler!" : "Geschafft mit " + match.round.err + (match.round.err === 1 ? " Fehler." : " Fehlern.");
     $("#match-actions").hidden = false;
     if (match.round.err === 0) A.confetti();
@@ -4506,7 +4597,7 @@ window.PHYS_SYNC = {
       fb.innerHTML = '<p class="fb-title">' + (wrong.length ? "Nicht ganz: " + wrong.join(", ") + " stimmt nicht" : "Alles richtig") + "</p>" +
         sc.nodes.map(k => "<p><b>" + k + "</b> = " + de(sc.pot[k]) + " V. " + why(sc, k) + "</p>").join("");
       chk.hidden = true; nxt.hidden = false; nxt.textContent = lab.i === LABEL_N - 1 ? "Ergebnis" : "Weiter"; paint();
-      const s = (S.stats.label || (S.stats.label = { n: 0, ok: 0 })); s.n++; if (!wrong.length) s.ok++; A.save();
+      const s = (S.stats.label || (S.stats.label = { n: 0, ok: 0 })); s.n++; if (!wrong.length) A.countOk(s, "label:" + sc.title + JSON.stringify(sc.pot)); A.save();
     }
     function next() {
       lab.i++;

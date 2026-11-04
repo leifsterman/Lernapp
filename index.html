@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0e1117">
-  <meta name="description" content="Karteikarten und Rechenaufgaben zum elektrischen Feld (Physik Q1): Influenz, Feldlinien, Coulomb, Kondensator, Auf- und Entladung, Millikan.">
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="description" content="Karteikasten zum elektrischen Feld (Physik Q1): Influenz, Feldlinien, Coulomb, Kondensator, Auf- und Entladung, Millikan.">
   <title>Physik Q1 – Elektrisches Feld</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
 <body>
   <header class="top">
     <button id="btn-home" class="brand" type="button" aria-label="Zur Übersicht">
-      <span class="brand-mark" aria-hidden="true">⚡</span>
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="6" cy="12" r="3.2" fill="#e5484d"/><circle cx="18" cy="12" r="3.2" fill="#3e7bff"/><path d="M9.5 12h5M9.5 10c2-2 3-2 5 0M9.5 14c2 2 3 2 5 0" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></span>
       <span>Physik Q1</span>
     </button>
     <button id="btn-theme" class="icon-btn" type="button" aria-label="Hell/Dunkel umschalten"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
@@ -24,10 +24,28 @@
     <!-- Übersicht -->
     <section id="screen-start" class="screen">
       <div class="hero">
-        <p class="eyebrow" id="countdown"></p>
-        <h1>Das elektrische Feld</h1>
-        <p class="lead">Karteikarten zu allen Punkten deiner Checkliste. Wähle Themen, starte eine Runde. Was du nicht wusstest, kommt wieder.</p>
+        <div class="hero-text">
+          <p class="eyebrow" id="countdown"></p>
+          <h1>Das elektrische Feld</h1>
+          <p class="lead">Dein Karteikasten zur Klausur. Was du weißt, wandert ein Fach weiter. Was nicht, zurück auf Anfang.</p>
+        </div>
+        <div class="ring" id="ring" role="img" aria-label="Gesamtfortschritt"></div>
       </div>
+
+      <div class="panel drawer-panel">
+        <div class="panel-head">
+          <h2>Dein Karteikasten</h2>
+          <span class="fine nomargin" id="drawer-total"></span>
+        </div>
+        <div id="drawer" class="drawer"></div>
+        <p id="drawer-info" class="drawer-info"></p>
+      </div>
+
+      <div class="start-actions">
+        <button id="btn-start" class="btn primary" type="button">Lernrunde starten <span id="start-count" class="count"></span></button>
+        <button id="btn-weak" class="btn" type="button">Nur Schwächen <span id="weak-count" class="count"></span></button>
+      </div>
+      <p class="fine">Tasten im Quiz: <kbd>Leertaste</kbd> umdrehen · <kbd>1</kbd> nicht gewusst · <kbd>2</kbd> teilweise · <kbd>3</kbd> gewusst · <kbd>F</kbd> Vollbild · <kbd>Esc</kbd> Übersicht</p>
 
       <div class="panel">
         <div class="panel-head">
@@ -39,12 +57,6 @@
         </div>
         <ul id="topic-list" class="topics"></ul>
       </div>
-
-      <div class="start-actions">
-        <button id="btn-start" class="btn primary" type="button">Lernrunde starten <span id="start-count" class="count"></span></button>
-        <button id="btn-weak" class="btn" type="button">Nur Schwächen <span id="weak-count" class="count"></span></button>
-      </div>
-      <p class="fine">Tasten im Quiz: <kbd>Leertaste</kbd> umdrehen · <kbd>1</kbd> nicht gewusst · <kbd>2</kbd> teilweise · <kbd>3</kbd> gewusst · <kbd>Esc</kbd> Übersicht</p>
 
       <div class="panel" id="sync-panel">
         <div class="panel-head"><h2>Sync zwischen Geräten</h2></div>
@@ -82,20 +94,24 @@
     <section id="screen-quiz" class="screen" hidden>
       <div class="quizbar">
         <button type="button" id="btn-quit" class="link">← Übersicht</button>
-        <span class="left"><span id="cards-left">0</span> offen</span>
+        <div id="mini-drawer" class="drawer mini" aria-label="Karteikasten"></div>
+        <button type="button" id="btn-fs" class="icon-btn small" aria-label="Vollbild">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
       <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><div id="progress-bar"></div></div>
+      <p class="left"><span id="cards-left">0</span> offen</p>
 
       <div class="card-wrap">
         <div id="card" class="card" tabindex="0" role="button" aria-label="Karte umdrehen">
           <div class="card-inner">
             <div class="face front">
-              <span class="tag" id="front-tag"></span>
+              <div class="face-head"><span class="tag"><i class="dot"></i><span id="front-tag"></span></span><span class="boxchip" id="front-box"></span></div>
               <div id="front-body" class="front-body"></div>
               <p class="flip-hint">Tippen zum Aufdecken</p>
             </div>
             <div class="face back">
-              <span class="tag" id="back-tag"></span>
+              <div class="face-head"><span class="tag"><i class="dot"></i><span id="back-tag"></span></span><span class="boxchip" id="back-box"></span></div>
               <div id="back-body" class="back-body"></div>
             </div>
           </div>
@@ -115,6 +131,10 @@
         <h1>Runde geschafft</h1>
         <p class="lead" id="end-summary"></p>
       </div>
+      <div class="panel drawer-panel">
+        <div class="panel-head"><h2>So liegen deine Karten jetzt</h2></div>
+        <div id="end-drawer" class="drawer"></div>
+      </div>
       <div class="start-actions">
         <button id="btn-again" class="btn primary" type="button">Nochmal dieselben Themen</button>
         <button id="btn-end-weak" class="btn" type="button">Nur Schwächen</button>
@@ -122,6 +142,7 @@
       </div>
     </section>
   </main>
+  <canvas id="confetti" aria-hidden="true"></canvas>
 
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/auto-render.min.js"></script>

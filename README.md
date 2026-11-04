@@ -6,9 +6,9 @@ Plattenkondensator (E = U/d, Q = C·U, C = ε₀εᵣA/d), Reihen-/Parallelschal
 Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
 
 - 91 Karten in 12 Themen, Formeln mit KaTeX (lokal eingebunden, funktioniert offline)
-- Lernrunden wie bei Anki: „Wusste ich nicht“ kommt nach 3 Karten wieder, „Teilweise“ ans Ende
+- Karteikasten mit 5 Fächern (Leitner): Gewusst = ein Fach weiter, Nicht gewusst = zurück in Fach 1; Fach antippen und nur dessen Karten üben
 - Fortschritt pro Karte wird im Browser gespeichert und über einen persönlichen Lerncode (Supabase) zwischen Geräten und Personen getrennt synchronisiert
-- Dunkelmodus (Standard), Hellmodus per Knopf
+- Vollbild-/Fokus-Modus (Taste F), Dunkelmodus (Standard), Hellmodus per Knopf, Konfetti nach jeder Runde
 
 ## Lokal öffnen
 

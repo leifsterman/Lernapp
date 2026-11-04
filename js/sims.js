@@ -91,7 +91,7 @@
   }
 
   // ------------------------------------------------------------ Schleife
-  const SIMS = [];
+  const SIMS = [], INST = {};
   let cur = null, raf = 0, last = 0;
   function loop(now) {
     raf = requestAnimationFrame(loop);
@@ -104,12 +104,16 @@
 
   function openSim(id) {
     const def = SIMS.find(s => s.id === id); if (!def) return;
-    const host = $("#sim-host"); host.innerHTML = "";
+    const host = $("#sim-host");
+    // Der Versuch bleibt beim Wechseln der Ansicht erhalten (Zustand, Ladungen, Messreihe): einmal bauen, danach nur wieder einhängen.
+    let inst = INST[id];
+    if (!inst) { const box = document.createElement("div"); host.replaceChildren(box); inst = INST[id] = { box, obj: def.make(box) }; }
+    else host.replaceChildren(inst.box);
     $("#sim-title").textContent = def.title;
     $("#sim-sheet").dataset.sheet = def.sheet || "";
     $("#sim-sheet").hidden = !def.sheet;
     A.show("sim");
-    startLoop(def.make(host));
+    startLoop(inst.obj);
   }
   const ORDER = ["rc", "euler", "kond", "qu", "rp", "mill", "millq", "pol", "feld"];
   function renderSimList() {
@@ -190,6 +194,90 @@
   const P_CHARGE = [[[G.bx, G.by1], [G.bx, G.topY], [G.cl[0], G.topY], [G.pv[0], G.pv[1]], [G.pv[0], G.pt]], [[G.pv[0], G.pb], [G.pv[0], G.botY], [G.bx, G.botY], [G.bx, G.by2]]];
   const P_DISCH = [[[G.pv[0], G.pt], [G.pv[0], G.pv[1]], [G.cr[0], G.topY], [G.rx, G.topY], [G.rx, G.botY], [G.pv[0], G.botY], [G.pv[0], G.pb]]];
 
+  // ------------------------------------------------------------ Elektronen in der RC-Schaltung (Teilchen, Zahl bleibt erhalten)
+  // Ketten: T Stiel oben (Platte → Schalter), Bd Schalterblatt, L Ladekreis, B Stiel unten (→ Platte), R Entladekreis.
+  // Jedes Elektron sitzt auf genau einer Kette und wandert nur bei Stromfluss; es verschwindet nie. Nur an den Platten
+  // geht es in die Platte hinein bzw. kommt aus ihr heraus (Plattenzähler nT, nB).
+  const SP = 20, BLEN = 65;
+  const CH = {
+    T: [[G.pv[0], G.pt], [G.pv[0], G.pv[1]]],
+    L: [[G.cl[0], G.cl[1]], [G.bx, G.topY], [G.bx, G.by1], [G.bx, G.by2], [G.bx, G.botY], [G.pv[0], G.botY]],
+    B: [[G.pv[0], G.botY], [G.pv[0], G.pb + 3]],
+    R: [[G.pv[0], G.botY], [G.rx, G.botY], [G.rx, G.topY], [G.cr[0], G.cr[1]]]
+  };
+  const CLEN = { T: pathLen(CH.T), Bd: BLEN, L: pathLen(CH.L), B: pathLen(CH.B), R: pathLen(CH.R) };
+  const ROUTE = { // Reihenfolge der Ketten; dir = Richtung der Kette relativ zur Fließrichtung der Elektronen
+    charge: [["T", 1], ["Bd", 1], ["L", 1], ["B", 1]],
+    discharge: [["B", -1], ["R", 1], ["Bd", -1], ["T", -1]]
+  };
+  function newElectrons() {
+    const e = [];
+    for (let d = 0; d < CLEN.T; d += SP) e.push({ c: "T", d });
+    for (let d = CLEN.B - SP; d > 0; d -= SP) e.push({ c: "B", d });
+    for (let d = SP / 2; d < CLEN.L; d += SP) e.push({ c: "L", d });
+    for (let d = SP / 2; d < CLEN.R; d += SP) e.push({ c: "R", d });
+    for (let i = 0; i < 3; i++) e.push({ c: "Bd", d: (i + 0.5) * BLEN / 3 });
+    return e;
+  }
+  // verschiebt alle Elektronen um a (Pixel) entlang der Route; positiv = in Fließrichtung
+  function moveElectrons(S, mode, a) {
+    const route = ROUTE[mode]; if (!route || !a) return;
+    const idx = {}; route.forEach((r, i) => { idx[r[0]] = i; });
+    const keep = [];
+    for (const p of S.e) {
+      let i = idx[p.c];
+      if (i == null) { keep.push(p); continue; }
+      let rem = a, alive = true;
+      for (let guard = 0; guard < 8 && rem !== 0; guard++) {
+        const dir = route[i][1], len = CLEN[p.c];
+        const nd = p.d + rem * dir;
+        if (nd >= 0 && nd <= len) { p.d = nd; rem = 0; break; }
+        // über das Kettenende hinaus: Rest in die nächste Kette übernehmen
+        const over = nd < 0 ? -nd : nd - len, atStart = nd < 0; // Kettenanfang (d = 0) bzw. Ende (d = len)
+        const leaveFwd = rem > 0;
+        const ni = i + (leaveFwd ? 1 : -1);
+        if (ni < 0 || ni >= route.length) { // in die Platte hinein
+          // Laden: unten kommt ein Elektron an (nB+), oben fehlt eines weniger (nT−); Entladen: umgekehrt
+          if (leaveFwd) { if (mode === "charge") S.nB += 1; else S.nT -= 1; } else if (mode === "charge") S.nT -= 1; else S.nB += 1;
+          alive = false; break;
+        }
+        i = ni; p.c = route[i][0];
+        const ndir = route[i][1];
+        // Eintritt: bei Vorwärtsfahrt am Routen-Anfang der neuen Kette, sonst an ihrem Routen-Ende
+        const entryAtD0 = leaveFwd ? ndir > 0 : ndir < 0;
+        p.d = entryAtD0 ? 0 : CLEN[p.c];
+        rem = leaveFwd ? over : -over;
+      }
+      if (alive) keep.push(p);
+    }
+    S.e = keep;
+    // Elektronen treten aus der Platte aus, sobald vor ihr Platz von einem Abstand frei ist
+    const first = route[0], last = route[route.length - 1];
+    const sFirst = p => (first[1] > 0 ? p.d : CLEN[first[0]] - p.d);
+    const sLast = p => (last[1] > 0 ? CLEN[last[0]] - p.d : p.d);
+    const supplyStart = mode === "charge" ? true : S.nB > 0, supplyEnd = mode === "charge" ? S.nB > 0 : true;
+    for (let g = 0; g < 6; g++) {
+      const onFirst = S.e.filter(p => p.c === first[0]);
+      if (a > 0 && supplyStart && onFirst.length && Math.min(...onFirst.map(sFirst)) >= SP) {
+        const m = Math.min(...onFirst.map(sFirst)) - SP;
+        S.e.push({ c: first[0], d: first[1] > 0 ? m : CLEN[first[0]] - m });
+        if (mode === "charge") S.nT += 1; else S.nB -= 1;
+      } else break;
+    }
+    for (let g = 0; g < 6; g++) {
+      const onLast = S.e.filter(p => p.c === last[0]);
+      if (a < 0 && supplyEnd && onLast.length && Math.min(...onLast.map(sLast)) >= SP) {
+        const m = Math.min(...onLast.map(sLast)) - SP;
+        S.e.push({ c: last[0], d: last[1] > 0 ? CLEN[last[0]] - m : m });
+        if (mode === "charge") S.nB -= 1; else S.nT += 1;
+      } else break;
+    }
+  }
+  function electronPos(p, blade) {
+    if (p.c === "Bd") { const u = p.d / BLEN; return [G.pv[0] + (blade[0] - G.pv[0]) * u, G.pv[1] + (blade[1] - G.pv[1]) * u]; }
+    return pointAt(CH[p.c], p.d);
+  }
+
   // ------------------------------------------------------------ Simulation 1: RC-Schaltung
   SIMS.push({
     id: "rc", title: "RC-Schaltung", desc: "Laden und Entladen mit Schalter, Voltmeter und Kurven", sheet: "ladung",
@@ -197,7 +285,7 @@
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
       const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1 };
-      let mode = "open", Q = 0, t = 0, qty = "U", showTau = true, showPot = false, hist = [], histT = 0, ev = null, phase = 0, fieldPhase = 0;
+      let mode = "open", Q = 0, t = 0, qty = "U", EL = { e: newElectrons(), nT: 0, nB: 0 }, prevK = 0, showTau = true, showPot = false, hist = [], histT = 0, ev = null, fieldPhase = 0;
       let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0;
       const tau = m => (m === "charge" ? P.R1 : P.R2) * P.C / 1000; // kΩ·µF = ms
       const Uc = () => Q / P.C;
@@ -217,7 +305,7 @@
       slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { const u = Uc(); P.C = v; Q = u * v; if (ev) ev.tau = tau(ev.mode); } });
       slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { P.speed = v; } });
       const acts = el("div", "sim-acts"); host.append(acts);
-      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; histT = 0; ev = null; mode = "open"; segMode.set("open"); });
+      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; histT = 0; ev = null; mode = "open"; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; prevK = 0; });
       const tb = button(acts, "τ zeigen: an", () => { showTau = !showTau; tb.textContent = "τ zeigen: " + (showTau ? "an" : "aus"); });
       const pb = button(acts, "Potenziale: aus", () => { showPot = !showPot; pb.textContent = "Potenziale: " + (showPot ? "an" : "aus"); });
       host.append(pl.c);
@@ -239,17 +327,17 @@
           const tc = tau(mode), Qinf = mode === "charge" ? P.C * P.U0 : 0;
           Q = Qinf + (Q - Qinf) * Math.exp(-ds / tc);
         }
+        const K = 9 * Uc() / 12, dK = K - prevK; prevK = K; // eine Elektronen-Abstandseinheit pro Platzstelle auf der Platte
+        if (mode !== "open") moveElectrons(EL, mode, SP * (mode === "charge" ? dK : -dK));
         histT += ds;
         while (histT >= 0.04) { histT -= 0.04; hist.push([t, Uc(), curI()]); if (hist.length > 5000) hist.shift(); }
         const I = Math.abs(curI());
-        phase += (I > 0.004 ? 18 + 22 * Math.sqrt(I) : 0) * dt;
         fieldPhase += dt * 14;
         const target = BLADE[mode];
         blade[0] = GX.ease(blade[0], target[0], dt, 14); blade[1] = GX.ease(blade[1], target[1], dt, 14);
         meter = GX.ease(meter, Uc() / 12, dt, 6);
         glow = GX.ease(glow, Math.min(1, I / 2), dt, 6);
       }
-      const inRes = p => p[1] > G.topY - 12 && p[1] < G.topY + 12 && ((p[0] > G.r1[0] - 2 && p[0] < G.r1[1] + 2) || (p[0] > G.r2[0] - 2 && p[0] < G.r2[1] + 2));
 
       function draw() {
         const c = colors(), x = st.ctx;
@@ -260,24 +348,12 @@
           for (let i = 0; i < 5; i++) { const px = 182 + i * 14; GX.flowLine(x, c.line, [[px, G.pt + 4], [px, G.pb - 4]], fieldPhase, { alpha: 0.35 + 0.6 * f, head: false, w: 1.2 }); }
         }
         drawCircuit(x, c, { blade, meter, glow: f > 0.05 ? 0.35 * f : 0, R1lab: de(P.R1) + " kΩ", R2lab: de(P.R2) + " kΩ", U0lab: P.U0 + " V" });
-        // Elektronen auf den Leitungen (entgegen der technischen Stromrichtung)
-        const paths = mode === "charge" ? P_CHARGE : mode === "discharge" ? P_DISCH : [];
+        // Elektronen auf den Leitungen (entgegen der technischen Stromrichtung); sie bleiben immer sichtbar
         const I = Math.abs(curI());
-        if (I > 0.004) paths.forEach(pts => {
-          const len = pathLen(pts), n = Math.max(4, Math.round(len / 20));
-          for (let i = 0; i < n; i++) {
-            const d = (((i * len / n) - phase) % len + len) % len;
-            const p = pointAt(pts, d);
-            if (!inRes(p)) GX.electron(x, c, p[0], p[1], Math.min(1, 0.35 + I / 1.2));
-          }
-        });
-        // Ladungen auf den Platten, erscheinen nach und nach
-        for (let i = 0; i < 9; i++) {
-          const a = clamp(f * 9 - i, 0, 1); if (a <= 0) continue;
-          const px = 176 + i * 8.5;
-          GX.ball(x, px, G.pt - 9, 3.6, c.pos, "+", { alpha: a });
-          GX.ball(x, px, G.pb + 9, 3.6, c.neg, "−", { alpha: a });
-        }
+        EL.e.forEach(p => { const q = electronPos(p, blade); GX.electron(x, c, q[0], q[1], 0.95); });
+        // Ladungen auf den Platten: so viele, wie Elektronen ein- bzw. ausgetreten sind
+        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.ball(x, 176 + i * 8.5, G.pb + 9, 3.6, c.neg, "−");
+        for (let i = 0; i < Math.min(9, Math.max(0, EL.nT)); i++) GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+");
         // Stromstärke am aktiven Widerstand
         if (I > 0.004) {
           const r = mode === "charge" ? G.r1 : G.r2, xm = (r[0] + r[1]) / 2;
@@ -340,6 +416,7 @@
       }
       // Tippen auf den Schalter wechselt die Stellung
       st.c.addEventListener("click", e => { const p = st.pos(e); if (p.y < 115 && p.x > 150 && p.x < 270) setMode(mode === "open" ? "charge" : mode === "charge" ? "discharge" : "open"); });
+      window.PHYS_RC_STATE = () => EL; // nur zum Prüfen der Elektronenerhaltung
       return { step, draw };
     }
   });

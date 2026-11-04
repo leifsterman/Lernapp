@@ -121,7 +121,8 @@
       seg(host, { options: [{ v: "inf", t: "Influenz" }, { v: "pol", t: "Polarisation" }, { v: "far", t: "Faraday-Käfig" }], value: "inf", onChange: v => { tab = v; build(); } });
       const body = el("div", ""); host.append(body);
       let sim = null;
-      function build() { body.innerHTML = ""; sim = tab === "inf" ? influenz(body) : tab === "pol" ? polar(body) : faraday(body); }
+      const parts = {}; // jede Animation bleibt beim Umschalten erhalten
+      function build() { if (!parts[tab]) { const b = el("div", ""); parts[tab] = { b, sim: tab === "inf" ? influenz(b) : tab === "pol" ? polar(b) : faraday(b) }; } body.replaceChildren(parts[tab].b); sim = parts[tab].sim; }
       build();
       return { step: dt => sim.step && sim.step(dt), draw: () => sim.draw() };
 
@@ -130,14 +131,15 @@
         const W = 360, H = 250, st = stage(W, H, "touch-none"); h.append(st.c);
         const CX = 245, CY = 115, R = 62, N = 26;
         const homes = []; for (let i = 0; i < N; i++) { const r = 48 * Math.sqrt((i + 0.5) / N), a = i * 2.39996; homes.push([Math.cos(a) * r, Math.sin(a) * r]); }
-        const els = homes.map(p => ({ x: p[0], y: p[1], vx: 0, vy: 0 }));
-        let gap = 100, gapV = 100, grounded = false, removed = 0, flow = [], t = 0;
+        const els = homes.map(p => ({ x: p[0], y: p[1], vx: 0, vy: 0, st: "in", s: 0 })); // st: in (Kugel), out (Erdleitung abwärts), earth (in der Erde), back (zurück)
+        let gap = 100, gapV = 100, grounded = false, t = 0;
+        const EARTH_Y = 214, nGone = () => els.filter(e => e.st !== "in").length;
         const status = el("div", "sim-info"); h.append(status);
         const s = slider(h, { label: "Abstand Stab ↔ Kugel (oder Stab ziehen)", min: 0, max: 100, step: 1, value: 80, fmt: v => v < 15 ? "sehr nah" : v > 85 ? "weit weg" : v + " %", onInput: v => { gap = 6 + v * 1.2; } });
         gap = 6 + 80 * 1.2;
         const acts = el("div", "sim-acts"); h.append(acts);
         const gb = button(acts, "Erden: aus", () => { grounded = !grounded; gb.textContent = "Erden: " + (grounded ? "an" : "aus"); });
-        button(acts, "Neu beginnen", () => { gap = 6 + 80 * 1.2; s.set(80); grounded = false; gb.textContent = "Erden: aus"; removed = 0; });
+        button(acts, "Neu beginnen", () => { gap = 6 + 80 * 1.2; s.set(80); grounded = false; gb.textContent = "Erden: aus"; els.forEach((e, i) => { e.st = "in"; e.x = homes[i][0]; e.y = homes[i][1]; e.vx = e.vy = 0; }); });
         notes(h, "Aufgaben", ["Ziehe den negativen Stab an die Kugel heran. Wohin wandern die beweglichen Elektronen?",
           "Erde die Kugel (an), entferne dann die Erdung (aus) und erst danach den Stab. Wie ist die Kugel geladen?",
           "Warum bleibt die Kugel ohne Erdung insgesamt neutral?"]);
@@ -149,13 +151,19 @@
         function step(dt) {
           t += dt; gapV = GX.ease(gapV, gap, dt, 10);
           const kk = k();
-          const target = grounded ? Math.round(kk * 8) : removed;
-          const before = removed;
-          removed += Math.sign(target - removed) * Math.min(Math.abs(target - removed), dt * 4);
-          if (Math.floor(before) !== Math.floor(removed) || (removed !== before && Math.random() < dt * 6)) flow.push({ y: 0, dir: removed > before ? 1 : -1 });
-          flow.forEach(f => { f.y += dt * 90; }); flow = flow.filter(f => f.y < 1.2 * 50);
+          // Erdung: Elektronen wandern einzeln durch die Leitung in die Erde (und bei sinkender Zahl zurück), keines verschwindet unterwegs
+          const target = grounded ? Math.round(kk * 8) : nGone();
+          const moving = els.filter(e => e.st === "out" || e.st === "back").length, gone = nGone();
+          if (moving === 0 && gone < target) { const cand = els.filter(e => e.st === "in").sort((p, q) => q.y - p.y)[0]; if (cand) { cand.st = "out"; cand.s = 0; cand.x0 = cand.x; cand.y0 = cand.y; } }
+          else if (moving === 0 && gone > target) { const cand = els.find(e => e.st === "earth"); if (cand) { cand.st = "back"; cand.s = 0; } }
+          els.forEach(e => {
+            if (!grounded) return;
+            if (e.st === "out") { e.s += dt * 1.4; if (e.s >= 1) { e.st = "earth"; e.s = 1; } }
+            else if (e.st === "back") { e.s += dt * 1.4; if (e.s >= 1) { e.st = "in"; e.x = e.x0; e.y = e.y0; e.vx = e.vy = 0; } }
+          });
           // Elektronen: Feder zur verschobenen Ruhelage + Zittern
           els.forEach((e, i) => {
+            if (e.st !== "in") return;
             let tx = homes[i][0] + kk * 30 * (1 - 0.25 * Math.abs(homes[i][1]) / R), ty = homes[i][1];
             const d = Math.hypot(tx, ty), lim = R - 9; if (d > lim) { tx *= lim / d; ty *= lim / d; }
             e.vx += ((tx - e.x) * 30 - e.vx * 8) * dt + gauss() * 14 * Math.sqrt(dt);
@@ -168,9 +176,10 @@
           const c = colors(), x = st.ctx; st.fit(); GX.bg(x, W, H, c);
           const kk = k(), edge = CX - R - gapV;
           // Erdung
-          if (grounded) {
-            GX.wire(x, c, [[CX, CY + R], [CX, 214]]); GX.ground(x, c, CX, 216);
-            flow.forEach(f => GX.electron(x, c, CX, f.dir > 0 ? CY + R + f.y : 214 - f.y));
+          {
+            if (grounded) GX.wire(x, c, [[CX, CY + R], [CX, 214]]);
+            else { GX.wire(x, c, [[CX, CY + R], [CX, 176]]); GX.wire(x, c, [[CX, 198], [CX, 214]]); x.save(); x.strokeStyle = c.fg; x.lineWidth = 2.4; x.lineCap = "round"; x.beginPath(); x.moveTo(CX, 176); x.lineTo(CX + 14, 190); x.stroke(); x.restore(); }
+            GX.ground(x, c, CX, 216);
           }
           // Kugel (Metall)
           x.save(); const g = x.createRadialGradient(CX - 20, CY - 24, 8, CX, CY, R);
@@ -178,15 +187,24 @@
           x.fillStyle = g; x.strokeStyle = c.fg; x.lineWidth = 2.4; x.beginPath(); x.arc(CX, CY, R, 0, TAU); x.fill(); x.stroke(); x.restore();
           // Ionen und Elektronen
           homes.forEach(p => GX.ball(x, CX + p[0], CY + p[1], 3.2, c.pos, "+", { alpha: 0.85 }));
-          const order = els.map((e, i) => i).sort((a, b) => els[b].x - els[a].x);
-          const gone = new Set(order.slice(0, Math.round(removed)));
-          els.forEach((e, i) => { if (!gone.has(i)) GX.ball(x, CX + e.x, CY + e.y, 4.4, c.neg, "−"); });
+          const earthN = els.filter(e => e.st === "earth").length;
+          els.forEach((e, i) => {
+            if (e.st === "in") { GX.ball(x, CX + e.x, CY + e.y, 4.4, c.neg, "−"); return; }
+            if (e.st === "earth") return;
+            // Weg: von der Kugel (Startpunkt) auf der Leitung nach unten zur Erde; zurück umgekehrt
+            const u = e.st === "out" ? e.s : 1 - e.s;
+            const sx = CX + (e.x0 || 0), sy = CY + (e.y0 || 0), top = CY + R;
+            const leg1 = Math.hypot(sx - CX, sy - top), total = leg1 + (EARTH_Y - top), dd = u * total;
+            const px = dd < leg1 ? sx + (CX - sx) * (dd / (leg1 || 1)) : CX, py = dd < leg1 ? sy + (top - sy) * (dd / (leg1 || 1)) : top + (dd - leg1);
+            GX.ball(x, px, py, 4.4, c.neg, "−");
+          });
+          for (let i = 0; i < earthN; i++) GX.ball(x, CX + 22 + (i % 4) * 11, EARTH_Y + 12 + Math.floor(i / 4) * 11, 3.6, c.neg, "−", { alpha: 0.8 });
           // Stab (ziehbar)
           x.save(); const rg = x.createLinearGradient(0, CY - 20, 0, CY + 20); rg.addColorStop(0, GX.shade(c.neg, 0.35)); rg.addColorStop(1, GX.shade(c.neg, -0.3));
           x.fillStyle = rg; x.shadowColor = GX.alpha(c.neg, 0.5); x.shadowBlur = 10; GX.rr(x, edge - 104, CY - 18, 104, 36, 10); x.fill(); x.restore();
           for (let i = 0; i < 5; i++) GX.ball(x, edge - 88 + i * 18, CY, 5, GX.shade(c.neg, 0.15), "−");
           GX.text(x, c.dim, "⟷ ziehen", edge - 52, CY + 30, { size: 10 });
-          const net = Math.round(removed);
+          const net = nGone();
           GX.pill(x, c, "Gesamtladung der Kugel: " + (net > 0 ? "+" + net + " e" : "0"), CX, 18, { col: net > 0 ? c.pos : c.dim, size: 10, clampW: W });
           const farAndFree = !grounded && gap > 90;
           status.textContent = net > 0 && farAndFree ? "Die Kugel ist jetzt positiv geladen: " + net + " Elektronen fehlen (Aufladung durch Influenz)."
@@ -376,7 +394,7 @@
         const v = net() / (6 * Math.PI * eta * drop.r); // m/s, positiv: nach oben
         drop.v = v;
         y += v * dt * SPEED / d;
-        jx += gauss() * Math.sqrt(dt) * 2.2 - jx * dt * 0.8; // Brownsche Bewegung (seitlich)
+        jx += gauss() * Math.sqrt(dt) * 0.25 - jx * dt * 3; // nur minimales seitliches Zittern, kein Hin- und Herwandern
         // am Rand des Sehfelds liegen bleiben; erst nach einer Weile kommt ein neues Tröpfchen
         if (y > 0.95 || y < 0.05) { y = clamp(y, 0.05, 0.95); stuck += dt; if (stuck > 3) { stuck = 0; respawn = 0.45; } } else stuck = 0;
         Fv.el = GX.ease(Fv.el, U > 0 ? dir() * drop.q * U / d / (drop.m * G) : 0, dt, 10); Fv.g = 1;
@@ -406,7 +424,7 @@
         x.save(); x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.clip();
         x.drawImage(scope, cx - R, cy - R, 2 * R, 2 * R);
         // Tröpfchen: hell im Streulicht
-        const py = bot - y * (bot - top), px = cx + jx * 6;
+        const py = bot - y * (bot - top), px = cx + clamp(jx, -0.6, 0.6) * 2;
         const floating = U > 0 && dir() > 0 && Math.abs(net()) < 0.02 * drop.m * G;
         x.globalAlpha = fade;
         GX.glow(x, px, py, 22, floating ? "#3fb57a" : "#ffd28a", 0.55);

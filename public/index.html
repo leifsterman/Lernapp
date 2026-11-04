@@ -514,6 +514,35 @@ html.nosync .cardtools { display: none; }
 @media (max-width: 460px) { .sim-row { grid-template-columns: 1fr auto; } .sim-row .sim-lab { grid-column: 1 / 2; } .sim-row .sim-val { grid-column: 2 / 3; grid-row: 1; } .sim-row input { grid-column: 1 / 3; } }
 
 .mname, .mdesc { overflow-wrap: anywhere; hyphens: auto; }
+
+/* ---------- Konto und Rangliste ---------- */
+.tabs { gap: 2px; }
+.tab-btn { padding: 9px 2px; font-size: .84rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pts-line { margin: 10px 0 0; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.pts-line:empty { display: none; }
+.acct-seg { margin: 6px 0 10px; }
+.acct-form { display: grid; gap: 8px; margin-bottom: 8px; }
+.acct-form[hidden] { display: none; }
+.acct-form input { min-width: 0; background: var(--surface-2); color: var(--fg); border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; font: inherit; }
+.acct-form input:focus { border-color: var(--accent); outline: none; }
+.acct-form input::placeholder { color: var(--fg-dim); }
+.acct-form .btn { justify-self: start; }
+.legacy { margin-top: 6px; } .legacy summary, #setlogin summary { cursor: pointer; color: var(--accent); font-size: .9rem; padding: 6px 0; }
+#setlogin { margin: 8px 0; } #setlogin .acct-form { margin-top: 8px; }
+.toggle { display: flex; gap: 10px; align-items: center; margin: 8px 0; cursor: pointer; }
+.toggle input { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; }
+.board { list-style: none; margin: 0; padding: 0; }
+.br { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--border); }
+.br:first-child { border-top: 0; }
+.br .rk { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--surface-2); font-variant-numeric: tabular-nums; }
+.br.top1 .rk { background: #d9b341; color: #1a1300; } .br.top2 .rk { background: #b8c2d1; color: #11161f; } .br.top3 .rk { background: #c98a52; color: #1a0f05; }
+.br .bn { min-width: 0; overflow-wrap: anywhere; font-weight: 600; display: flex; flex-direction: column; }
+.br .bn small { font-weight: 400; color: var(--fg-dim); font-size: .78rem; }
+.br .bs { font-weight: 800; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.br.me { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 10px; }
+.br .badge { display: inline-block; margin-left: 4px; }
+.rules { margin: 8px 0 0; padding-left: 20px; color: var(--fg-dim); font-size: .92rem; } .rules li { margin-bottom: 4px; }
+.br .bn .badge { align-self: flex-start; margin: 2px 0; }
 </style></head><body>
   <header class="top">
     <button id="btn-home" class="brand" type="button" aria-label="Zur Übersicht">
@@ -531,6 +560,7 @@ html.nosync .cardtools { display: none; }
           <p class="eyebrow" id="countdown"></p>
           <h1>Das elektrische Feld</h1>
           <p class="lead">Karteikasten, Quiz, Rechentrainer und Klausur-Simulation. Stelle Schwierigkeit und Themen ein und leg los.</p>
+          <p class="pts-line" id="pts-line"></p>
         </div>
         <div class="ring" id="ring" role="img" aria-label="Gesamtfortschritt"></div>
       </div>
@@ -538,8 +568,9 @@ html.nosync .cardtools { display: none; }
       <nav class="tabs" role="tablist" aria-label="Bereiche">
         <button type="button" class="tab-btn" role="tab" data-tab="learn">Lernen</button>
         <button type="button" class="tab-btn" role="tab" data-tab="lab">Labor</button>
-        <button type="button" class="tab-btn" role="tab" data-tab="sheets">Übersichten</button>
-        <button type="button" class="tab-btn" role="tab" data-tab="more">Mehr</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="sheets">Wissen</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="board">Rangliste</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="more">Konto</button>
       </nav>
 
       <!-- Tab: Lernen -->
@@ -630,27 +661,70 @@ html.nosync .cardtools { display: none; }
         <ul id="sheet-list" class="sheet-list"></ul>
       </div>
 
-      <!-- Tab: Mehr -->
+      <!-- Tab: Rangliste -->
+      <div class="tabpane" id="tab-board" hidden>
+        <div class="panel">
+          <div class="panel-head"><h2>Rangliste</h2><button type="button" id="board-refresh" class="link">Aktualisieren</button></div>
+          <ol id="board-list" class="board"></ol>
+          <p class="fine tight" id="board-note"></p>
+        </div>
+        <div class="panel">
+          <h2>So gibt es Punkte</h2>
+          <ul class="rules">
+            <li>Karteikasten: so viele Punkte, wie das Fach der Karte (Fach 5 = 5 Punkte)</li>
+            <li>Quiz: 2 Punkte pro richtige Antwort</li>
+            <li>Rechentrainer: 3 Punkte pro richtige Aufgabe</li>
+            <li>Schaltung beschriften: 5 Punkte pro komplett richtige Schaltung</li>
+            <li>Zuordnen: 3 Punkte pro Runde</li>
+            <li>Klausur-Simulation: 5 Punkte pro Notenpunkt deines besten Versuchs</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Tab: Konto -->
       <div class="tabpane" id="tab-more" hidden>
         <div class="panel" id="sync-panel">
-          <div class="panel-head"><h2>Sync zwischen Geräten</h2></div>
+          <div class="panel-head"><h2>Konto</h2></div>
           <div id="sync-off">
-            <p class="fine tight">Mit einem Lerncode siehst du deinen Fortschritt auf Handy und Laptop. Ein neuer Code braucht den Einladungscode der Gruppe. Hast du schon einen Lerncode, gib ihn unten ein.</p>
-            <div class="row">
-              <input id="sync-name" type="text" maxlength="30" placeholder="Dein Name" autocomplete="off">
-              <input id="sync-invite" type="text" maxlength="12" placeholder="Einladungscode" autocomplete="off" autocapitalize="characters" spellcheck="false">
-              <button type="button" id="sync-create" class="btn">Neuen Code erstellen</button>
+            <p class="fine tight">Mit einem Konto wird dein Fortschritt auf allen Geräten gespeichert und du erscheinst in der Rangliste. Keine E-Mail nötig.</p>
+            <div class="seg acct-seg" role="tablist">
+              <button type="button" data-acct="login" aria-pressed="true">Anmelden</button>
+              <button type="button" data-acct="register" aria-pressed="false">Registrieren</button>
             </div>
-            <div class="row">
-              <input id="sync-code" type="text" maxlength="12" placeholder="Code vom anderen Gerät, z. B. K7M2-QX9P" autocomplete="off" autocapitalize="characters" spellcheck="false">
-              <button type="button" id="sync-join" class="btn">Verbinden</button>
-            </div>
+            <form id="form-login" class="acct-form">
+              <input id="login-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername" aria-label="Benutzername">
+              <input id="login-pw" type="password" maxlength="72" autocomplete="current-password" placeholder="Passwort" aria-label="Passwort">
+              <button type="submit" class="btn primary">Anmelden</button>
+            </form>
+            <form id="form-register" class="acct-form" hidden>
+              <input id="reg-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername (3–20 Zeichen)" aria-label="Benutzername">
+              <input id="reg-pw" type="password" maxlength="72" autocomplete="new-password" placeholder="Passwort (mindestens 6 Zeichen)" aria-label="Passwort">
+              <input id="reg-pw2" type="password" maxlength="72" autocomplete="new-password" placeholder="Passwort wiederholen" aria-label="Passwort wiederholen">
+              <input id="reg-invite" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Einladungscode der Gruppe" aria-label="Einladungscode">
+              <button type="submit" class="btn primary">Konto erstellen</button>
+              <p class="fine tight">Merke dir dein Passwort gut. Ohne E-Mail kann es nicht per Link zurückgesetzt werden.</p>
+            </form>
+            <details class="legacy">
+              <summary>Ich habe noch einen alten Lerncode</summary>
+              <div class="row">
+                <input id="sync-code" type="text" maxlength="12" placeholder="z. B. K7M2-QX9P" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Lerncode">
+                <button type="button" id="sync-join" class="btn">Verbinden</button>
+              </div>
+            </details>
           </div>
           <div id="sync-on" hidden>
             <p class="sync-who"><b id="sync-who"></b></p>
-            <p class="fine tight">Dein Lerncode (auf dem anderen Gerät eingeben):</p>
-            <p class="sync-code"><code id="sync-code-show"></code> <button type="button" id="sync-copy" class="link">Kopieren</button></p>
-            <button type="button" id="sync-leave" class="link danger">Auf diesem Gerät trennen</button>
+            <label class="toggle"><input type="checkbox" id="board-opt" checked> In der Rangliste anzeigen</label>
+            <details id="setlogin">
+              <summary id="setlogin-sum">Passwort oder Benutzername ändern</summary>
+              <form id="form-setlogin" class="acct-form">
+                <input id="set-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername" aria-label="Benutzername">
+                <input id="set-pw" type="password" maxlength="72" autocomplete="new-password" placeholder="Neues Passwort" aria-label="Neues Passwort">
+                <input id="set-pw2" type="password" maxlength="72" autocomplete="new-password" placeholder="Neues Passwort wiederholen" aria-label="Neues Passwort wiederholen">
+                <button type="submit" class="btn">Speichern</button>
+              </form>
+            </details>
+            <button type="button" id="sync-leave" class="link danger">Abmelden</button>
           </div>
           <p class="fine tight" id="sync-status" role="status"></p>
         </div>
@@ -2083,7 +2157,9 @@ window.PHYS_SYNC = {
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
   } catch (e) { /* ohne Speicher weiter */ }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* ignorieren */ } }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* ignorieren */ } }
+  // Speichern und (angemeldet) kurz danach mit dem Server abgleichen
+  function save() { persist(); if (store.sync && window.PHYS_SYNC) setTimeout(() => schedulePush(), 0); }
 
   const byId = {}; CARDS.forEach(c => { byId[c.id] = c; });
   const topicTitle = {}, topicHue = {};
@@ -2266,6 +2342,7 @@ window.PHYS_SYNC = {
     $("#weak-count").textContent = "(" + weak + ")";
     $("#btn-start").disabled = all === 0;
     $("#btn-weak").disabled = weak === 0;
+    renderPts();
   }
 
   $("#drawer").addEventListener("click", e => {
@@ -2290,10 +2367,11 @@ window.PHYS_SYNC = {
   });
   // Reiter
   function setTab(t) {
-    if (!["learn", "lab", "sheets", "more"].includes(t)) t = "learn";
+    if (!["learn", "lab", "sheets", "board", "more"].includes(t)) t = "learn";
     store.tab = t; save();
     document.querySelectorAll(".tab-btn").forEach(b => { const on = b.dataset.tab === t; b.setAttribute("aria-selected", on); b.classList.toggle("on", on); });
-    ["learn", "lab", "sheets", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
+    ["learn", "lab", "sheets", "board", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
+    if (t === "board") fetchBoard();
   }
   document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest(".tab-btn"); if (b) setTab(b.dataset.tab); });
 
@@ -2580,16 +2658,11 @@ window.PHYS_SYNC = {
     else if (e.key === "3") rate("correct");
   });
 
-  // ------------------------------------------------------------ Sync (Supabase, Lerncode)
+  // ------------------------------------------------------------ Konto, Sync und Rangliste (Supabase)
   const CFG = window.PHYS_SYNC;
-  const ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // ohne I, L, O, 0, 1
-  const fmtCode = c => c.slice(0, 4) + "-" + c.slice(4);
   const normCode = s => (s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-  function newCode() {
-    const buf = new Uint8Array(8);
-    crypto.getRandomValues(buf);
-    return Array.from(buf, b => ALPHA[b % ALPHA.length]).join("");
-  }
+  const escH = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const USER_RE = /^[A-Za-z0-9ÄÖÜäöüß._-]{3,20}$/;
   async function rpc(fn, body) {
     const r = await fetch(CFG.url + "/rest/v1/rpc/" + fn, {
       method: "POST", keepalive: true,
@@ -2600,6 +2673,22 @@ window.PHYS_SYNC = {
     if (!r.ok) throw new Error((t.match(/"message":"([^"]*)"/) || [])[1] || "HTTP " + r.status);
     return t ? JSON.parse(t) : null;
   }
+
+  // Punkte für die Rangliste
+  function notenpunkte(p) {
+    const t = [95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 39, 33, 27, 20];
+    for (let i = 0; i < t.length; i++) if (p >= t[i]) return 15 - i;
+    return 0;
+  }
+  function scoreInfo() {
+    const live = liveCards(), st = store.stats || {}, g = k => st[k] || {};
+    const boxes = live.reduce((a, c) => a + boxOf(c.id), 0);
+    const ex = st.exam && st.exam.best != null ? notenpunkte(st.exam.best) : 0;
+    const score = Math.round(boxes + 2 * (g("mc").ok || 0) + 3 * (g("tr").ok || 0) + 5 * (g("label").ok || 0) + 3 * (g("match").rounds || 0) + 5 * ex);
+    return { score, mastered: live.filter(c => boxOf(c.id) >= 4).length };
+  }
+  const payload = () => Object.assign({ progress: store.progress, resetAt: store.resetAt, hidden: store.hidden, stats: store.stats, board: store.board !== false }, scoreInfo());
+
   // Neuere Einträge gewinnen; ein Zurücksetzen (resetAt) löscht ältere Einträge auf allen Geräten
   function mergeData(remote) {
     if (!remote || typeof remote !== "object") return;
@@ -2621,6 +2710,15 @@ window.PHYS_SYNC = {
       if (pick && typeof pick.t === "number") hh[id] = { on: !!pick.on, t: pick.t };
     });
     store.hidden = hh;
+    // Statistik: Zähler wachsen nur, also gewinnt der größere Wert
+    const rs = remote.stats;
+    if (rs && typeof rs === "object") {
+      for (const k in rs) {
+        const b = rs[k]; if (!b || typeof b !== "object") continue;
+        const a = store.stats[k] || (store.stats[k] = {});
+        for (const f in b) if (typeof b[f] === "number" && isFinite(b[f]) && (typeof a[f] !== "number" || b[f] > a[f])) a[f] = b[f];
+      }
+    }
   }
   function setStatus(msg, err) {
     const el = $("#sync-status");
@@ -2637,13 +2735,15 @@ window.PHYS_SYNC = {
       setStatus("Synchronisiere …");
       const res = await rpc("lern_load", { p_code: store.sync.code });
       if (res && res.data) mergeData(res.data);
-      save();
-      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: { progress: store.progress, resetAt: store.resetAt, hidden: store.hidden } });
+      if (res && res.data && typeof res.data.board === "boolean" && store.board == null) store.board = res.data.board;
+      persist();
+      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: payload() });
       const d = new Date();
       setStatus("Synchronisiert um " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " Uhr");
       if (!active) renderTopics();
+      fetchBoard();
     } catch (e) {
-      if (/invite required/.test(e.message)) setStatus("Dein Profil gibt es nicht mehr. Trenne dieses Gerät und melde dich neu an.", true);
+      if (/invite required/.test(e.message)) setStatus("Dein Konto gibt es nicht mehr. Melde dich ab und registriere dich neu.", true);
       else setStatus("Gerade offline. Es wird später synchronisiert.", true);
     }
     syncing = false;
@@ -2661,47 +2761,133 @@ window.PHYS_SYNC = {
     $("#sync-off").hidden = on;
     $("#sync-on").hidden = !on;
     if (on) {
-      $("#sync-who").textContent = store.sync.name ? "Verbunden als " + store.sync.name : "Verbunden";
-      $("#sync-code-show").textContent = fmtCode(store.sync.code);
-    } else setStatus("");
-  }
-  $("#sync-create").addEventListener("click", async () => {
-    const name = $("#sync-name").value.trim();
-    const invite = normCode($("#sync-invite").value);
-    if (!name) { setStatus("Bitte zuerst deinen Namen eintragen.", true); $("#sync-name").focus(); return; }
-    if (invite.length !== 8) { setStatus("Bitte den Einladungscode eintragen (8 Zeichen). Den bekommst du von der Gruppe.", true); $("#sync-invite").focus(); return; }
-    const code = newCode();
-    setStatus("Lege Profil an …");
-    try {
-      await rpc("lern_save", { p_code: code, p_name: name, p_data: { _invite: invite, progress: store.progress, resetAt: store.resetAt, hidden: store.hidden } });
-    } catch (e) {
-      setStatus(/invite required/.test(e.message) ? "Der Einladungscode stimmt nicht." : "Keine Verbindung. Versuche es gleich nochmal.", true);
-      return;
+      $("#sync-who").textContent = "Angemeldet als " + (store.sync.name || "?");
+      $("#board-opt").checked = store.board !== false;
+      const legacy = !store.sync.user;
+      $("#setlogin-sum").textContent = legacy ? "Benutzername und Passwort festlegen (empfohlen)" : "Passwort oder Benutzername ändern";
+      $("#setlogin").open = legacy;
+      $("#set-user").value = store.sync.user ? store.sync.name : "";
     }
-    store.sync = { code, name };
-    save(); renderSync(); await syncNow();
+    renderPts();
+  }
+  // Umschalten Anmelden / Registrieren
+  document.querySelector(".acct-seg").addEventListener("click", e => {
+    const b = e.target.closest("[data-acct]"); if (!b) return;
+    const reg = b.dataset.acct === "register";
+    document.querySelectorAll(".acct-seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    $("#form-login").hidden = reg; $("#form-register").hidden = !reg; setStatus("");
+  });
+  const ERR = {
+    "username taken": "Dieser Benutzername ist schon vergeben.",
+    "invite required": "Der Einladungscode stimmt nicht.",
+    "bad username": "Der Benutzername braucht 3 bis 20 Zeichen (Buchstaben, Ziffern, . _ -).",
+    "bad password": "Das Passwort braucht mindestens 6 Zeichen.",
+    "not signed in": "Du bist nicht mehr angemeldet. Bitte neu anmelden.",
+    "data too large": "Zu viele Daten zum Speichern."
+  };
+  async function afterLogin(r, user) {
+    // Gehörte der Fortschritt auf diesem Gerät einem anderen Konto, wird er nicht übernommen
+    if (store.owner && store.owner !== r.code) {
+      store.progress = {}; store.hidden = {}; store.stats = {}; store.resetAt = 0; store.board = undefined;
+    }
+    store.owner = r.code;
+    store.sync = { code: r.code, name: r.name, user };
+    persist(); renderSync(); renderTopics();
+    await syncNow();
+  }
+  $("#form-login").addEventListener("submit", async e => {
+    e.preventDefault();
+    const u = $("#login-user").value.trim(), p = $("#login-pw").value;
+    if (!u || !p) { setStatus("Bitte Benutzername und Passwort eingeben.", true); return; }
+    setStatus("Melde an …");
+    try {
+      const r = await rpc("lern_login", { p_user: u, p_pw: p });
+      if (!r || !r.ok) { setStatus(r && r.error === "locked" ? "Zu viele Fehlversuche. Warte 5 Minuten und versuche es dann nochmal." : "Benutzername oder Passwort stimmt nicht.", true); return; }
+      $("#login-pw").value = "";
+      await afterLogin(r, true);
+      toast("Willkommen zurück, " + r.name + "!");
+    } catch (err) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
+  });
+  $("#form-register").addEventListener("submit", async e => {
+    e.preventDefault();
+    const u = $("#reg-user").value.trim(), p = $("#reg-pw").value, p2 = $("#reg-pw2").value, inv = normCode($("#reg-invite").value);
+    if (!USER_RE.test(u)) { setStatus(ERR["bad username"], true); $("#reg-user").focus(); return; }
+    if (p.length < 6) { setStatus(ERR["bad password"], true); $("#reg-pw").focus(); return; }
+    if (p !== p2) { setStatus("Die beiden Passwörter stimmen nicht überein.", true); $("#reg-pw2").focus(); return; }
+    if (inv.length !== 8) { setStatus("Bitte den Einladungscode der Gruppe eintragen (8 Zeichen).", true); $("#reg-invite").focus(); return; }
+    setStatus("Erstelle Konto …");
+    try {
+      // Fortschritt auf dem Gerät nur übernehmen, wenn er noch keinem anderen Konto gehört
+      const r = await rpc("lern_register", { p_user: u, p_pw: p, p_invite: inv, p_data: store.owner ? {} : payload() });
+      if (!r || !r.ok) { setStatus(ERR[r && r.error] || "Das hat nicht geklappt.", true); return; }
+      $("#reg-pw").value = ""; $("#reg-pw2").value = "";
+      await afterLogin(r, true);
+      toast("Konto erstellt. Du bist jetzt in der Rangliste.");
+    } catch (err) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
   });
   $("#sync-join").addEventListener("click", async () => {
     const code = normCode($("#sync-code").value);
-    if (code.length !== 8) { setStatus("Der Code hat 8 Zeichen, z. B. K7M2-QX9P.", true); return; }
-    setStatus("Suche Code …");
+    if (code.length !== 8) { setStatus("Der Lerncode hat 8 Zeichen, z. B. K7M2-QX9P.", true); return; }
+    setStatus("Suche Lerncode …");
     try {
       const res = await rpc("lern_load", { p_code: code });
-      if (!res) { setStatus("Diesen Code gibt es nicht. Tippfehler?", true); return; }
-      store.sync = { code, name: res.name || "" };
-      save(); renderSync(); await syncNow();
+      if (!res) { setStatus("Diesen Lerncode gibt es nicht. Tippfehler?", true); return; }
+      await afterLogin({ code, name: res.name || "" }, false);
     } catch (e) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
   });
-  $("#sync-copy").addEventListener("click", () => {
-    const t = fmtCode(store.sync.code);
-    const done = () => setStatus("Code kopiert: " + t);
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => setStatus("Code: " + t));
-    else setStatus("Code: " + t);
+  $("#form-setlogin").addEventListener("submit", async e => {
+    e.preventDefault();
+    const u = $("#set-user").value.trim(), p = $("#set-pw").value, p2 = $("#set-pw2").value;
+    if (!USER_RE.test(u)) { setStatus(ERR["bad username"], true); return; }
+    if (p.length < 6) { setStatus(ERR["bad password"], true); return; }
+    if (p !== p2) { setStatus("Die beiden Passwörter stimmen nicht überein.", true); return; }
+    try {
+      const r = await rpc("lern_set_login", { p_code: store.sync.code, p_user: u, p_pw: p });
+      if (!r || !r.ok) { setStatus(ERR[r && r.error] || "Das hat nicht geklappt.", true); return; }
+      store.sync.name = r.name; store.sync.user = true; persist();
+      $("#set-pw").value = ""; $("#set-pw2").value = "";
+      renderSync(); setStatus("Gespeichert. Ab jetzt meldest du dich mit „" + r.name + "“ und dem neuen Passwort an."); fetchBoard();
+    } catch (err) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
   });
+  $("#board-opt").addEventListener("change", e => { store.board = e.target.checked; persist(); syncNow(); });
   $("#sync-leave").addEventListener("click", () => {
-    store.sync = null; save(); renderSync();
-    setStatus("Getrennt. Dein Fortschritt bleibt auf diesem Gerät.");
+    store.sync = null; persist(); renderSync(); renderBoard();
+    setStatus("Abgemeldet. Dein Fortschritt bleibt auf diesem Gerät.");
   });
+
+  // Rangliste
+  let board = null;
+  async function fetchBoard() {
+    if (!CFG) { renderBoard(); return; }
+    try { board = await rpc("lern_board", {}); } catch (e) { board = board || null; }
+    renderBoard();
+  }
+  function renderBoard() {
+    const ol = $("#board-list"), note = $("#board-note");
+    const me = store.sync && store.sync.user ? String(store.sync.name).toLowerCase() : null;
+    if (!CFG) { ol.innerHTML = ""; note.textContent = "Die Rangliste gibt es nur auf der Webseite der App."; renderPts(); return; }
+    if (!board) { ol.innerHTML = ""; note.textContent = "Rangliste wird geladen …"; renderPts(); return; }
+    ol.innerHTML = board.map((r, i) => {
+      const mine = me && String(r.name).toLowerCase() === me;
+      return '<li class="br' + (mine ? " me" : "") + (i < 3 ? " top" + (i + 1) : "") + '"><span class="rk">' + (i + 1) + '</span><span class="bn">' + escH(r.name) +
+        (mine ? ' <span class="badge">du</span>' : "") + '<small>' + r.mastered + " Karten sitzen</small></span><span class=\"bs\">" + r.score + "</span></li>";
+    }).join("");
+    note.textContent = !board.length ? "Noch niemand in der Rangliste. Erstelle unter „Konto“ ein Konto."
+      : !store.sync ? "Melde dich unter „Konto“ an, um mitzumachen."
+      : !store.sync.user ? "Lege unter „Konto“ Benutzername und Passwort fest, um in der Rangliste zu erscheinen."
+      : store.board === false ? "Du bist in der Rangliste ausgeblendet (änderbar unter „Konto“)." : "";
+    renderPts();
+  }
+  function renderPts() {
+    const s = scoreInfo();
+    let t = s.score + " Punkte";
+    if (board && store.sync && store.sync.user) {
+      const i = board.findIndex(r => String(r.name).toLowerCase() === String(store.sync.name).toLowerCase());
+      if (i >= 0) t += " · Platz " + (i + 1) + " von " + board.length;
+    }
+    $("#pts-line").textContent = t;
+  }
+  $("#board-refresh").addEventListener("click", () => { syncNow(); fetchBoard(); });
   document.addEventListener("visibilitychange", () => { if (!syncing) syncNow(); if (document.visibilityState === "visible") fetchGlobal(); });
   window.addEventListener("online", syncNow);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (active) fitDisplays(); });
@@ -2749,8 +2935,8 @@ window.PHYS_SYNC = {
   function needLogin() {
     dialog({
       title: "Anmeldung nötig",
-      text: "Zum Löschen musst du angemeldet sein. Erstelle unter „Mehr“ einen Lerncode oder verbinde dich mit deinem.",
-      actions: [{ label: "Abbrechen" }, { label: "Zu „Mehr“", primary: true, fn: () => { setTab("more"); home(); } }]
+      text: "Zum Löschen musst du angemeldet sein. Melde dich unter „Konto“ an oder erstelle ein Konto.",
+      actions: [{ label: "Abbrechen" }, { label: "Zum Konto", primary: true, fn: () => { setTab("more"); home(); } }]
     });
   }
   // scope: "me" (nur für mich, am Profil gespeichert) oder "all" (für alle, in Supabase)
@@ -2765,7 +2951,7 @@ window.PHYS_SYNC = {
     } else {
       dialog({
         title: "Für alle löschen?",
-        text: "„" + label + "“ verschwindet sofort bei allen. Du kannst sie später unter „Mehr“ wiederherstellen.",
+        text: "„" + label + "“ verschwindet sofort bei allen. Du kannst sie später unter „Konto“ wiederherstellen.",
         actions: [{ label: "Abbrechen" }, { label: "Für alle löschen", danger: true, fn: async () => {
           try {
             await rpc("lern_global_set", { p_code: store.sync.code, p_id: id, p_hidden: true });
@@ -2800,7 +2986,7 @@ window.PHYS_SYNC = {
       const list = await rpc("lern_global_list", {});
       const g = {};
       (list || []).forEach(x => { if (x.hidden) g[x.id] = x.by || true; });
-      store.ghidden = g; save();
+      store.ghidden = g; persist();
       if (!active) renderTopics();
       changed();
     } catch (e) { /* offline: zuletzt bekannten Stand behalten */ }
@@ -2831,6 +3017,7 @@ window.PHYS_SYNC = {
   show("start");
   syncNow();
   fetchGlobal();
+  fetchBoard();
 
   // Schnittstelle für methods.js
   window.PHYS_APP = {

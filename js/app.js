@@ -16,7 +16,9 @@
     const raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
   } catch (e) { /* ohne Speicher weiter */ }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* ignorieren */ } }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* ignorieren */ } }
+  // Speichern und (angemeldet) kurz danach mit dem Server abgleichen
+  function save() { persist(); if (store.sync && window.PHYS_SYNC) setTimeout(() => schedulePush(), 0); }
 
   const byId = {}; CARDS.forEach(c => { byId[c.id] = c; });
   const topicTitle = {}, topicHue = {};
@@ -199,6 +201,7 @@
     $("#weak-count").textContent = "(" + weak + ")";
     $("#btn-start").disabled = all === 0;
     $("#btn-weak").disabled = weak === 0;
+    renderPts();
   }
 
   $("#drawer").addEventListener("click", e => {
@@ -223,10 +226,11 @@
   });
   // Reiter
   function setTab(t) {
-    if (!["learn", "lab", "sheets", "more"].includes(t)) t = "learn";
+    if (!["learn", "lab", "sheets", "board", "more"].includes(t)) t = "learn";
     store.tab = t; save();
     document.querySelectorAll(".tab-btn").forEach(b => { const on = b.dataset.tab === t; b.setAttribute("aria-selected", on); b.classList.toggle("on", on); });
-    ["learn", "lab", "sheets", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
+    ["learn", "lab", "sheets", "board", "more"].forEach(x => { $("#tab-" + x).hidden = x !== t; });
+    if (t === "board") fetchBoard();
   }
   document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest(".tab-btn"); if (b) setTab(b.dataset.tab); });
 
@@ -513,16 +517,11 @@
     else if (e.key === "3") rate("correct");
   });
 
-  // ------------------------------------------------------------ Sync (Supabase, Lerncode)
+  // ------------------------------------------------------------ Konto, Sync und Rangliste (Supabase)
   const CFG = window.PHYS_SYNC;
-  const ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // ohne I, L, O, 0, 1
-  const fmtCode = c => c.slice(0, 4) + "-" + c.slice(4);
   const normCode = s => (s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-  function newCode() {
-    const buf = new Uint8Array(8);
-    crypto.getRandomValues(buf);
-    return Array.from(buf, b => ALPHA[b % ALPHA.length]).join("");
-  }
+  const escH = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const USER_RE = /^[A-Za-z0-9ÄÖÜäöüß._-]{3,20}$/;
   async function rpc(fn, body) {
     const r = await fetch(CFG.url + "/rest/v1/rpc/" + fn, {
       method: "POST", keepalive: true,
@@ -533,6 +532,22 @@
     if (!r.ok) throw new Error((t.match(/"message":"([^"]*)"/) || [])[1] || "HTTP " + r.status);
     return t ? JSON.parse(t) : null;
   }
+
+  // Punkte für die Rangliste
+  function notenpunkte(p) {
+    const t = [95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 39, 33, 27, 20];
+    for (let i = 0; i < t.length; i++) if (p >= t[i]) return 15 - i;
+    return 0;
+  }
+  function scoreInfo() {
+    const live = liveCards(), st = store.stats || {}, g = k => st[k] || {};
+    const boxes = live.reduce((a, c) => a + boxOf(c.id), 0);
+    const ex = st.exam && st.exam.best != null ? notenpunkte(st.exam.best) : 0;
+    const score = Math.round(boxes + 2 * (g("mc").ok || 0) + 3 * (g("tr").ok || 0) + 5 * (g("label").ok || 0) + 3 * (g("match").rounds || 0) + 5 * ex);
+    return { score, mastered: live.filter(c => boxOf(c.id) >= 4).length };
+  }
+  const payload = () => Object.assign({ progress: store.progress, resetAt: store.resetAt, hidden: store.hidden, stats: store.stats, board: store.board !== false }, scoreInfo());
+
   // Neuere Einträge gewinnen; ein Zurücksetzen (resetAt) löscht ältere Einträge auf allen Geräten
   function mergeData(remote) {
     if (!remote || typeof remote !== "object") return;
@@ -554,6 +569,15 @@
       if (pick && typeof pick.t === "number") hh[id] = { on: !!pick.on, t: pick.t };
     });
     store.hidden = hh;
+    // Statistik: Zähler wachsen nur, also gewinnt der größere Wert
+    const rs = remote.stats;
+    if (rs && typeof rs === "object") {
+      for (const k in rs) {
+        const b = rs[k]; if (!b || typeof b !== "object") continue;
+        const a = store.stats[k] || (store.stats[k] = {});
+        for (const f in b) if (typeof b[f] === "number" && isFinite(b[f]) && (typeof a[f] !== "number" || b[f] > a[f])) a[f] = b[f];
+      }
+    }
   }
   function setStatus(msg, err) {
     const el = $("#sync-status");
@@ -570,13 +594,15 @@
       setStatus("Synchronisiere …");
       const res = await rpc("lern_load", { p_code: store.sync.code });
       if (res && res.data) mergeData(res.data);
-      save();
-      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: { progress: store.progress, resetAt: store.resetAt, hidden: store.hidden } });
+      if (res && res.data && typeof res.data.board === "boolean" && store.board == null) store.board = res.data.board;
+      persist();
+      await rpc("lern_save", { p_code: store.sync.code, p_name: store.sync.name || "", p_data: payload() });
       const d = new Date();
       setStatus("Synchronisiert um " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " Uhr");
       if (!active) renderTopics();
+      fetchBoard();
     } catch (e) {
-      if (/invite required/.test(e.message)) setStatus("Dein Profil gibt es nicht mehr. Trenne dieses Gerät und melde dich neu an.", true);
+      if (/invite required/.test(e.message)) setStatus("Dein Konto gibt es nicht mehr. Melde dich ab und registriere dich neu.", true);
       else setStatus("Gerade offline. Es wird später synchronisiert.", true);
     }
     syncing = false;
@@ -594,47 +620,133 @@
     $("#sync-off").hidden = on;
     $("#sync-on").hidden = !on;
     if (on) {
-      $("#sync-who").textContent = store.sync.name ? "Verbunden als " + store.sync.name : "Verbunden";
-      $("#sync-code-show").textContent = fmtCode(store.sync.code);
-    } else setStatus("");
-  }
-  $("#sync-create").addEventListener("click", async () => {
-    const name = $("#sync-name").value.trim();
-    const invite = normCode($("#sync-invite").value);
-    if (!name) { setStatus("Bitte zuerst deinen Namen eintragen.", true); $("#sync-name").focus(); return; }
-    if (invite.length !== 8) { setStatus("Bitte den Einladungscode eintragen (8 Zeichen). Den bekommst du von der Gruppe.", true); $("#sync-invite").focus(); return; }
-    const code = newCode();
-    setStatus("Lege Profil an …");
-    try {
-      await rpc("lern_save", { p_code: code, p_name: name, p_data: { _invite: invite, progress: store.progress, resetAt: store.resetAt, hidden: store.hidden } });
-    } catch (e) {
-      setStatus(/invite required/.test(e.message) ? "Der Einladungscode stimmt nicht." : "Keine Verbindung. Versuche es gleich nochmal.", true);
-      return;
+      $("#sync-who").textContent = "Angemeldet als " + (store.sync.name || "?");
+      $("#board-opt").checked = store.board !== false;
+      const legacy = !store.sync.user;
+      $("#setlogin-sum").textContent = legacy ? "Benutzername und Passwort festlegen (empfohlen)" : "Passwort oder Benutzername ändern";
+      $("#setlogin").open = legacy;
+      $("#set-user").value = store.sync.user ? store.sync.name : "";
     }
-    store.sync = { code, name };
-    save(); renderSync(); await syncNow();
+    renderPts();
+  }
+  // Umschalten Anmelden / Registrieren
+  document.querySelector(".acct-seg").addEventListener("click", e => {
+    const b = e.target.closest("[data-acct]"); if (!b) return;
+    const reg = b.dataset.acct === "register";
+    document.querySelectorAll(".acct-seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    $("#form-login").hidden = reg; $("#form-register").hidden = !reg; setStatus("");
+  });
+  const ERR = {
+    "username taken": "Dieser Benutzername ist schon vergeben.",
+    "invite required": "Der Einladungscode stimmt nicht.",
+    "bad username": "Der Benutzername braucht 3 bis 20 Zeichen (Buchstaben, Ziffern, . _ -).",
+    "bad password": "Das Passwort braucht mindestens 6 Zeichen.",
+    "not signed in": "Du bist nicht mehr angemeldet. Bitte neu anmelden.",
+    "data too large": "Zu viele Daten zum Speichern."
+  };
+  async function afterLogin(r, user) {
+    // Gehörte der Fortschritt auf diesem Gerät einem anderen Konto, wird er nicht übernommen
+    if (store.owner && store.owner !== r.code) {
+      store.progress = {}; store.hidden = {}; store.stats = {}; store.resetAt = 0; store.board = undefined;
+    }
+    store.owner = r.code;
+    store.sync = { code: r.code, name: r.name, user };
+    persist(); renderSync(); renderTopics();
+    await syncNow();
+  }
+  $("#form-login").addEventListener("submit", async e => {
+    e.preventDefault();
+    const u = $("#login-user").value.trim(), p = $("#login-pw").value;
+    if (!u || !p) { setStatus("Bitte Benutzername und Passwort eingeben.", true); return; }
+    setStatus("Melde an …");
+    try {
+      const r = await rpc("lern_login", { p_user: u, p_pw: p });
+      if (!r || !r.ok) { setStatus(r && r.error === "locked" ? "Zu viele Fehlversuche. Warte 5 Minuten und versuche es dann nochmal." : "Benutzername oder Passwort stimmt nicht.", true); return; }
+      $("#login-pw").value = "";
+      await afterLogin(r, true);
+      toast("Willkommen zurück, " + r.name + "!");
+    } catch (err) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
+  });
+  $("#form-register").addEventListener("submit", async e => {
+    e.preventDefault();
+    const u = $("#reg-user").value.trim(), p = $("#reg-pw").value, p2 = $("#reg-pw2").value, inv = normCode($("#reg-invite").value);
+    if (!USER_RE.test(u)) { setStatus(ERR["bad username"], true); $("#reg-user").focus(); return; }
+    if (p.length < 6) { setStatus(ERR["bad password"], true); $("#reg-pw").focus(); return; }
+    if (p !== p2) { setStatus("Die beiden Passwörter stimmen nicht überein.", true); $("#reg-pw2").focus(); return; }
+    if (inv.length !== 8) { setStatus("Bitte den Einladungscode der Gruppe eintragen (8 Zeichen).", true); $("#reg-invite").focus(); return; }
+    setStatus("Erstelle Konto …");
+    try {
+      // Fortschritt auf dem Gerät nur übernehmen, wenn er noch keinem anderen Konto gehört
+      const r = await rpc("lern_register", { p_user: u, p_pw: p, p_invite: inv, p_data: store.owner ? {} : payload() });
+      if (!r || !r.ok) { setStatus(ERR[r && r.error] || "Das hat nicht geklappt.", true); return; }
+      $("#reg-pw").value = ""; $("#reg-pw2").value = "";
+      await afterLogin(r, true);
+      toast("Konto erstellt. Du bist jetzt in der Rangliste.");
+    } catch (err) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
   });
   $("#sync-join").addEventListener("click", async () => {
     const code = normCode($("#sync-code").value);
-    if (code.length !== 8) { setStatus("Der Code hat 8 Zeichen, z. B. K7M2-QX9P.", true); return; }
-    setStatus("Suche Code …");
+    if (code.length !== 8) { setStatus("Der Lerncode hat 8 Zeichen, z. B. K7M2-QX9P.", true); return; }
+    setStatus("Suche Lerncode …");
     try {
       const res = await rpc("lern_load", { p_code: code });
-      if (!res) { setStatus("Diesen Code gibt es nicht. Tippfehler?", true); return; }
-      store.sync = { code, name: res.name || "" };
-      save(); renderSync(); await syncNow();
+      if (!res) { setStatus("Diesen Lerncode gibt es nicht. Tippfehler?", true); return; }
+      await afterLogin({ code, name: res.name || "" }, false);
     } catch (e) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
   });
-  $("#sync-copy").addEventListener("click", () => {
-    const t = fmtCode(store.sync.code);
-    const done = () => setStatus("Code kopiert: " + t);
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => setStatus("Code: " + t));
-    else setStatus("Code: " + t);
+  $("#form-setlogin").addEventListener("submit", async e => {
+    e.preventDefault();
+    const u = $("#set-user").value.trim(), p = $("#set-pw").value, p2 = $("#set-pw2").value;
+    if (!USER_RE.test(u)) { setStatus(ERR["bad username"], true); return; }
+    if (p.length < 6) { setStatus(ERR["bad password"], true); return; }
+    if (p !== p2) { setStatus("Die beiden Passwörter stimmen nicht überein.", true); return; }
+    try {
+      const r = await rpc("lern_set_login", { p_code: store.sync.code, p_user: u, p_pw: p });
+      if (!r || !r.ok) { setStatus(ERR[r && r.error] || "Das hat nicht geklappt.", true); return; }
+      store.sync.name = r.name; store.sync.user = true; persist();
+      $("#set-pw").value = ""; $("#set-pw2").value = "";
+      renderSync(); setStatus("Gespeichert. Ab jetzt meldest du dich mit „" + r.name + "“ und dem neuen Passwort an."); fetchBoard();
+    } catch (err) { setStatus("Keine Verbindung. Versuche es gleich nochmal.", true); }
   });
+  $("#board-opt").addEventListener("change", e => { store.board = e.target.checked; persist(); syncNow(); });
   $("#sync-leave").addEventListener("click", () => {
-    store.sync = null; save(); renderSync();
-    setStatus("Getrennt. Dein Fortschritt bleibt auf diesem Gerät.");
+    store.sync = null; persist(); renderSync(); renderBoard();
+    setStatus("Abgemeldet. Dein Fortschritt bleibt auf diesem Gerät.");
   });
+
+  // Rangliste
+  let board = null;
+  async function fetchBoard() {
+    if (!CFG) { renderBoard(); return; }
+    try { board = await rpc("lern_board", {}); } catch (e) { board = board || null; }
+    renderBoard();
+  }
+  function renderBoard() {
+    const ol = $("#board-list"), note = $("#board-note");
+    const me = store.sync && store.sync.user ? String(store.sync.name).toLowerCase() : null;
+    if (!CFG) { ol.innerHTML = ""; note.textContent = "Die Rangliste gibt es nur auf der Webseite der App."; renderPts(); return; }
+    if (!board) { ol.innerHTML = ""; note.textContent = "Rangliste wird geladen …"; renderPts(); return; }
+    ol.innerHTML = board.map((r, i) => {
+      const mine = me && String(r.name).toLowerCase() === me;
+      return '<li class="br' + (mine ? " me" : "") + (i < 3 ? " top" + (i + 1) : "") + '"><span class="rk">' + (i + 1) + '</span><span class="bn">' + escH(r.name) +
+        (mine ? ' <span class="badge">du</span>' : "") + '<small>' + r.mastered + " Karten sitzen</small></span><span class=\"bs\">" + r.score + "</span></li>";
+    }).join("");
+    note.textContent = !board.length ? "Noch niemand in der Rangliste. Erstelle unter „Konto“ ein Konto."
+      : !store.sync ? "Melde dich unter „Konto“ an, um mitzumachen."
+      : !store.sync.user ? "Lege unter „Konto“ Benutzername und Passwort fest, um in der Rangliste zu erscheinen."
+      : store.board === false ? "Du bist in der Rangliste ausgeblendet (änderbar unter „Konto“)." : "";
+    renderPts();
+  }
+  function renderPts() {
+    const s = scoreInfo();
+    let t = s.score + " Punkte";
+    if (board && store.sync && store.sync.user) {
+      const i = board.findIndex(r => String(r.name).toLowerCase() === String(store.sync.name).toLowerCase());
+      if (i >= 0) t += " · Platz " + (i + 1) + " von " + board.length;
+    }
+    $("#pts-line").textContent = t;
+  }
+  $("#board-refresh").addEventListener("click", () => { syncNow(); fetchBoard(); });
   document.addEventListener("visibilitychange", () => { if (!syncing) syncNow(); if (document.visibilityState === "visible") fetchGlobal(); });
   window.addEventListener("online", syncNow);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (active) fitDisplays(); });
@@ -682,8 +794,8 @@
   function needLogin() {
     dialog({
       title: "Anmeldung nötig",
-      text: "Zum Löschen musst du angemeldet sein. Erstelle unter „Mehr“ einen Lerncode oder verbinde dich mit deinem.",
-      actions: [{ label: "Abbrechen" }, { label: "Zu „Mehr“", primary: true, fn: () => { setTab("more"); home(); } }]
+      text: "Zum Löschen musst du angemeldet sein. Melde dich unter „Konto“ an oder erstelle ein Konto.",
+      actions: [{ label: "Abbrechen" }, { label: "Zum Konto", primary: true, fn: () => { setTab("more"); home(); } }]
     });
   }
   // scope: "me" (nur für mich, am Profil gespeichert) oder "all" (für alle, in Supabase)
@@ -698,7 +810,7 @@
     } else {
       dialog({
         title: "Für alle löschen?",
-        text: "„" + label + "“ verschwindet sofort bei allen. Du kannst sie später unter „Mehr“ wiederherstellen.",
+        text: "„" + label + "“ verschwindet sofort bei allen. Du kannst sie später unter „Konto“ wiederherstellen.",
         actions: [{ label: "Abbrechen" }, { label: "Für alle löschen", danger: true, fn: async () => {
           try {
             await rpc("lern_global_set", { p_code: store.sync.code, p_id: id, p_hidden: true });
@@ -733,7 +845,7 @@
       const list = await rpc("lern_global_list", {});
       const g = {};
       (list || []).forEach(x => { if (x.hidden) g[x.id] = x.by || true; });
-      store.ghidden = g; save();
+      store.ghidden = g; persist();
       if (!active) renderTopics();
       changed();
     } catch (e) { /* offline: zuletzt bekannten Stand behalten */ }
@@ -764,6 +876,7 @@
   show("start");
   syncNow();
   fetchGlobal();
+  fetchBoard();
 
   // Schnittstelle für methods.js
   window.PHYS_APP = {

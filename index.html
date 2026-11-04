@@ -28,6 +28,7 @@
           <p class="eyebrow" id="countdown"></p>
           <h1>Das elektrische Feld</h1>
           <p class="lead">Karteikasten, Quiz, Rechentrainer und Klausur-Simulation. Stelle Schwierigkeit und Themen ein und leg los.</p>
+          <p class="pts-line" id="pts-line"></p>
         </div>
         <div class="ring" id="ring" role="img" aria-label="Gesamtfortschritt"></div>
       </div>
@@ -35,8 +36,9 @@
       <nav class="tabs" role="tablist" aria-label="Bereiche">
         <button type="button" class="tab-btn" role="tab" data-tab="learn">Lernen</button>
         <button type="button" class="tab-btn" role="tab" data-tab="lab">Labor</button>
-        <button type="button" class="tab-btn" role="tab" data-tab="sheets">Übersichten</button>
-        <button type="button" class="tab-btn" role="tab" data-tab="more">Mehr</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="sheets">Wissen</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="board">Rangliste</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="more">Konto</button>
       </nav>
 
       <!-- Tab: Lernen -->
@@ -127,27 +129,70 @@
         <ul id="sheet-list" class="sheet-list"></ul>
       </div>
 
-      <!-- Tab: Mehr -->
+      <!-- Tab: Rangliste -->
+      <div class="tabpane" id="tab-board" hidden>
+        <div class="panel">
+          <div class="panel-head"><h2>Rangliste</h2><button type="button" id="board-refresh" class="link">Aktualisieren</button></div>
+          <ol id="board-list" class="board"></ol>
+          <p class="fine tight" id="board-note"></p>
+        </div>
+        <div class="panel">
+          <h2>So gibt es Punkte</h2>
+          <ul class="rules">
+            <li>Karteikasten: so viele Punkte, wie das Fach der Karte (Fach 5 = 5 Punkte)</li>
+            <li>Quiz: 2 Punkte pro richtige Antwort</li>
+            <li>Rechentrainer: 3 Punkte pro richtige Aufgabe</li>
+            <li>Schaltung beschriften: 5 Punkte pro komplett richtige Schaltung</li>
+            <li>Zuordnen: 3 Punkte pro Runde</li>
+            <li>Klausur-Simulation: 5 Punkte pro Notenpunkt deines besten Versuchs</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Tab: Konto -->
       <div class="tabpane" id="tab-more" hidden>
         <div class="panel" id="sync-panel">
-          <div class="panel-head"><h2>Sync zwischen Geräten</h2></div>
+          <div class="panel-head"><h2>Konto</h2></div>
           <div id="sync-off">
-            <p class="fine tight">Mit einem Lerncode siehst du deinen Fortschritt auf Handy und Laptop. Ein neuer Code braucht den Einladungscode der Gruppe. Hast du schon einen Lerncode, gib ihn unten ein.</p>
-            <div class="row">
-              <input id="sync-name" type="text" maxlength="30" placeholder="Dein Name" autocomplete="off">
-              <input id="sync-invite" type="text" maxlength="12" placeholder="Einladungscode" autocomplete="off" autocapitalize="characters" spellcheck="false">
-              <button type="button" id="sync-create" class="btn">Neuen Code erstellen</button>
+            <p class="fine tight">Mit einem Konto wird dein Fortschritt auf allen Geräten gespeichert und du erscheinst in der Rangliste. Keine E-Mail nötig.</p>
+            <div class="seg acct-seg" role="tablist">
+              <button type="button" data-acct="login" aria-pressed="true">Anmelden</button>
+              <button type="button" data-acct="register" aria-pressed="false">Registrieren</button>
             </div>
-            <div class="row">
-              <input id="sync-code" type="text" maxlength="12" placeholder="Code vom anderen Gerät, z. B. K7M2-QX9P" autocomplete="off" autocapitalize="characters" spellcheck="false">
-              <button type="button" id="sync-join" class="btn">Verbinden</button>
-            </div>
+            <form id="form-login" class="acct-form">
+              <input id="login-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername" aria-label="Benutzername">
+              <input id="login-pw" type="password" maxlength="72" autocomplete="current-password" placeholder="Passwort" aria-label="Passwort">
+              <button type="submit" class="btn primary">Anmelden</button>
+            </form>
+            <form id="form-register" class="acct-form" hidden>
+              <input id="reg-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername (3–20 Zeichen)" aria-label="Benutzername">
+              <input id="reg-pw" type="password" maxlength="72" autocomplete="new-password" placeholder="Passwort (mindestens 6 Zeichen)" aria-label="Passwort">
+              <input id="reg-pw2" type="password" maxlength="72" autocomplete="new-password" placeholder="Passwort wiederholen" aria-label="Passwort wiederholen">
+              <input id="reg-invite" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Einladungscode der Gruppe" aria-label="Einladungscode">
+              <button type="submit" class="btn primary">Konto erstellen</button>
+              <p class="fine tight">Merke dir dein Passwort gut. Ohne E-Mail kann es nicht per Link zurückgesetzt werden.</p>
+            </form>
+            <details class="legacy">
+              <summary>Ich habe noch einen alten Lerncode</summary>
+              <div class="row">
+                <input id="sync-code" type="text" maxlength="12" placeholder="z. B. K7M2-QX9P" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Lerncode">
+                <button type="button" id="sync-join" class="btn">Verbinden</button>
+              </div>
+            </details>
           </div>
           <div id="sync-on" hidden>
             <p class="sync-who"><b id="sync-who"></b></p>
-            <p class="fine tight">Dein Lerncode (auf dem anderen Gerät eingeben):</p>
-            <p class="sync-code"><code id="sync-code-show"></code> <button type="button" id="sync-copy" class="link">Kopieren</button></p>
-            <button type="button" id="sync-leave" class="link danger">Auf diesem Gerät trennen</button>
+            <label class="toggle"><input type="checkbox" id="board-opt" checked> In der Rangliste anzeigen</label>
+            <details id="setlogin">
+              <summary id="setlogin-sum">Passwort oder Benutzername ändern</summary>
+              <form id="form-setlogin" class="acct-form">
+                <input id="set-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername" aria-label="Benutzername">
+                <input id="set-pw" type="password" maxlength="72" autocomplete="new-password" placeholder="Neues Passwort" aria-label="Neues Passwort">
+                <input id="set-pw2" type="password" maxlength="72" autocomplete="new-password" placeholder="Neues Passwort wiederholen" aria-label="Neues Passwort wiederholen">
+                <button type="submit" class="btn">Speichern</button>
+              </form>
+            </details>
+            <button type="button" id="sync-leave" class="link danger">Abmelden</button>
           </div>
           <p class="fine tight" id="sync-status" role="status"></p>
         </div>

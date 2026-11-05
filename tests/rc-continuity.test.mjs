@@ -37,7 +37,7 @@ test("Window-switch catch-up: elapsed seconds, including hidden time, use exact 
 test("Series-resistor current is continuous: no electron is consumed in R",()=>{
   for(const q of [0,P.C*P.U0*.2,P.C*P.U0]){
     const iDischarge=-(q/P.C)/P.R2;
-    const rate=-(q/P.C)/(P.R2*P.C/1000); // µC/s
+    const rate=-q/(P.R2*P.C/1000); // µC/s
     near(iDischarge,rate/1000,1e-12);
   }
   // Only the capacitor plates are termini of charge/discharge routes.

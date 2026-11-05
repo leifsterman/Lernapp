@@ -732,3 +732,66 @@ html.nosync .cardtools { display: none; }
   .rc-energy-item { padding: 6px; grid-template-rows: 2.5em 60px auto; }
   .rc-energy-vessel { width: 45px; height: 58px; } }
 @media (prefers-reduced-motion: reduce) { .rc-energy-liquid { transition: none; } }
+
+
+/* RC: ein durchgängiges Bienenmodell – Eimer (pro Ladung) und Wabe (Gesamtenergie).
+   Die Waben sind ausdrücklich ein Symbol für Feldenergie, nicht für
+   physische Elektronen im isolierenden Plattenzwischenraum. */
+.rc-capacitor-storage {
+  margin: 12px 0; padding: 15px 16px; border-radius: 15px;
+  border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--fg); min-width: 0;
+}
+.rc-capacitor-storage.rc-store-bee {
+  border-color: color-mix(in srgb, #dca53a 52%, var(--border));
+  background: linear-gradient(115deg, color-mix(in srgb,#dca53a 13%,var(--surface)),var(--surface-2));
+}
+.rc-store-header { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.rc-store-header > div { display: grid; gap: 1px; min-width: 0; }
+.rc-store-title { font-size: .98rem; line-height: 1.35; }
+.rc-store-subtitle { color: var(--fg-dim); font-size: .76rem; }
+.rc-store-state {
+  flex: none; font-size: .72rem; letter-spacing: .01em; font-weight: 800;
+  padding: 4px 9px; border-radius: 99px;
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  color: var(--fg); border: 1px solid var(--border);
+}
+.rc-store-body { display: grid; grid-template-columns: 170px minmax(0,1fr); align-items: center; gap: 18px; margin-top: 12px; }
+.rc-store-honeycomb {
+  display: none; grid-template-columns: repeat(6,22px); grid-template-rows: repeat(2,25px);
+  align-items: center; justify-content: center; gap: 3px;
+  padding: 8px; border: 1px solid color-mix(in srgb, #c5a45d 40%, var(--border));
+  background: color-mix(in srgb, #6f5125 13%, var(--surface));
+  border-radius: 12px; min-width: 0;
+}
+.rc-store-bee .rc-store-honeycomb { display: grid; }
+.rc-store-cell {
+  --honey: 0; width: 22px; height: 24px; position: relative;
+  clip-path: polygon(50% 0, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+  background: #7c5d31;
+}
+.rc-store-cell::before {
+  content: ""; position: absolute; inset: 2px;
+  clip-path: inherit; background: linear-gradient(135deg, #ffe5a0 5%, #e9a337 65%, #b87320);
+  opacity: var(--honey); transition: opacity .14s linear;
+}
+.rc-store-bee .rc-store-cell:nth-child(even) { transform: translateY(3px); }
+.rc-store-info { display: grid; min-width: 0; gap: 5px; }
+.rc-store-value { font-size: clamp(1.27rem, 2.5vw, 1.62rem); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.rc-store-bee .rc-store-value { color: color-mix(in srgb, #e8a53d 80%, var(--fg)); }
+.rc-store-meter { overflow: hidden; height: 13px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); }
+.rc-store-fill { display: block; width: 0; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--ok)); transition: width .14s linear; }
+.rc-store-bee .rc-store-fill { background: linear-gradient(90deg, #bf761f, #f3bb50 60%, #ffe29a); }
+.rc-store-percent, .rc-store-quantities { font-size: .82rem; line-height: 1.35; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+.rc-store-explain { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--border);
+  color: var(--fg-dim); font-size: .84rem; line-height: 1.5; }
+@media (max-width: 560px) {
+  .rc-capacitor-storage { padding: 12px; }
+  .rc-store-body { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .rc-store-honeycomb { width: max-content; max-width: 100%; }
+  .rc-store-header { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc-store-cell::before, .rc-store-fill { transition: none; }
+}

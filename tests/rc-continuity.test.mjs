@@ -92,7 +92,7 @@ test("Render lifecycle resumes from wall-clock, and does not render hidden canva
     'RC_FLOW.evolve(startQ, mode, P, ds)',
     'RC_FLOW.plateDots(Q, P, 9)',
     'EL.e.forEach(p =>',
-    'return { step, draw, resume };',
+    'return { step, draw, resume, save()',
     'blade = BLADE[m].slice();'
   ]) assert.ok(source.includes(snippet), "Missing lifecycle requirement: "+snippet);
   // Prevent a recurrence of the old frame-limited integration and stale counter-based plates.

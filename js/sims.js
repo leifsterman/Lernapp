@@ -144,7 +144,7 @@
   // Darstellung der Elektronen (Punkt, Männchen mit Armen, Biene mit Eimer): gilt in allen Versuchen und bleibt gespeichert
   const STYLES = [{ v: "punkt", t: "● Punkt" }, { v: "mann", t: "☺ Männchen" }, { v: "biene", t: "🐝 Biene" }];
   const STYLE_HINT = { punkt: "", mann: "Männchen mit Armen: Wer viel Energie hat (nach der Batterie), freut sich mit erhobenen Armen. Wer sie abgegeben hat (nach dem Widerstand), ist müde. Wie schnell sie laufen, zeigt die Stromstärke.",
-    biene: "Bienen mit Eimer: Der Füllstand veranschaulicht elektrische Energie pro Ladung relativ zur eingestellten Anfangsspannung (kein echter Energietransport in einem Eimer). Beim Entladen sinkt die verfügbare Energie vor R₂ mit Uc; hinter R₂ ist der Eimer leer. Der Strom bestimmt die Bewegung, nicht den Füllstand." };
+    biene: "Bienen mit Eimer: Der Eimer zeigt die elektrische Energie pro Ladung, die Geschwindigkeit den Strom. Die Honigwabe beim Kondensator zeigt etwas anderes: die gesamte gespeicherte Feldenergie E꜀ = ½ C·U꜀². Beim Entladen wird sie im Widerstand in Wärme umgewandelt. Weder Honig noch Elektronen fließen durch das Dielektrikum." };
   function makeStyleBox() {
     const box = el("div", "sim-style"), hint = el("p", "fine tight");
     const sg = seg(box, { label: "Elektronen darstellen als", options: STYLES, value: window.PHYS_GFX.style, onChange: v => { window.PHYS_GFX.setStyle(v); styleBoxes.forEach(b => b.sync()); } });
@@ -438,6 +438,70 @@
           '<strong class="rc-energy-value ' + side + '"></strong></div>'
         ).join('') + '</div><p class="rc-energy-explain"></p>';
       host.append(bucketGuide);
+      // Gleiche Energiesprache wie bei den Eimern: Die Wabe symbolisiert
+      // den Feldenergiespeicher des Kondensators. Sie ist KEIN physisches
+      // Objekt zwischen den Platten; Elektronen dringen nicht ins Dielektrikum.
+      const storagePanel = el("section", "rc-capacitor-storage");
+      storagePanel.setAttribute("aria-label", "Gespeicherte elektrische Energie des Kondensators");
+      storagePanel.innerHTML =
+        '<div class="rc-store-header"><div><strong class="rc-store-title">Gespeicherte Feldenergie</strong>' +
+        '<span class="rc-store-subtitle">Energievorrat im Kondensator</span></div>' +
+        '<span class="rc-store-state"></span></div>' +
+        '<div class="rc-store-body"><div class="rc-store-honeycomb" aria-hidden="true">' +
+        Array.from({ length: 12 }, () => '<span class="rc-store-cell"></span>').join("") +
+        '</div><div class="rc-store-info"><strong class="rc-store-value">0 µJ</strong>' +
+        '<div class="rc-store-meter" role="progressbar" aria-label="Speicherenergie relativ zur Energie bei aktueller Quellspannung" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">' +
+        '<span class="rc-store-fill"></span></div><span class="rc-store-percent"></span>' +
+        '<span class="rc-store-quantities"></span></div></div>' +
+        '<p class="rc-store-explain"></p>';
+      host.append(storagePanel);
+      const storeNodes = {
+        title: storagePanel.querySelector(".rc-store-title"),
+        subtitle: storagePanel.querySelector(".rc-store-subtitle"),
+        state: storagePanel.querySelector(".rc-store-state"),
+        cells: [...storagePanel.querySelectorAll(".rc-store-cell")],
+        value: storagePanel.querySelector(".rc-store-value"),
+        meter: storagePanel.querySelector(".rc-store-meter"),
+        fill: storagePanel.querySelector(".rc-store-fill"),
+        percent: storagePanel.querySelector(".rc-store-percent"),
+        quantities: storagePanel.querySelector(".rc-store-quantities"),
+        explain: storagePanel.querySelector(".rc-store-explain")
+      };
+      let lastStore = "";
+      function showCapacitorStore() {
+        const store = RC_ENERGY.capacitorStore(Q, P.C, P.U0), isBee = GX.style === "biene";
+        storagePanel.classList.toggle("rc-store-bee", isBee);
+        const key = [mode, isBee, P.U0, P.C, Q.toFixed(2)].join("|");
+        if (lastStore === key) return;
+        lastStore = key;
+        storeNodes.title.textContent = isBee ? "Honigwabe · Feldenergie" : "Gespeicherte Feldenergie";
+        storeNodes.subtitle.textContent = isBee
+          ? "Bienenmodell: Energievorrat statt Eimerinhalt"
+          : "Energie zwischen den Kondensatorplatten";
+        storeNodes.state.textContent = mode === "open" ? "Gespeichert"
+          : mode === "charge" && curI() < -1e-6 ? "Rückstrom"
+          : mode === "charge" ? "Lädt" : "Entlädt";
+        storeNodes.value.textContent = store.microJ >= 1000
+          ? de(store.microJ / 1000, 2) + " mJ"
+          : de(store.microJ, 2) + " µJ";
+        const fill = store.fill * 100;
+        storeNodes.fill.style.width = fill.toFixed(1) + "%";
+        storeNodes.meter.setAttribute("aria-valuenow", String(Math.round(fill)));
+        storeNodes.percent.textContent = de(store.percent, 1) + " % der Energie bei U₀ = " + de(P.U0, 1) + " V"
+          + (store.ratio > 1 ? " (Anzeige bei 100 % begrenzt)" : "");
+        storeNodes.quantities.textContent = "U꜀ = " + de(store.voltage, 2) + " V · Q = " + de(Q, 1) + " µC";
+        storeNodes.cells.forEach((cell, i) => {
+          const part = clamp(store.fill * storeNodes.cells.length - i, 0, 1);
+          cell.style.setProperty("--honey", part.toFixed(2));
+        });
+        storeNodes.explain.textContent = isBee
+          ? (mode === "charge"
+            ? "Die Honigwabe füllt sich beim Laden: Die Eimer stehen für Energie je Ladung, die Wabe für die insgesamt im elektrischen Feld gespeicherte Energie. Ein Teil der zugeführten Energie wird am Widerstand in Wärme umgesetzt."
+            : mode === "discharge"
+            ? "Die Honigwabe leert sich beim Entladen. Die gespeicherte Feldenergie wird am Widerstand in Wärme umgewandelt. Kein Elektron und kein Honig durchquert den Plattenzwischenraum."
+            : "Der Schalter ist offen: Die Bienen stehen still und die Honigwabe bleibt gefüllt. Die Wabe ist nur ein Symbol für Feldenergie – kein echter Honig im Kondensator.")
+          : "E꜀ = ½ · C · U꜀² = Q²/(2C). Die Skala vergleicht mit der Energie, die der Kondensator bei der aktuell eingestellten Quellspannung U₀ hätte.";
+      }
       const bucketNodes = {
         mode: bucketGuide.querySelector(".rc-energy-mode"),
         beforeLabel: bucketGuide.querySelector(".rc-energy-label.before"),
@@ -492,7 +556,8 @@
         "Schalte auf <b>Entladen</b> und lies die Spannung nach genau $\\tau$ ab. Welchen Bruchteil von $U_0$ erwartest du?",
         "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen.",
         "Lade den Kondensator, wechsle zu einem anderen App-Bereich oder Browserfenster und kehre zurück: Die Entladung oder Aufladung muss der verstrichenen Zeit entsprechen.",
-        "Prüfe die Bienen vor und nach dem aktiven Widerstand: gleiche Bewegungsrichtung im selben Leiterzweig, aber unterschiedlicher Eimerfüllstand. Zwischen den Kondensatorplatten dürfen keine Elektronen durch das Dielektrikum wandern."
+        "Prüfe die Bienen vor und nach dem aktiven Widerstand: gleiche Bewegungsrichtung im selben Leiterzweig, aber unterschiedlicher Eimerfüllstand. Zwischen den Kondensatorplatten dürfen keine Elektronen durch das Dielektrikum wandern.",
+        "Beobachte die Honigwabe beim Entladen: Nach einer Zeitkonstante τ ist U꜀ noch etwa 37 % groß, aber die gespeicherte Energie E꜀ nur etwa 14 %. Begründe das mit E꜀ = ½ C·U꜀²."
       ]);
       function curI() { return currentFor(Q, mode); } // mA
 
@@ -587,6 +652,7 @@
           ? "Entladen: Elektronen verlassen die negative Platte, passieren R₂ und erreichen die zuvor positive Platte. Hinter R₂ fließt derselbe Strom wie davor; nur die verfügbare elektrische Energie pro Ladung sinkt. Kein Elektron durchquert den Plattenzwischenraum."
           : "Schalter offen: Keine Drift im idealen Kreis. Elektronen bleiben in den Leitern sichtbar, die Plattenladungen und Kondensatorspannung bleiben erhalten.";
         showBucketGuide();
+        showCapacitorStore();
         if ((frame = (frame + 1) % 2) === 0) drawPlot(c); // Diagramm reicht mit halber Bildrate
       }
 
@@ -637,7 +703,8 @@
       window.PHYS_RC_INSPECT = () => ({
         mode, Q, Uc: Uc(), t, I: curI(),
         particles: EL.e.map(e => ({ c: e.c, d: e.d, en: e.en })),
-        plateAlpha: RC_FLOW.plateDots(Q, P, 9), parameters: { ...P }
+        plateAlpha: RC_FLOW.plateDots(Q, P, 9),
+        storedEnergy: RC_ENERGY.capacitorStore(Q, P.C, P.U0), parameters: { ...P }
       });
       return { step, draw, resume, save() { resume(); saveSession(true); } };
     }

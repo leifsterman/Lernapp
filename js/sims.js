@@ -381,24 +381,49 @@
       ]);
       function curI() { return currentFor(Q, mode); } // mA
 
-      function step(dt) {
-        const ds = dt * P.speed;
+      // Physik und Animation sind bewusst getrennt: Die exakte RC-Lösung
+      // läuft auch beim Wechsel zu einem anderen Lernbereich oder Browser-Tab
+      // weiter. Unsichtbare Canvas-Frames werden nicht benötigt.
+      function advanceElapsed(seconds) {
+        if (!(seconds > 0) || !Number.isFinite(seconds)) return;
+        const ds = seconds * P.speed, startT = t, startQ = Q;
         t += ds;
+        Q = RC_FLOW.evolve(startQ, mode, P, ds);
         if (mode !== "open") {
-          const tc = tau(mode), Qinf = mode === "charge" ? P.C * P.U0 : 0;
-          Q = Qinf + (Q - Qinf) * Math.exp(-ds / tc);
+          const travel = RC_FLOW.travel(Q - startQ, mode, P);
+          // Ausgedehnte Hintergrundintervalle in kleine Tracer-Bewegungen
+          // aufteilen, damit keiner durch ein Bauteil teleportiert.
+          const pieces = Math.min(90, Math.max(1, Math.ceil(Math.abs(travel) / 6)));
+          for (let i = 0; i < pieces; i++) moveElectrons(EL, mode, travel / pieces);
+          if (Math.abs(travel) > 1e-7) EL.sg = Math.sign(travel);
         }
-        const dK = (Q - prevK) / 600; prevK = Q; // Tempo der Elektronen ∝ Stromstärke: eine Abstandseinheit je 600 µC
-        if (mode !== "open") { const a = SP * (mode === "charge" ? dK : -dK); moveElectrons(EL, mode, a); if (Math.abs(a) > 1e-6) EL.sg = Math.sign(a); }
-        electronEnergy(EL, mode, P.U0, Uc(), dt, blade);
-        histT += ds;
-        while (histT >= 0.04) { histT -= 0.04; hist.push([t, Uc(), curI()]); if (hist.length > 5000) hist.shift(); }
+        // Die letzten Sekunden einer langen Pause für die Verlaufskurve
+        // nachberechnen, ohne pro verstrichener Millisekunde zu iterieren.
+        const windowSec = Math.max(1, 7 * Math.max(tau("charge"), tau("discharge")));
+        const visibleFrom = Math.max(startT, t - windowSec);
+        const samples = RC_FLOW.historySamples(visibleFrom, t - visibleFrom, .04, 160);
+        for (const at of samples) {
+          const qAt = RC_FLOW.evolve(startQ, mode, P, at - startT);
+          hist.push([at, qAt / P.C, currentFor(qAt, mode), qAt]);
+        }
+        if (hist.length > 5000) hist.splice(0, hist.length - 5000);
+        fieldPhase = (fieldPhase + Math.min(ds, 100) * 14) % 1000;
+      }
+      function resume() {
+        const now = Date.now(), seconds = Math.max(0, (now - lastUpdateWall) / 1000);
+        lastUpdateWall = now;
+        advanceElapsed(seconds);
+        electronEnergy(EL, mode, P.U0, Uc(), 0, blade);
+      }
+      function step(dt) {
+        resume();
         const I = Math.abs(curI());
-        fieldPhase += dt * 14;
         const target = BLADE[mode];
-        blade[0] = GX.ease(blade[0], target[0], dt, 14); blade[1] = GX.ease(blade[1], target[1], dt, 14);
+        blade[0] = GX.ease(blade[0], target[0], dt, 14);
+        blade[1] = GX.ease(blade[1], target[1], dt, 14);
         meter = GX.ease(meter, Uc() / 12, dt, 6);
         glow = GX.ease(glow, Math.min(1, I / 2), dt, 6);
+        electronEnergy(EL, mode, P.U0, Uc(), dt, blade);
       }
 
       function draw() {

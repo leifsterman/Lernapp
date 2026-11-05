@@ -238,7 +238,7 @@
   $("card-prev").addEventListener("click",()=>{card=(card+cards.length-1)%cards.length;reversed=false;showCard();});
   $("card-next").addEventListener("click",()=>{card=(card+1)%cards.length;reversed=false;showCard();});
   $("goto-lesson").addEventListener("click",()=>mode("weg"));
-  $("home-brand").addEventListener("click",()=>{mode("weg");window.scrollTo({top:0,behavior:"smooth"});});
+  $("home-brand").addEventListener("click",()=>{window.location.href="index.html";});
   math($("hero-formula"), "Q(t)=Q_0\\cdot e^{-\\frac{t}{RC}}");
   render();showCard();mode("weg");
   if ("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")) {

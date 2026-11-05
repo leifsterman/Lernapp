@@ -704,3 +704,31 @@ html.nosync .cardtools { display: none; }
 @keyframes her-shake { 0%, 100% { transform: none; } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 @media (prefers-reduced-motion: reduce) { .her-pick.shake { animation: none; } }
 .sim-link { margin: 12px 0 0; }
+
+
+/* RC-Labor: gut lesbare vergrößerte Bienen-Eimer auch auf kleinen Bildschirmen */
+.rc-energy-guide { border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px;
+  background: color-mix(in srgb, var(--surface-2) 85%, var(--accent) 15%); }
+.rc-energy-guide[hidden] { display: none !important; }
+.rc-energy-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; margin-bottom: 12px; }
+.rc-energy-head strong { font-size: .96rem; }
+.rc-energy-mode { font-size: .78rem; font-weight: 700; color: var(--accent); }
+.rc-energy-comparison { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.rc-energy-item { display: grid; grid-template-rows: 2.5em 66px auto; align-items: center;
+  justify-items: center; gap: 5px; padding: 10px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--surface); text-align: center; }
+.rc-energy-label { font-size: .8rem; line-height: 1.25; font-weight: 600; }
+.rc-energy-vessel { position: relative; height: 64px; width: 54px; overflow: hidden;
+  background: #17334a; border: 3px solid #cbeef5; border-top: 4px solid #ecfbff;
+  border-radius: 4px 4px 11px 11px; transform: perspective(80px) rotateX(2deg); }
+.rc-energy-vessel::after { content: ""; position: absolute; inset: 6px 4px auto; height: 2px;
+  background: rgba(255,255,255,.30); pointer-events: none; }
+.rc-energy-liquid { position: absolute; inset: auto 0 0; height: 0;
+  background: linear-gradient(180deg,#b9ffea 0%,#17dfbc 25%,#07a994 100%);
+  transition: height .12s linear; }
+.rc-energy-value { color: var(--fg); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.rc-energy-explain { color: var(--fg-dim); font-size: .82rem; line-height: 1.45; margin: 10px 0 0; }
+@media (max-width: 400px) { .rc-energy-guide { padding: 10px; }
+  .rc-energy-item { padding: 6px; grid-template-rows: 2.5em 60px auto; }
+  .rc-energy-vessel { width: 45px; height: 58px; } }
+@media (prefers-reduced-motion: reduce) { .rc-energy-liquid { transition: none; } }

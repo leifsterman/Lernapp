@@ -20,7 +20,9 @@
     if (mode === "open") return 0;
     const capacity = Math.max(1e-9, Math.abs(p.C * p.U0));
     const transferredFraction = clamp(Math.abs(deltaQ) / capacity, 0, 1);
-    return transferredFraction * 360;
+    // Reverse current is possible in charging mode when Uc exceeds the newly set source voltage.
+    const direction = mode === "charge" ? Math.sign(deltaQ) : -Math.sign(deltaQ);
+    return direction * transferredFraction * 360;
   }
   function plateFill(Q, p) {
     const full = Math.max(1e-9, Math.abs(p.C * p.U0));

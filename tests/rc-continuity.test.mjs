@@ -10,7 +10,7 @@ const M = scope.window.PHYS_RC_FLOW;
 const P = { U0: 9, C: 470, R1: 5, R2: 5, speed: 1 };
 
 function near(a, b, tolerance = 1e-10) {
-  assert.ok(Math.abs(a - b) <= tolerance, \`expected \${a} ≈ \${b}\`);
+  assert.ok(Math.abs(a - b) <= tolerance, "expected " + a + " ≈ " + b);
 }
 
 test("RC theory: one tau discharges to 1/e; changing R,C changes only tau", () => {

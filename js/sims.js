@@ -94,12 +94,29 @@
   const SIMS = [], INST = {};
   let cur = null, raf = 0, last = 0;
   function loop(now) {
+    if (document.hidden) { raf = 0; return; }
     raf = requestAnimationFrame(loop);
-    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = Math.max(last, now); // nie negativ (sonst NaN bei Zufallsbewegung)
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
     if (cur) { cur.step && cur.step(dt); cur.draw && cur.draw(); }
   }
-  function startLoop(obj) { stopLoop(); cur = obj; last = performance.now(); raf = requestAnimationFrame(loop); }
+  function startLoop(obj) {
+    stopLoop();
+    cur = obj;
+    last = performance.now();
+    // RC-Schaltungen integrieren reale vergangene Zeit nach, ohne im
+    // Hintergrund unnötig Canvas-Frames zu zeichnen.
+    if (cur.resume) cur.resume();
+    if (!document.hidden) raf = requestAnimationFrame(loop);
+  }
   function stopLoop() { cancelAnimationFrame(raf); raf = 0; cur = null; }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+    else if (cur && !raf) {
+      last = performance.now();
+      if (cur.resume) cur.resume();
+      raf = requestAnimationFrame(loop);
+    }
+  });
   A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
 
   const styleBoxes = [];

@@ -186,6 +186,32 @@
     GX.text(x, c.fg, unit || "V", cx, cy + 10, { weight: 800, size: 8 });
     x.restore();
   }
+  // Die Waben stehen ausschliesslich als Bild für die IM FELD gespeicherte
+  // Energie. Keine Biene wird zwischen den Kondensatorplatten gezeichnet.
+  function drawCapacitorHoneycomb(x, energyFraction) {
+    if (GX.style !== "biene") return;
+    const ratio = clamp(energyFraction, 0, 1), cells = 6;
+    x.save();
+    for (let i = 0; i < cells; i++) {
+      const cx = 182 + i * 12, cy = 160, r = 5.2;
+      x.beginPath();
+      for (let j = 0; j < 6; j++) {
+        const a = Math.PI / 3 * j + Math.PI / 6;
+        const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+        if (j === 0) x.moveTo(px, py); else x.lineTo(px, py);
+      }
+      x.closePath();
+      x.fillStyle = "#17334a"; x.fill();
+      x.strokeStyle = "#d6a650"; x.lineWidth = 0.8; x.stroke();
+      const part = clamp(ratio * cells - i, 0, 1);
+      if (part > 0) {
+        x.globalAlpha = 0.18 + 0.82 * part;
+        x.fillStyle = "#f3ba4a"; x.fill();
+        x.globalAlpha = 1;
+      }
+    }
+    x.restore();
+  }
   function drawCircuit(x, c, o) {
     o = o || {};
     // Leitungen
@@ -526,6 +552,7 @@
           for (let i = 0; i < 5; i++) { const px = 182 + i * 14; GX.flowLine(x, c.line, [[px, G.pt + 4], [px, G.pb - 4]], fieldPhase, { alpha: 0.35 + 0.6 * f, head: false, w: 1.2 }); }
         }
         drawCircuit(x, c, { blade, meter, glow: f > 0.05 ? 0.35 * f : 0, R1lab: de(P.R1) + " kΩ", R2lab: de(P.R2) + " kΩ", U0lab: P.U0 + " V" });
+        drawCapacitorHoneycomb(x, RC_ENERGY.capacitorStore(Q, P.C, P.U0).fill);
         // Elektronen auf den Leitungen (entgegen der technischen Stromrichtung); sie bleiben immer sichtbar
         const I = Math.abs(curI());
         EL.e.forEach(p => { const q = electronPos(p, blade); GX.electron(x, c, q[0], q[1], 0.95, p.en, p.fl); });

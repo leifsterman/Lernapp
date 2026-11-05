@@ -51,12 +51,16 @@
 
   // ---- Darstellung der Elektronen: Punkt, Männchen mit Armen oder Biene mit Eimer (Energie-Modell) ----
   // Eigene Zeichnung. Energie 0 … 1: wenig = müde / Eimer leer, viel = fröhlich, Arme hoch / Eimer voll.
+  // Der Bienen-Eimer besitzt 12 Flüssigkeitsstufen (unabhängig von den 5 Gesichtsstufen).
   const STYLE_KEY = "physikq1-teilchen";
   let style = "punkt";
   try { const v = localStorage.getItem(STYLE_KEY); if (v === "mann" || v === "biene" || v === "punkt") style = v; } catch (e) { /* ignorieren */ }
   const LV = ["#9fb0cf", "#c8c58f", "#ffd45a", "#ffa63a", "#ff6f2b"], INK = "#3a2c1c";
-  const level = en => Math.max(0, Math.min(4, Math.round((en == null ? 0.5 : en) * 4)));
-  function paintFigure(cx, kind, lv, S, flip) {
+  const energy = en => Math.max(0, Math.min(1, Number.isFinite(en) ? en : 0.5));
+  const level = en => Math.round(energy(en) * 4);
+  const BUCKET_STEPS = 12;
+  const bucketLevel = en => Math.round(energy(en) * BUCKET_STEPS) / BUCKET_STEPS;
+  function paintFigure(cx, kind, lv, S, flip, fill) {
     const u = S / 8;
     cx.save(); cx.scale(u * (flip ? -1 : 1), u); cx.lineCap = "round"; cx.lineJoin = "round"; cx.strokeStyle = INK; cx.fillStyle = LV[lv];
     if (kind === "mann") {
@@ -92,8 +96,8 @@
       const top = 1.6, bot = 10.6, xl = 4.6, xr = 12.2, inset = 1.1;
       cx.fillStyle = "rgba(255,255,255,.55)"; cx.strokeStyle = INK; cx.lineWidth = 1;
       cx.beginPath(); cx.moveTo(xl, top); cx.lineTo(xr, top); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.fill();
-      if (lv > 0) {
-        const h = lv / 4 * (bot - top - 0.8), y = bot - h, f = (yy, side) => side < 0 ? xl + inset * (yy - top) / (bot - top) : xr - inset * (yy - top) / (bot - top);
+      if (fill > 0) {
+        const h = fill * (bot - top - 0.8), y = bot - h, f = (yy, side) => side < 0 ? xl + inset * (yy - top) / (bot - top) : xr - inset * (yy - top) / (bot - top);
         cx.fillStyle = "#ff9d1c"; cx.beginPath(); cx.moveTo(f(y, -1), y); cx.lineTo(f(y, 1), y); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.fill();
         cx.fillStyle = "#ffd27a"; cx.fillRect(f(y, -1) + 0.5, y, (f(y, 1) - f(y, -1)) - 1, 0.9);
       }
@@ -106,7 +110,8 @@
   }
   function figure(x, kind, px, py, S, en, flip, a) {
     const sc = x.getTransform().a || 1, lv = level(en), sz = Math.round(S * 2) / 2;
-    const sp = sprite("f" + kind + lv + "|" + sz + (flip ? "f" : ""), sz * (kind === "biene" ? 1.9 : 1.4), sc, cx => paintFigure(cx, kind, lv, sz, flip));
+    const fill = kind === "biene" ? bucketLevel(en) : 0;
+    const sp = sprite("f" + kind + lv + "b" + Math.round(fill * BUCKET_STEPS) + "|" + sz + (flip ? "f" : ""), sz * (kind === "biene" ? 1.9 : 1.4), sc, cx => paintFigure(cx, kind, lv, sz, flip, fill));
     drawSprite(x, sp, px, py, a == null ? 1 : a);
   }
   const bgCache = new Map();

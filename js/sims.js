@@ -126,7 +126,7 @@
   // Darstellung der Elektronen (Punkt, Männchen mit Armen, Biene mit Eimer): gilt in allen Versuchen und bleibt gespeichert
   const STYLES = [{ v: "punkt", t: "● Punkt" }, { v: "mann", t: "☺ Männchen" }, { v: "biene", t: "🐝 Biene" }];
   const STYLE_HINT = { punkt: "", mann: "Männchen mit Armen: Wer viel Energie hat (nach der Batterie), freut sich mit erhobenen Armen. Wer sie abgegeben hat (nach dem Widerstand), ist müde. Wie schnell sie laufen, zeigt die Stromstärke.",
-    biene: "Bienen mit Eimer: Der Füllstand des Eimers ist die Energie pro Elektron, also die Spannung in Volt (nach der Batterie voll, nach dem Widerstand leer). Wie schnell die Bienen fliegen, ist die Stromstärke in Ampere." };
+    biene: "Bienen mit Eimer: Der Füllstand veranschaulicht elektrische Energie pro Ladung relativ zur eingestellten Anfangsspannung (kein echter Energietransport in einem Eimer). Beim Entladen sinkt die verfügbare Energie vor R₂ mit Uc; hinter R₂ ist der Eimer leer. Der Strom bestimmt die Bewegung, nicht den Füllstand." };
   function makeStyleBox() {
     const box = el("div", "sim-style"), hint = el("p", "fine tight");
     const sg = seg(box, { label: "Elektronen darstellen als", options: STYLES, value: window.PHYS_GFX.style, onChange: v => { window.PHYS_GFX.setStyle(v); styleBoxes.forEach(b => b.sync()); } });
@@ -289,28 +289,18 @@
       } else break;
     }
   }
-  // Energie eines Elektrons (0 … 1) aus dem Potential seines Ortes: Bezug unterer Draht = 0 V, Elektronen sind dort am energiereichsten.
-  // Die Batterie hebt sie auf U₀, der Widerstand nimmt Energie weg, der Kondensator speichert sie.
-  function phiAt(p, mode, U0, Uc) {
-    if (p.c === "T" || p.c === "Bd") return Uc;
-    if (p.c === "B") return 0;
-    if (p.c === "L") {
-      const a = mode === "charge" ? Uc : U0, d = p.d;
-      if (d < 32) return a;
-      if (d < 92) return a + (U0 - a) * (d - 32) / 60;
-      if (d < 204) return U0;
-      if (d < 228) return U0 * (1 - (d - 204) / 24);
-      return 0;
-    }
-    const b = mode === "discharge" ? Uc : 0, d = p.d; // R
-    if (d < 342) return 0;
-    if (d < 402) return b * (d - 342) / 60;
-    return b;
-  }
+  // Der Eimer zeigt eine relative Spannungs-/Energiehöhe. In der Entladung ist
+  // vor dem Widerstand Uc/U0 verfügbar und hinter ihm 0; bei offenem Schalter
+  // wird nicht mehr künstlich umgefüllt.
+  const RC_ENERGY = window.PHYS_RC_ENERGY;
+  if (!RC_ENERGY) throw new Error("RC energy model missing");
   function electronEnergy(S, mode, U0, Uc, dt, blade) {
     S.e.forEach(p => {
-      const target = Math.max(0, Math.min(1, (U0 - phiAt(p, mode, U0, Uc)) / 12));
-      p.en = p.en == null ? target : GX.ease(p.en, target, dt, 6);
+      const target = RC_ENERGY.energyAt(p, mode, U0, Uc);
+      // Keinen zeitlichen Nachlauf über den Widerstand: Position und Eimer
+      // müssen zum selben Moment passen (Potential in phiAt verläuft stetig).
+      if (target != null) p.en = target;
+      else if (p.en == null) p.en = 0;
       // Blickrichtung: entlang der Bewegung (nach links schauen, wenn sich das Elektron nach links bewegt)
       const q = electronPos(p, blade), q2 = p.c === "Bd" ? [G.pv[0] + (blade[0] - G.pv[0]) * (p.d + 1) / BLEN, G.pv[1] + (blade[1] - G.pv[1]) * (p.d + 1) / BLEN] : pointAt(CH[p.c], Math.min(CLEN[p.c], p.d + 1));
       const dirv = ((ROUTE[mode] || []).find(r => r[0] === p.c) || [0, 1])[1] * (S.sg || 1);
@@ -398,7 +388,7 @@
         const I = Math.abs(curI());
         EL.e.forEach(p => { const q = electronPos(p, blade); GX.electron(x, c, q[0], q[1], 0.95, p.en, p.fl); });
         // Ladungen auf den Platten: so viele, wie Elektronen ein- bzw. ausgetreten sind
-        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6, { energy: P.U0 / 12 });
+        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6, { energy: clamp(Uc() / Math.max(P.U0, 1e-9), 0, 1) });
         for (let i = 0; i < Math.min(9, Math.max(0, EL.nT)); i++) GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+");
         // Stromstärke am aktiven Widerstand
         if (I > 0.004) {
@@ -488,14 +478,18 @@
       notes(host, "Aufgaben", [
         "Klicke dich durch die Schritte. Jeder Schritt folgt der <b>Tangente</b> im aktuellen Punkt.",
         "Wähle $\\Delta t = 1{,}5\\,\\tau$ und dann $0{,}1\\,\\tau$. Wie ändert sich der Abstand zur exakten Kurve?",
-        "Warum liegt das Näherungsverfahren beim Entladen immer <b>unter</b> der exakten Kurve und beim Aufladen auch?"
+        "Warum kann ein großer Euler-Schritt sogar negative Spannung oder mehr als 100 % ergeben? Das ist ein <b>Rechenfehler der Näherung</b>, keine reale Kondensatorentladung."
       ]);
       const f = y => m === "dis" ? -y : 1 - y, ex = t => m === "dis" ? Math.exp(-t) : 1 - Math.exp(-t);
       function draw() {
         const c = colors(), x = st.ctx; st.fit(); GX.bg(x, 360, 235, c, false);
-        const X0 = 40, X1 = 350, Y0 = 14, Y1 = 195, sx = t => X0 + t / 5 * (X1 - X0), sy = y => Y1 - y * (Y1 - Y0);
+        const X0 = 40, X1 = 350, Y0 = 14, Y1 = 195;
+        // Bei Δt > τ kann das Euler-Verfahren physikalisch unsinnige negative
+        // Werte oder >100 % liefern. Diese nicht außerhalb der Leinwand verstecken.
+        const yMin = dtau > 1 ? -0.6 : 0, yMax = dtau > 1 ? 1.6 : 1;
+        const sx = t => X0 + t / 5 * (X1 - X0), sy = y => Y1 - (y - yMin) / (yMax - yMin) * (Y1 - Y0);
         x.font = "11px system-ui, sans-serif"; x.lineWidth = 1;
-        for (let i = 0; i <= 4; i++) { const y = i / 4; x.strokeStyle = c.border; L(x, [[X0, sy(y)], [X1, sy(y)]]); x.fillStyle = c.dim; x.textAlign = "right"; x.fillText(de(y, 2), X0 - 5, sy(y) + 4); }
+        for (let i = 0; i <= 4; i++) { const y = yMin + (yMax - yMin) * i / 4; x.strokeStyle = c.border; L(x, [[X0, sy(y)], [X1, sy(y)]]); x.fillStyle = c.dim; x.textAlign = "right"; x.fillText(de(y, 2), X0 - 5, sy(y) + 4); }
         for (let i = 0; i <= 5; i++) { x.strokeStyle = c.border; L(x, [[sx(i), Y0], [sx(i), Y1]]); x.fillStyle = c.dim; x.textAlign = "center"; x.fillText(i + "τ", sx(i), Y1 + 14); }
         x.textAlign = "left"; x.fillStyle = c.dim; x.fillText("U / U₀", X0 + 8, 10);
         // exakte Kurve
@@ -504,14 +498,14 @@
         x.fillStyle = c.accent; x.textAlign = "right"; x.fillText("exakt", X1, m === "dis" ? sy(ex(0.9)) - 4 : sy(ex(3.2)) + 14);
         // Euler
         let y = m === "dis" ? 1 : 0; const pts = [[0, y]];
-        for (let i = 0; i < k; i++) { const ny = y + f(y) * dtau; pts.push([(i + 1) * dtau, ny]); y = ny; }
-        x.lineWidth = 2; x.strokeStyle = c.warn; x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(sx(Math.min(p[0], 5.2)), sy(p[1])) : x.moveTo(sx(p[0]), sy(p[1]))); x.stroke();
+        for (let i = 0; i < k; i++) { const h = Math.min(dtau, Math.max(0, 5 - i * dtau)); const ny = y + f(y) * h; pts.push([Math.min(5, (i + 1) * dtau), ny]); y = ny; }
+        x.lineWidth = 2; x.strokeStyle = c.warn; x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(sx(p[0]), sy(p[1])) : x.moveTo(sx(p[0]), sy(p[1]))); x.stroke();
         pts.forEach((p, i) => {
           GX.ball(x, sx(p[0]), sy(p[1]), 4, c.warn);
           if (i > 0) { x.strokeStyle = c.dim; x.setLineDash([2, 3]); x.lineWidth = 1; L(x, [[sx(p[0]), sy(p[1])], [sx(p[0]), sy(ex(p[0]))]]); x.setLineDash([]); }
         });
         // aktuelle Tangente (nächster Schritt)
-        if (k < N()) { const p = pts[pts.length - 1]; x.strokeStyle = c.warn; x.setLineDash([5, 4]); x.lineWidth = 1.4; L(x, [[sx(p[0]), sy(p[1])], [sx(p[0] + dtau), sy(p[1] + f(p[1]) * dtau)]]); x.setLineDash([]); }
+        if (k < N()) { const p = pts[pts.length - 1], h = Math.min(dtau, Math.max(0, 5 - p[0])); x.strokeStyle = c.warn; x.setLineDash([5, 4]); x.lineWidth = 1.4; L(x, [[sx(p[0]), sy(p[1])], [sx(p[0] + h), sy(p[1] + f(p[1]) * h)]]); x.setLineDash([]); }
         // Text
         const cur = pts[pts.length - 1];
         if (eq._k !== m) {
@@ -523,12 +517,14 @@
         }
         let rows = "";
         const show = Math.min(k, 5); let yy = m === "dis" ? 1 : 0;
-        for (let i = 0; i < show; i++) { const ny = yy + f(yy) * dtau; rows += "<tr><td>" + i + "</td><td>" + de(i * dtau, 2) + " τ</td><td>" + de(yy, 3) + "</td><td>" + (f(yy) * dtau >= 0 ? "+" : "−") + de(Math.abs(f(yy) * dtau), 3) + "</td><td>" + de(ny, 3) + "</td></tr>"; yy = ny; }
+        for (let i = 0; i < show; i++) { const h = Math.min(dtau, Math.max(0, 5 - i * dtau)), delta = f(yy) * h, ny = yy + delta; rows += "<tr><td>" + i + "</td><td>" + de(Math.min(5, i * dtau), 2) + " τ</td><td>" + de(yy, 3) + "</td><td>" + (delta >= 0 ? "+" : "−") + de(Math.abs(delta), 3) + "</td><td>" + de(ny, 3) + "</td></tr>"; yy = ny; }
         const key = k + "|" + m + "|" + dtau;
         if (tbl._k !== key) {
           tbl._k = key;
           let info = "";
-          if (k > 0) { const t = k * dtau, e = ex(t); info = "<p class='fine tight'>Nach " + k + " Schritten (t = " + de(t, 2) + " τ): Näherung " + de(cur[1], 3) + ", exakt " + de(e, 3) + ", Abweichung " + de(Math.abs(cur[1] - e) * 100, 2) + " Prozentpunkte.</p>"; }
+          if (k > 0) { const t = cur[0], e = ex(t); info = "<p class='fine tight'>Nach " + k + " Schritten (t = " + de(t, 2) + " τ): Näherung " + de(cur[1], 3) + ", exakt " + de(e, 3) + ", Abweichung " + de(Math.abs(cur[1] - e) * 100, 2) + " Prozentpunkte.</p>";
+            if (cur[1] < 0 || cur[1] > 1) info += "<p class='fine tight'><b>Hinweis:</b> Der Euler-Wert liegt außerhalb von 0–100 %. Das ist bei zu großer Schrittweite ein Artefakt der Näherung, keine physikalische Spannung.</p>";
+          }
           tbl.innerHTML = k ? "<table class='cmp'><tr><th>n</th><th>t</th><th>Uₙ/U₀</th><th>ΔU/U₀</th><th>Uₙ₊₁/U₀</th></tr>" + rows + "</table>" + info : "<p class='fine tight'>Tippe auf „Nächster Schritt“. Start: " + (m === "dis" ? "U = U₀" : "U = 0") + ".</p>";
         }
       }

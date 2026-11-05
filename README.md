@@ -92,3 +92,14 @@ Im Tab **Lernen** gibt es jetzt eine zusätzliche Schaltfläche **„Geführte E
 
 Der Build `node build.mjs` erzeugt wie bisher `public/index.html` und `dist/artifact.html`, außerdem `public/entladung.html`. GitHub Pages veröffentlicht beide Seiten zusammen.
 
+
+
+## Laborprüfung (Bienen und Euler-Verfahren)
+
+- **Biene mit Eimer:** Der Eimer ist eine didaktische Analogie für elektrische potenzielle Energie **pro Ladung**, relativ zur eingestellten Spannungsquelle \(U_0\), kein tatsächlicher Flüssigkeits- oder Energietransport. Die Füllung wird nicht mehr pauschal durch 12 V geteilt: Auch bei 1 V wird der Eimer unmittelbar nach der Batterie vollständig gefüllt angezeigt.
+- Beim **Entladen** ist vor \(R_2\) noch eine relative Füllung von \(U_C/U_0\) vorhanden, hinter \(R_2\) ist er leer. Die Füllung folgt der örtlichen Potenzialdifferenz unmittelbar und wird nicht verzögert. Bei offenem Schalter oder in einem nicht durchströmten Zweig bleibt der bisherige Zustand erhalten.
+- Die Bienen-Grafik verwendet jetzt zwölf statt vier unterschiedliche Zwischenfüllungen; Gesichtsausdrücke bleiben unabhängig davon abgestuft.
+- **Euler-Verfahren:** Bei zu großen Schritten können negative oder >100-prozentige Näherungswerte auftreten. Das wird im Diagramm und im Informationstext als **numerisches Artefakt** gekennzeichnet; der letzte Schritt überschreitet \(5\tau\) nicht mehr.
+- Regressionstests: `node build.mjs && node --test tests/*.test.mjs`. Der Test prüft den Eimer bei mehreren Spannungen, vor und nach dem Widerstand, offene Zweige, das tatsächliche Canvas-Zeichnen der Eimerfüllung und den Euler-Zeitbereich.
+
+**Grenze der Prüfung:** Die automatisierten Node-/Canvas-Mock-Tests ersetzen keine vollständige visuelle Prüfung auf echten Mobilgeräten. Bei unterschiedlichen Browserskalierungen und Touch-Eingaben muss weiter manuell getestet werden.

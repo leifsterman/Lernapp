@@ -130,3 +130,19 @@ Der RC-Zustand (Schalter, Q, verstrichene Zeit, gewählte Schaltungsparameter, E
 Offline nutzt der Service Worker Netzwerkpriorität für Seiten-Navigation, damit veraltete JS-Versionen nicht ständig aus dem Cache geladen werden. Alle ursprünglichen Themen und Lernbereiche bleiben vorhanden.
 
 **Prüfung:** `node build.mjs && node --test tests/*.test.mjs`. Der Build bestätigt, dass die vollständige Haupt-App und die Entladungs-Lerneinheit erhalten bleiben. Die automatisierten Prüfungen sind keine vollständige visuelle Abnahme auf jedem Mobilgerät.
+
+
+## Bienenmodell – Honigwabe als Kondensator-Speicheranzeige
+
+Im RC-Labor (Darstellung „🐝 Biene“) bilden **Eimer**, **Bienenbewegung** und **Honigwabe** jetzt eine zusammenhängende, ausdrücklich **symbolische** Visualisierung:
+
+- Die **Bewegung der Bienen** veranschaulicht den elektrischen Strom; beim exponentiellen Entladen geht sie gegen null.
+- Die **Füllung des einzelnen Eimers** veranschaulicht eine relative elektrische Potenzialenergie **pro Ladung** entlang der Leiter und Widerstände, **nicht** die gesamte Kondensatorenergie.
+- Die **Honigwabe zwischen den Kondensatorplatten** veranschaulicht die **gesamte elektrische Feldenergie** des Kondensators. Keine reale Biene, kein Honig und kein Elektron durchquert im idealen Modell das Dielektrikum.
+- Die zusätzliche große Speicherkarte zeigt denselben Wert als Honigwabe, Energiebalken und absoluten Betrag in µJ bzw. mJ. In den anderen Darstellungsarten wird die gleiche physikalische Energie ohne Bienenmetapher angezeigt.
+
+Rechnung: Bei `C` in µF und `Q` in µC wird `E_C` in µJ berechnet: `E_C = Q²/(2C) = (1/2) C U_C²`. Der relative Füllstand ist `E_C / ((1/2) C U₀²)`. Diese Vergleichsenergie bezieht sich auf die **aktuell eingestellte** Quellspannung `U₀`; die absolute Zahl µJ/mJ wird dadurch nicht verändert. Ist `U_C > U₀`, wird der Prozentwert **größer als 100 %** korrekt ausgeschrieben; lediglich die grafische Leiste endet bei 100 %.
+
+Entscheidender Lernpunkt: Nach einem Zeitkonstantenintervall ist die Kondensatorspannung beim Entladen `1/e ≈ 37 %`, die Feldenergie aber nur `1/e² ≈ 13,5 %` ihres Anfangswerts. Die Honigwabe muss sich deshalb schneller leeren als ein Spannungstacho. Die frei werdende Kondensatorenergie wird beim idealen RC-Entladen am Widerstand in Wärme umgesetzt.
+
+Validierung: `node build.mjs && node --test tests/*.test.mjs`. Abgedeckt sind Formel, Einheiten, Spannungs-/Energieverhältnis, Änderung der Kapazität bei festgehaltener Ladung, Quellenabsenkung, Umschalten sowie Integrität der vorhandenen Lernbereiche.

@@ -438,9 +438,15 @@
         // Elektronen auf den Leitungen (entgegen der technischen Stromrichtung); sie bleiben immer sichtbar
         const I = Math.abs(curI());
         EL.e.forEach(p => { const q = electronPos(p, blade); GX.electron(x, c, q[0], q[1], 0.95, p.en, p.fl); });
-        // Ladungen auf den Platten: so viele, wie Elektronen ein- bzw. ausgetreten sind
-        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6, { energy: clamp(Uc() / Math.max(P.U0, 1e-9), 0, 1) });
-        for (let i = 0; i < Math.min(9, Math.max(0, EL.nT)); i++) GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+");
+        // Die Platten tragen stets denselben Betrag entgegengesetzter Ladung.
+        // Symbolpunkte direkt aus Q ableiten (nicht aus ungleichen, diskreten
+        // Zählern der laufenden Tracer), auch bei kleinen Q mit Transparenz.
+        // Die Bienen zeichnen wir NICHT zwischen die isolierten Platten.
+        RC_FLOW.plateDots(Q, P, 9).forEach((opacity, i) => {
+          GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6,
+            { energy: RC_FLOW.plateFill(Q, P), alpha: opacity });
+          GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+", { alpha: opacity });
+        });
         // Stromstärke am aktiven Widerstand
         if (I > 0.004) {
           const r = mode === "charge" ? G.r1 : G.r2, xm = (r[0] + r[1]) / 2;
@@ -454,9 +460,11 @@
           Object.keys(NODES).forEach(k => { const nd = NODES[k]; GX.pill(x, c, k + ": " + de(pot[k], 3) + " V", nd.x, nd.y - 12, { col: c.accent, size: 10, clampW: 360 }); });
         }
         ro({ u: de(Uc(), 3) + " V", i: de(curI(), 3) + " mA", q: de(Q, 3) + " µC", tau: de(tau(mode === "open" ? "charge" : mode), 3) + " s" });
-        info.textContent = mode === "charge" ? "Laden: Der Strom fließt über R₁ zur Platte. Die Elektronen (blau) wandern entgegen der technischen Stromrichtung."
-          : mode === "discharge" ? "Entladen: Der Kondensator treibt den Strom über R₂. Die Spannung sinkt exponentiell."
-          : "Schalter offen: keine Verbindung, die Ladung bleibt (ideal).";
+        info.textContent = mode === "charge"
+          ? "Laden: Elektronen wandern außen durch R₁ und die Spannungsquelle zur negativen Platte; die andere Platte verliert Elektronen. In R₁ verschwinden keine Elektronen. Die Punkte zeigen eine stark beschleunigte Drift, keine echte Elektronengeschwindigkeit."
+          : mode === "discharge"
+          ? "Entladen: Elektronen verlassen die negative Platte, passieren R₂ und erreichen die zuvor positive Platte. Hinter R₂ fließt derselbe Strom wie davor; nur die verfügbare elektrische Energie pro Ladung sinkt. Kein Elektron durchquert den Plattenzwischenraum."
+          : "Schalter offen: Keine Drift im idealen Kreis. Elektronen bleiben in den Leitern sichtbar, die Plattenladungen und Kondensatorspannung bleiben erhalten.";
         if ((frame = (frame + 1) % 2) === 0) drawPlot(c); // Diagramm reicht mit halber Bildrate
       }
 
@@ -470,9 +478,9 @@
         let ymin = 0, ymax, key, col;
         if (qty === "U") { ymax = Math.max(P.U0, 1) * 1.08; key = 1; col = c.accent; }
         else if (qty === "I") { const m = P.U0 / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; key = 2; col = c.bad; }
-        else { ymax = P.C * P.U0 * 1.08; key = 3; col = c.ok; }
+        else { ymax = Math.max(P.C * P.U0, Q, 1) * 1.08; key = 3; col = c.ok; }
         const sx = tt => X0 + (tt - t0) / W * (X1 - X0), sy = v => Y1 - (v - ymin) / (ymax - ymin) * (Y1 - Y0);
-        const val = h => key === 3 ? h[1] * P.C : h[key];
+        const val = h => key === 3 ? h[3] : h[key];
         x.font = "11px system-ui, sans-serif"; x.lineWidth = 1;
         for (let i = 0; i <= 4; i++) { const v = ymin + (ymax - ymin) * i / 4, yy = sy(v); x.strokeStyle = c.border; L(x, [[X0, yy], [X1, yy]]); GX.text(x, c.dim, de(v, 2), X0 - 5, yy, { align: "right" }); }
         for (let i = 0; i <= 5; i++) { const tt = t0 + W * i / 5, xx = sx(tt); x.strokeStyle = c.border; L(x, [[xx, Y0], [xx, Y1]]); GX.text(x, c.dim, de(tt, 3), xx, Y1 + 12); }
@@ -503,8 +511,13 @@
       }
       // Tippen auf den Schalter wechselt die Stellung
       st.c.addEventListener("click", e => { const p = st.pos(e); if (p.y < 115 && p.x > 150 && p.x < 270) setMode(mode === "open" ? "charge" : mode === "charge" ? "discharge" : "open"); });
-      window.PHYS_RC_STATE = () => EL; // nur zum Prüfen der Elektronenerhaltung
-      return { step, draw };
+      window.PHYS_RC_STATE = () => EL; // alte Debug-Schnittstelle erhalten
+      window.PHYS_RC_INSPECT = () => ({
+        mode, Q, Uc: Uc(), t, I: curI(),
+        particles: EL.e.map(e => ({ c: e.c, d: e.d, en: e.en })),
+        plateAlpha: RC_FLOW.plateDots(Q, P, 9), parameters: { ...P }
+      });
+      return { step, draw, resume };
     }
   });
 

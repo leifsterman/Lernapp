@@ -94,13 +94,16 @@
       cx.lineWidth = 1.4; cx.beginPath(); cx.moveTo(2.2, 2.6); cx.lineTo(5.2, 3.2); cx.stroke(); // Arm
       // großer Eimer: Füllstand = Energie pro Elektron (Spannung in V), Skalenstriche zeigen die Stufen
       const top = 1.6, bot = 10.6, xl = 4.6, xr = 12.2, inset = 1.1;
-      cx.fillStyle = "rgba(255,255,255,.55)"; cx.strokeStyle = INK; cx.lineWidth = 1;
+      // Dunkler leerer Eimer + türkisfarbene Flüssigkeit: auch bei 10 px
+      // sichtbar und deutlich vom gelben Bienenkörper unterscheidbar.
+      cx.fillStyle = "#17334a"; cx.strokeStyle = "#ecfaff"; cx.lineWidth = 1.35;
       cx.beginPath(); cx.moveTo(xl, top); cx.lineTo(xr, top); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.fill();
       if (fill > 0) {
         const h = fill * (bot - top - 0.8), y = bot - h, f = (yy, side) => side < 0 ? xl + inset * (yy - top) / (bot - top) : xr - inset * (yy - top) / (bot - top);
-        cx.fillStyle = "#ff9d1c"; cx.beginPath(); cx.moveTo(f(y, -1), y); cx.lineTo(f(y, 1), y); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.fill();
-        cx.fillStyle = "#ffd27a"; cx.fillRect(f(y, -1) + 0.5, y, (f(y, 1) - f(y, -1)) - 1, 0.9);
+        cx.fillStyle = "#17dfbc"; cx.beginPath(); cx.moveTo(f(y, -1), y); cx.lineTo(f(y, 1), y); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.fill();
+        cx.fillStyle = "#eefff8"; cx.fillRect(f(y, -1) + 0.5, y, (f(y, 1) - f(y, -1)) - 1, 0.9);
       }
+      cx.strokeStyle = "#edfcff"; cx.lineWidth = 1.2;
       cx.beginPath(); cx.moveTo(xl, top); cx.lineTo(xr, top); cx.lineTo(xr - inset, bot); cx.lineTo(xl + inset, bot); cx.closePath(); cx.stroke();
       cx.lineWidth = 0.7; cx.beginPath(); for (let i = 1; i < 4; i++) { const yy = bot - i * (bot - top - 0.8) / 4; cx.moveTo(xl + 0.2 + inset * (yy - top) / (bot - top), yy); cx.lineTo(xl + 1.8 + inset * (yy - top) / (bot - top), yy); } cx.stroke();
       cx.lineWidth = 0.9; cx.beginPath(); cx.arc((xl + xr) / 2, top, (xr - xl) / 2 - 0.6, Math.PI, 0); cx.stroke(); // Henkel
@@ -231,7 +234,7 @@
     // Elektron in der Leitung; en = Energie 0 … 1, flip = schaut nach links
     electron(x, c, px, py, a, en, flip) {
       if (!isFinite(px) || !isFinite(py)) return;
-      if (style !== "punkt") { figure(x, style, px, py, style === "biene" ? 9.5 : 9, en, flip, a); return; }
+      if (style !== "punkt") { figure(x, style, px, py, style === "biene" ? 11.2 : 9, en, flip, a); return; }
       const sc = x.getTransform().a || 1;
       const sp = sprite("e" + c.neg, 7, sc, cx => G._elPaint(cx, c, 0, 0));
       drawSprite(x, sp, px, py, a == null ? 1 : a);

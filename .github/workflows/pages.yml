@@ -1,14 +1,11 @@
-# Veröffentlicht die Seite bei jedem Push auf main über GitHub Pages.
-# Einmalig nötig: Repo -> Settings -> Pages -> Source: "GitHub Actions".
-name: Deploy to GitHub Pages
+# Legacy artifact-based Pages deployment, available only as a manual fallback.
+# Automatic builds now publish static files to gh-pages instead.
+name: Deploy to GitHub Pages (manual)
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
   pages: write
-  deployments: write
   id-token: write
 concurrency:
   group: pages
@@ -26,30 +23,6 @@ jobs:
           node-version: 22
       - run: node build.mjs
       - uses: actions/configure-pages@v5
-      # Release ONLY the stale deployment identified by the Pages 400 response.
-      - name: Recover stale Pages deployment
-        env:
-          GH_TOKEN: ${{ github.token }}
-          STALE_SHA: 8687f8bee12fd467c0a25d33d5de8e1def928549
-        shell: bash
-        run: |
-          set -euo pipefail
-          repo="${{ github.repository }}"
-          echo "Pages deployment status before cleanup:"
-          gh api "repos/$repo/pages/deployments/$STALE_SHA" || true
-          echo "GitHub environment deployments for old SHA:"
-          gh api "repos/$repo/deployments?sha=$STALE_SHA&per_page=50" --jq '.[] | [.id, .sha, .environment] | @tsv' || true
-          ids="$(gh api "repos/$repo/deployments?sha=$STALE_SHA&per_page=50" --jq '.[] | select(.sha == env.STALE_SHA and .environment == "github-pages") | .id')"
-          for id in $ids; do
-            echo "Marking stale github-pages environment deployment $id inactive"
-            gh api -X POST "repos/$repo/deployments/$id/statuses" -f state=inactive -f description="Clean up stuck Pages deployment" || true
-            echo "Deleting stale github-pages environment deployment $id"
-            gh api -X DELETE "repos/$repo/deployments/$id" || true
-          done
-          echo "Cancelling stale Pages deployment"
-          gh api -X POST "repos/$repo/pages/deployments/$STALE_SHA/cancel" || true
-          echo "Pages deployment status after cleanup:"
-          gh api "repos/$repo/pages/deployments/$STALE_SHA" || true
       - uses: actions/upload-pages-artifact@v4
         with:
           path: public

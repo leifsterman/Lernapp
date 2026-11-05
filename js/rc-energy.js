@@ -32,8 +32,12 @@
     if (mode !== "charge" && mode !== "discharge") return null;
     // The branch disconnected by the switch does not exchange energy.
     if ((mode === "charge" && p.c === "R") || (mode === "discharge" && p.c === "L")) return null;
-    const reference = Math.max(Math.abs(U0), 1e-9);
-    const available = mode === "discharge" ? Uc : U0;
+    // Wird die Quelle unter die momentan gespeicherte Spannung abgesenkt,
+    // kehrt sich der Strom im Ladezweig um: Die Quelle nimmt Energie auf.
+    // Die Anzeige muss dann auch den Energieabfall in umgekehrter Richtung
+    // entlang von Batterie und Widerstand unterscheiden können.
+    const reference = Math.max(Math.abs(U0), Math.abs(Uc), 1e-9);
+    const available = mode === "discharge" ? Uc : Math.max(U0, Uc);
     return clamp((available - potentialAt(p, mode, U0, Uc)) / reference, 0, 1);
   }
   root.PHYS_RC_ENERGY = Object.freeze({ potentialAt, energyAt });

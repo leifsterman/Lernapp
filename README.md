@@ -116,4 +116,6 @@ Der Build `node build.mjs` erzeugt wie bisher `public/index.html` und `dist/arti
 - **Geschwindigkeit:** Bewegte Punkte sind stark beschleunigte Tracer und nicht maßstabsgetreue einzelne Elektronen. Die Ausbreitung des elektrischen Feldes wird nicht als atomistischer Transport simuliert. Einmalige Wege werden als Illustration gleichmäßig in kleine Bewegungsstücke aufgeteilt.
 - **Einheiten:** In der App sind `R` in kΩ, `C` in µF, `Q` in µC, `U` in V und `t` in s; damit gilt `τ = R·C/1000`.
 
+Auch die Labore **Reihen-/Parallelschaltung** und **Herleitung live** zeigen die Leitungs-Elektronen jetzt bei verschwindendem Strom weiterhin statisch. Im Herleitungs-Labor bewegen sie sich nur bei tatsächlich fließendem Strom und verschwinden beim Durchqueren eines Widerstands nicht mehr.
+
 Regressionsprüfungen: `node build.mjs && node --test tests/*.test.mjs`. Sie prüfen RC-Zeitgesetz, große Unterbrechungen, Stromrichtung, Kondensatorladungen und Leiterwege. Eine **vollständige** visuelle und Touch-Interaktion auf echten Endgeräten ist damit noch nicht nachgewiesen.

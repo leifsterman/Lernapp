@@ -130,12 +130,13 @@
 <h3>Das musst du können</h3>
 <ul class="check"><li>Gemischte Schaltungen schrittweise zusammenfassen.</li></ul>`);
 
-  sheet("ladung", "Auf- und Entladung", "Differenzialgleichung, τ = R·C", R`
+  sheet("ladung", "Entladung (Aufladung optional)", "Differenzialgleichung, τ = R·C – Aufladung aktuell nicht benötigt", R`
+<p class="hint"><b>Dein aktueller Lernstoff:</b> Nur die <b>Entladung</b> wird benötigt. Die Aufladung unten ist freiwilliges Zusatzwissen. <a href="entladung.html">Entladung Schritt für Schritt herleiten und prüfen →</a></p>
 <h3>Entladung</h3>
-<p>$$\dfrac{Q}{C} + R\dfrac{\mathrm{d}Q}{\mathrm{d}t} = 0 \;\Rightarrow\; \dfrac{\mathrm{d}Q}{\mathrm{d}t} = -\dfrac{Q}{RC}$$</p>
+<p>$\dfrac{Q}{C} + R\dfrac{\mathrm{d}Q}{\mathrm{d}t} = 0 \;\Rightarrow\; \dfrac{\mathrm{d}Q}{\mathrm{d}t} = -\dfrac{Q}{RC}$$</p>
 <p>$$Q(t) = Q_0\,e^{-t/\tau}\qquad U(t) = U_0\,e^{-t/\tau}$$</p>
-<h3>Aufladung</h3>
-<p>$$U_0 = R\dfrac{\mathrm{d}Q}{\mathrm{d}t} + \dfrac{Q}{C}$$</p>
+<h3>Aufladung – aktuell nicht benötigt (Zusatzwissen)</h3>
+<p>$U_0 = R\dfrac{\mathrm{d}Q}{\mathrm{d}t} + \dfrac{Q}{C}$$</p>
 <p>$$Q(t) = Q_0\bigl(1 - e^{-t/\tau}\bigr)$$</p>
 <h3>Merkpunkte</h3>
 <ul><li>$\tau = R\,C$. Nach $\tau$: Entladen 37 %, Aufladen 63 %. Nach $5\tau$ praktisch fertig.</li>
@@ -144,7 +145,8 @@
 <h3>Das musst du können</h3>
 <ul class="check"><li>Dgl. aus der Maschenregel aufstellen und lösen (Variablentrennung).</li><li>Kurven zeichnen, $\tau$ einzeichnen.</li></ul>`, ["rc"]);
 
-  sheet("herleitung", "Herleitung Schritt für Schritt", "Auf- und Entladen ohne Vorwissen verstehen und selbst herleiten", R`
+  sheet("herleitung", "Herleitung Schritt für Schritt", "Entladung jetzt relevant · Aufladung nur Zusatzwissen", R`
+<p class="hint"><b>Für deinen aktuellen Unterricht:</b> <a href="entladung.html">Hier die gezielte Herleitung der Entladung öffnen</a>. Aufladung wird derzeit nicht benötigt; die übrigen Abschnitte bleiben freiwillig zugänglich.</p>
 <p class="hint"><b>Zum Anschauen:</b> Im Labor gibt es dazu die Simulation <b>„Herleitung live“</b>. Dort siehst du in 8 Schritten am Kondensator, was jeder Teil der Formel bedeutet und warum er dasteht. Im 9. Schritt leitest du selbst her.</p>
 <p>Ziel: Du kannst am Ende die Formeln für Auf- und Entladen <b>selbst auf einem leeren Blatt</b> herleiten. Lies jeden Schritt, decke dann die Rechnung ab und versuche sie allein. Im Labor („RC-Schaltung“ und „Differenzialgleichung“) siehst du alles live.</p>
 
@@ -187,7 +189,7 @@ $$Q(t) = Q_0\,e^{-t/\tau}$$</li>
 </ol>
 <p><b>Probe (immer machen!):</b> Ableiten ergibt $\dfrac{\mathrm{d}Q}{\mathrm{d}t} = Q_0\cdot\left(-\dfrac{1}{\tau}\right)e^{-t/\tau} = -\dfrac{Q}{\tau}$. Das ist die Dgl. aus Schritt 2. Bei $t=0$ gilt $Q=Q_0$. Beides stimmt.</p>
 
-<h3>4 · Aufladen: Dgl. aufstellen</h3>
+<h3>4 · Aufladen: Dgl. aufstellen (Zusatzwissen – aktuell nicht benötigt)</h3>
 <p><b>Schaltung:</b> Leerer Kondensator ($Q(0)=0$), Quelle $U_0$, Widerstand $R$ in Reihe.</p>
 <ol>
 <li><b>Maschenregel:</b> Die Quellspannung verteilt sich auf $R$ und $C$: $U_0 = U_R + U_C$</li>
@@ -197,7 +199,7 @@ $$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{\tau}$$</li>
 </ol>
 <div class="hint">Lies es so: Die Rate ist proportional zum <b>Abstand zum Ziel</b> ($Q_0 - Q$). Weit weg = schnell. Fast da = langsam.</div>
 
-<h3>5 · Aufladen: Dgl. lösen</h3>
+<h3>5 · Aufladen: Dgl. lösen (Zusatzwissen – aktuell nicht benötigt)</h3>
 <ol>
 <li><b>Trennen:</b> $\dfrac{\mathrm{d}Q}{Q_0 - Q} = \dfrac{\mathrm{d}t}{\tau}$</li>
 <li><b>Integrieren</b> von $t=0$ ($Q=0$) bis $t$:

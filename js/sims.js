@@ -126,7 +126,7 @@
   // Darstellung der Elektronen (Punkt, Männchen mit Armen, Biene mit Eimer): gilt in allen Versuchen und bleibt gespeichert
   const STYLES = [{ v: "punkt", t: "● Punkt" }, { v: "mann", t: "☺ Männchen" }, { v: "biene", t: "🐝 Biene" }];
   const STYLE_HINT = { punkt: "", mann: "Männchen mit Armen: Wer viel Energie hat (nach der Batterie), freut sich mit erhobenen Armen. Wer sie abgegeben hat (nach dem Widerstand), ist müde. Wie schnell sie laufen, zeigt die Stromstärke.",
-    biene: "Bienen mit Eimer: Der Füllstand des Eimers ist die Energie pro Elektron, also die Spannung in Volt (nach der Batterie voll, nach dem Widerstand leer). Wie schnell die Bienen fliegen, ist die Stromstärke in Ampere." };
+    biene: "Bienen mit Eimer: Der Füllstand veranschaulicht elektrische Energie pro Ladung relativ zur eingestellten Anfangsspannung (kein echter Energietransport in einem Eimer). Beim Entladen sinkt die verfügbare Energie vor R₂ mit Uc; hinter R₂ ist der Eimer leer. Der Strom bestimmt die Bewegung, nicht den Füllstand." };
   function makeStyleBox() {
     const box = el("div", "sim-style"), hint = el("p", "fine tight");
     const sg = seg(box, { label: "Elektronen darstellen als", options: STYLES, value: window.PHYS_GFX.style, onChange: v => { window.PHYS_GFX.setStyle(v); styleBoxes.forEach(b => b.sync()); } });
@@ -289,28 +289,18 @@
       } else break;
     }
   }
-  // Energie eines Elektrons (0 … 1) aus dem Potential seines Ortes: Bezug unterer Draht = 0 V, Elektronen sind dort am energiereichsten.
-  // Die Batterie hebt sie auf U₀, der Widerstand nimmt Energie weg, der Kondensator speichert sie.
-  function phiAt(p, mode, U0, Uc) {
-    if (p.c === "T" || p.c === "Bd") return Uc;
-    if (p.c === "B") return 0;
-    if (p.c === "L") {
-      const a = mode === "charge" ? Uc : U0, d = p.d;
-      if (d < 32) return a;
-      if (d < 92) return a + (U0 - a) * (d - 32) / 60;
-      if (d < 204) return U0;
-      if (d < 228) return U0 * (1 - (d - 204) / 24);
-      return 0;
-    }
-    const b = mode === "discharge" ? Uc : 0, d = p.d; // R
-    if (d < 342) return 0;
-    if (d < 402) return b * (d - 342) / 60;
-    return b;
-  }
+  // Der Eimer zeigt eine relative Spannungs-/Energiehöhe. In der Entladung ist
+  // vor dem Widerstand Uc/U0 verfügbar und hinter ihm 0; bei offenem Schalter
+  // wird nicht mehr künstlich umgefüllt.
+  const RC_ENERGY = window.PHYS_RC_ENERGY;
+  if (!RC_ENERGY) throw new Error("RC energy model missing");
   function electronEnergy(S, mode, U0, Uc, dt, blade) {
     S.e.forEach(p => {
-      const target = Math.max(0, Math.min(1, (U0 - phiAt(p, mode, U0, Uc)) / 12));
-      p.en = p.en == null ? target : GX.ease(p.en, target, dt, 6);
+      const target = RC_ENERGY.energyAt(p, mode, U0, Uc);
+      // Keinen zeitlichen Nachlauf über den Widerstand: Position und Eimer
+      // müssen zum selben Moment passen (Potential in phiAt verläuft stetig).
+      if (target != null) p.en = target;
+      else if (p.en == null) p.en = 0;
       // Blickrichtung: entlang der Bewegung (nach links schauen, wenn sich das Elektron nach links bewegt)
       const q = electronPos(p, blade), q2 = p.c === "Bd" ? [G.pv[0] + (blade[0] - G.pv[0]) * (p.d + 1) / BLEN, G.pv[1] + (blade[1] - G.pv[1]) * (p.d + 1) / BLEN] : pointAt(CH[p.c], Math.min(CLEN[p.c], p.d + 1));
       const dirv = ((ROUTE[mode] || []).find(r => r[0] === p.c) || [0, 1])[1] * (S.sg || 1);
@@ -398,7 +388,7 @@
         const I = Math.abs(curI());
         EL.e.forEach(p => { const q = electronPos(p, blade); GX.electron(x, c, q[0], q[1], 0.95, p.en, p.fl); });
         // Ladungen auf den Platten: so viele, wie Elektronen ein- bzw. ausgetreten sind
-        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6, { energy: P.U0 / 12 });
+        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6, { energy: clamp(Uc() / Math.max(P.U0, 1e-9), 0, 1) });
         for (let i = 0; i < Math.min(9, Math.max(0, EL.nT)); i++) GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+");
         // Stromstärke am aktiven Widerstand
         if (I > 0.004) {

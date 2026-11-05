@@ -94,12 +94,29 @@
   const SIMS = [], INST = {};
   let cur = null, raf = 0, last = 0;
   function loop(now) {
+    if (document.hidden) { raf = 0; return; }
     raf = requestAnimationFrame(loop);
-    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = Math.max(last, now); // nie negativ (sonst NaN bei Zufallsbewegung)
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
     if (cur) { cur.step && cur.step(dt); cur.draw && cur.draw(); }
   }
-  function startLoop(obj) { stopLoop(); cur = obj; last = performance.now(); raf = requestAnimationFrame(loop); }
+  function startLoop(obj) {
+    stopLoop();
+    cur = obj;
+    last = performance.now();
+    // RC-Schaltungen integrieren reale vergangene Zeit nach, ohne im
+    // Hintergrund unnötig Canvas-Frames zu zeichnen.
+    if (cur.resume) cur.resume();
+    if (!document.hidden) raf = requestAnimationFrame(loop);
+  }
   function stopLoop() { cancelAnimationFrame(raf); raf = 0; cur = null; }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+    else if (cur && !raf) {
+      last = performance.now();
+      if (cur.resume) cur.resume();
+      raf = requestAnimationFrame(loop);
+    }
+  });
   A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
 
   const styleBoxes = [];
@@ -320,13 +337,26 @@
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
       const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1 };
-      let mode = "open", Q = 0, t = 0, qty = "U", EL = { e: newElectrons(), nT: 0, nB: 0 }, prevK = 0, showTau = true, showPot = false, hist = [], histT = 0, ev = null, fieldPhase = 0;
-      let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0;
-      const tau = m => (m === "charge" ? P.R1 : P.R2) * P.C / 1000; // kΩ·µF = ms
+      const RC_FLOW = window.PHYS_RC_FLOW;
+      if (!RC_FLOW) throw new Error("RC flow model missing");
+      let mode = "open", Q = 0, t = 0, qty = "U", EL = { e: newElectrons(), nT: 0, nB: 0 },
+        showTau = true, showPot = false, hist = [], ev = null, fieldPhase = 0;
+      let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0, lastUpdateWall = Date.now();
+      const tau = m => RC_FLOW.tau(m, P); // kΩ·µF = 10⁻³ s
       const Uc = () => Q / P.C;
+      function currentFor(q, m) {
+        const u = q / P.C;
+        return m === "charge" ? (P.U0 - u) / P.R1
+          : m === "discharge" ? -u / P.R2 : 0;
+      }
       function setMode(m) {
         if (m === mode) return;
+        resume(); // First account for time under the OLD switch position.
         mode = m; segMode.set(m);
+        // Während eines gezeichneten Kontaktswechsels darf kein Strom durch
+        // einen schwebenden Schalterkontakt fließen: Zustand und Kontakt
+        // wechseln deshalb im selben Moment.
+        blade = BLADE[m].slice();
         if (m !== "open") ev = { t0: t, Ustart: Uc(), Uinf: m === "charge" ? P.U0 : 0, tau: tau(m), mode: m };
         else ev = null;
       }
@@ -334,13 +364,13 @@
       const info = el("div", "sim-info"); host.append(info);
       const segMode = seg(host, { label: "Schalter (oder im Bild auf den Schalter tippen)", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: "open", onChange: setMode });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
-      slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
-      slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
-      slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); } });
-      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { const u = Uc(); P.C = v; Q = u * v; prevK = Q; if (ev) ev.tau = tau(ev.mode); } });
-      slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { P.speed = v; } });
+      slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { resume(); P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
+      slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { resume(); P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
+      slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { resume(); P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); } });
+      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { resume(); const q = Q; P.C = v; Q = q; if (ev) ev.tau = tau(ev.mode); } });
+      slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { resume(); P.speed = v; } });
       const acts = el("div", "sim-acts"); host.append(acts);
-      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; histT = 0; ev = null; mode = "open"; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; prevK = 0; });
+      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; ev = null; mode = "open"; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; lastUpdateWall = Date.now(); });
       const tb = button(acts, "τ zeigen: an", () => { showTau = !showTau; tb.textContent = "τ zeigen: " + (showTau ? "an" : "aus"); });
       const pb = button(acts, "Potenziale: aus", () => { showPot = !showPot; pb.textContent = "Potenziale: " + (showPot ? "an" : "aus"); });
       host.append(pl.c);
@@ -351,28 +381,55 @@
         "Verdopple $R_1$. Wie ändert sich $\\tau$, wie die Form der Kurve?",
         "Lade bis fast voll, dann <b>Offen</b>: Was passiert mit $U_C$? Warum?",
         "Schalte auf <b>Entladen</b> und lies die Spannung nach genau $\\tau$ ab. Welchen Bruchteil von $U_0$ erwartest du?",
-        "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen."
+        "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen.",
+        "Lade den Kondensator, wechsle zu einem anderen App-Bereich oder Browserfenster und kehre zurück: Die Entladung oder Aufladung muss der verstrichenen Zeit entsprechen.",
+        "Prüfe die Bienen vor und nach dem aktiven Widerstand: gleiche Bewegungsrichtung im selben Leiterzweig, aber unterschiedlicher Eimerfüllstand. Zwischen den Kondensatorplatten dürfen keine Elektronen durch das Dielektrikum wandern."
       ]);
-      function curI() { return mode === "charge" ? (P.U0 - Uc()) / P.R1 : mode === "discharge" ? -Uc() / P.R2 : 0; } // mA
+      function curI() { return currentFor(Q, mode); } // mA
 
-      function step(dt) {
-        const ds = dt * P.speed;
+      // Physik und Animation sind bewusst getrennt: Die exakte RC-Lösung
+      // läuft auch beim Wechsel zu einem anderen Lernbereich oder Browser-Tab
+      // weiter. Unsichtbare Canvas-Frames werden nicht benötigt.
+      function advanceElapsed(seconds) {
+        if (!(seconds > 0) || !Number.isFinite(seconds)) return;
+        const ds = seconds * P.speed, startT = t, startQ = Q;
         t += ds;
+        Q = RC_FLOW.evolve(startQ, mode, P, ds);
         if (mode !== "open") {
-          const tc = tau(mode), Qinf = mode === "charge" ? P.C * P.U0 : 0;
-          Q = Qinf + (Q - Qinf) * Math.exp(-ds / tc);
+          const travel = RC_FLOW.travel(Q - startQ, mode, P);
+          // Ausgedehnte Hintergrundintervalle in kleine Tracer-Bewegungen
+          // aufteilen, damit keiner durch ein Bauteil teleportiert.
+          const pieces = Math.min(90, Math.max(1, Math.ceil(Math.abs(travel) / 6)));
+          for (let i = 0; i < pieces; i++) moveElectrons(EL, mode, travel / pieces);
+          if (Math.abs(travel) > 1e-7) EL.sg = Math.sign(travel);
         }
-        const dK = (Q - prevK) / 600; prevK = Q; // Tempo der Elektronen ∝ Stromstärke: eine Abstandseinheit je 600 µC
-        if (mode !== "open") { const a = SP * (mode === "charge" ? dK : -dK); moveElectrons(EL, mode, a); if (Math.abs(a) > 1e-6) EL.sg = Math.sign(a); }
-        electronEnergy(EL, mode, P.U0, Uc(), dt, blade);
-        histT += ds;
-        while (histT >= 0.04) { histT -= 0.04; hist.push([t, Uc(), curI()]); if (hist.length > 5000) hist.shift(); }
+        // Die letzten Sekunden einer langen Pause für die Verlaufskurve
+        // nachberechnen, ohne pro verstrichener Millisekunde zu iterieren.
+        const windowSec = Math.max(1, 7 * Math.max(tau("charge"), tau("discharge")));
+        const visibleFrom = Math.max(startT, t - windowSec);
+        const samples = RC_FLOW.historySamples(visibleFrom, t - visibleFrom, .04, 160);
+        for (const at of samples) {
+          const qAt = RC_FLOW.evolve(startQ, mode, P, at - startT);
+          hist.push([at, qAt / P.C, currentFor(qAt, mode), qAt]);
+        }
+        if (hist.length > 5000) hist.splice(0, hist.length - 5000);
+        fieldPhase = (fieldPhase + Math.min(ds, 100) * 14) % 1000;
+      }
+      function resume() {
+        const now = Date.now(), seconds = Math.max(0, (now - lastUpdateWall) / 1000);
+        lastUpdateWall = now;
+        advanceElapsed(seconds);
+        electronEnergy(EL, mode, P.U0, Uc(), 0, blade);
+      }
+      function step(dt) {
+        resume();
         const I = Math.abs(curI());
-        fieldPhase += dt * 14;
         const target = BLADE[mode];
-        blade[0] = GX.ease(blade[0], target[0], dt, 14); blade[1] = GX.ease(blade[1], target[1], dt, 14);
+        blade[0] = GX.ease(blade[0], target[0], dt, 14);
+        blade[1] = GX.ease(blade[1], target[1], dt, 14);
         meter = GX.ease(meter, Uc() / 12, dt, 6);
         glow = GX.ease(glow, Math.min(1, I / 2), dt, 6);
+        electronEnergy(EL, mode, P.U0, Uc(), dt, blade);
       }
 
       function draw() {
@@ -387,9 +444,16 @@
         // Elektronen auf den Leitungen (entgegen der technischen Stromrichtung); sie bleiben immer sichtbar
         const I = Math.abs(curI());
         EL.e.forEach(p => { const q = electronPos(p, blade); GX.electron(x, c, q[0], q[1], 0.95, p.en, p.fl); });
-        // Ladungen auf den Platten: so viele, wie Elektronen ein- bzw. ausgetreten sind
-        for (let i = 0; i < Math.min(9, Math.max(0, EL.nB)); i++) GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6, { energy: clamp(Uc() / Math.max(P.U0, 1e-9), 0, 1) });
-        for (let i = 0; i < Math.min(9, Math.max(0, EL.nT)); i++) GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+");
+        // Die Platten tragen stets denselben Betrag entgegengesetzter Ladung.
+        // Symbolpunkte direkt aus Q ableiten (nicht aus ungleichen, diskreten
+        // Zählern der laufenden Tracer), auch bei kleinen Q mit Transparenz.
+        // Die Bienen zeichnen wir NICHT zwischen die isolierten Platten.
+        RC_FLOW.plateDots(Q, P, 9).forEach((opacity, i) => {
+          // An den Metallplatten kompakte Ladungssymbole statt überlappender
+          // großer Bienen-Eimer (die Bienen sind die mobilen Leiter-Tracer).
+          GX.ball(x, 176 + i * 8.5, G.pb + 9, 3.6, c.neg, "−", { alpha: opacity });
+          GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+", { alpha: opacity });
+        });
         // Stromstärke am aktiven Widerstand
         if (I > 0.004) {
           const r = mode === "charge" ? G.r1 : G.r2, xm = (r[0] + r[1]) / 2;
@@ -403,9 +467,13 @@
           Object.keys(NODES).forEach(k => { const nd = NODES[k]; GX.pill(x, c, k + ": " + de(pot[k], 3) + " V", nd.x, nd.y - 12, { col: c.accent, size: 10, clampW: 360 }); });
         }
         ro({ u: de(Uc(), 3) + " V", i: de(curI(), 3) + " mA", q: de(Q, 3) + " µC", tau: de(tau(mode === "open" ? "charge" : mode), 3) + " s" });
-        info.textContent = mode === "charge" ? "Laden: Der Strom fließt über R₁ zur Platte. Die Elektronen (blau) wandern entgegen der technischen Stromrichtung."
-          : mode === "discharge" ? "Entladen: Der Kondensator treibt den Strom über R₂. Die Spannung sinkt exponentiell."
-          : "Schalter offen: keine Verbindung, die Ladung bleibt (ideal).";
+        info.textContent = mode === "charge" && curI() < -1e-6
+          ? "Rückstrom: Uc ist höher als die eingestellte Quellspannung. Elektronen bewegen sich umgekehrt durch R₁, und die Quelle nimmt Energie auf. Kein Elektron verschwindet im Widerstand."
+          : mode === "charge"
+          ? "Laden: Elektronen wandern außen durch R₁ und die Spannungsquelle zur negativen Platte; die andere Platte verliert Elektronen. In R₁ verschwinden keine Elektronen. Die Punkte zeigen eine stark beschleunigte Drift, keine echte Elektronengeschwindigkeit."
+          : mode === "discharge"
+          ? "Entladen: Elektronen verlassen die negative Platte, passieren R₂ und erreichen die zuvor positive Platte. Hinter R₂ fließt derselbe Strom wie davor; nur die verfügbare elektrische Energie pro Ladung sinkt. Kein Elektron durchquert den Plattenzwischenraum."
+          : "Schalter offen: Keine Drift im idealen Kreis. Elektronen bleiben in den Leitern sichtbar, die Plattenladungen und Kondensatorspannung bleiben erhalten.";
         if ((frame = (frame + 1) % 2) === 0) drawPlot(c); // Diagramm reicht mit halber Bildrate
       }
 
@@ -417,11 +485,11 @@
         const W = niceW(5.5 * Math.max(tau("charge"), tau("discharge")));
         const t0 = Math.max(0, t - W), t1 = t0 + W;
         let ymin = 0, ymax, key, col;
-        if (qty === "U") { ymax = Math.max(P.U0, 1) * 1.08; key = 1; col = c.accent; }
-        else if (qty === "I") { const m = P.U0 / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; key = 2; col = c.bad; }
-        else { ymax = P.C * P.U0 * 1.08; key = 3; col = c.ok; }
+        if (qty === "U") { ymax = Math.max(P.U0, Uc(), 1) * 1.08; key = 1; col = c.accent; }
+        else if (qty === "I") { const m = Math.max(P.U0, Uc(), 1) / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; key = 2; col = c.bad; }
+        else { ymax = Math.max(P.C * P.U0, Q, 1) * 1.08; key = 3; col = c.ok; }
         const sx = tt => X0 + (tt - t0) / W * (X1 - X0), sy = v => Y1 - (v - ymin) / (ymax - ymin) * (Y1 - Y0);
-        const val = h => key === 3 ? h[1] * P.C : h[key];
+        const val = h => key === 3 ? h[3] : h[key];
         x.font = "11px system-ui, sans-serif"; x.lineWidth = 1;
         for (let i = 0; i <= 4; i++) { const v = ymin + (ymax - ymin) * i / 4, yy = sy(v); x.strokeStyle = c.border; L(x, [[X0, yy], [X1, yy]]); GX.text(x, c.dim, de(v, 2), X0 - 5, yy, { align: "right" }); }
         for (let i = 0; i <= 5; i++) { const tt = t0 + W * i / 5, xx = sx(tt); x.strokeStyle = c.border; L(x, [[xx, Y0], [xx, Y1]]); GX.text(x, c.dim, de(tt, 3), xx, Y1 + 12); }
@@ -452,8 +520,13 @@
       }
       // Tippen auf den Schalter wechselt die Stellung
       st.c.addEventListener("click", e => { const p = st.pos(e); if (p.y < 115 && p.x > 150 && p.x < 270) setMode(mode === "open" ? "charge" : mode === "charge" ? "discharge" : "open"); });
-      window.PHYS_RC_STATE = () => EL; // nur zum Prüfen der Elektronenerhaltung
-      return { step, draw };
+      window.PHYS_RC_STATE = () => EL; // alte Debug-Schnittstelle erhalten
+      window.PHYS_RC_INSPECT = () => ({
+        mode, Q, Uc: Uc(), t, I: curI(),
+        particles: EL.e.map(e => ({ c: e.c, d: e.d, en: e.en })),
+        plateAlpha: RC_FLOW.plateDots(Q, P, 9), parameters: { ...P }
+      });
+      return { step, draw, resume };
     }
   });
 

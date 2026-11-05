@@ -103,3 +103,19 @@ Der Build `node build.mjs` erzeugt wie bisher `public/index.html` und `dist/arti
 - Regressionstests: `node build.mjs && node --test tests/*.test.mjs`. Der Test prüft den Eimer bei mehreren Spannungen, vor und nach dem Widerstand, offene Zweige, das tatsächliche Canvas-Zeichnen der Eimerfüllung und den Euler-Zeitbereich.
 
 **Grenze der Prüfung:** Die automatisierten Node-/Canvas-Mock-Tests ersetzen keine vollständige visuelle Prüfung auf echten Mobilgeräten. Bei unterschiedlichen Browserskalierungen und Touch-Eingaben muss weiter manuell getestet werden.
+
+
+## Physikalische Kontinuität und Elektronentransport im RC-Labor
+
+**Prinzip:** Die Kondensatorladung wird analytisch berechnet, nicht aus der Anzahl animierter Figuren. Für einen geschlossenen Entladekreis gilt `Q(t+Δt) = Q(t)·exp(−Δt/(R₂C))`; beim Laden `Q(t+Δt) = CU₀ + (Q(t)−CU₀)·exp(−Δt/(R₁C))`. Beim offenen Schalter bleibt die Ladung konstant.
+
+- **Leitung und Widerstände:** Elektronen bewegen sich auf leitfähigen Strecken. Im unverzweigten Stromkreis wird im Widerstand kein Elektron „verbraucht“. Auf beiden Seiten des Widerstands ist die Stromstärke gleich; die Energie pro Ladung kann über dem Widerstand abfallen. Das bisherige Bienen-Eimer-Modell bleibt ausdrücklich eine Analogie.
+- **Kondensator:** Bewegte Elektronen erreichen bzw. verlassen die äußeren Kontakte der Platten; es gibt **keine Elektronenbahn durch das ideal isolierende Dielektrikum**. Positive und negative Plattenladung erscheinen stets mit gleichem Betrag und werden gemeinsam aus dem physikalischen `Q` berechnet. Kleine Ladungen erscheinen als halbtransparente Symbole, nicht sprunghaft erst ab einem diskreten Zählerstand.
+- **Umschalten:** Beim Kontaktwechsel springen grafische und elektrische Schalterstellung zusammen. Ein offener Schalter bewirkt keine Drift; die sichtbaren Elektronen bleiben auf ihren Leitern. Bei Quellspannungsabsenkung unter `U_C` ist auch ein umgekehrter Strom im Ladezweig möglich.
+- **Fenster-, Tab- und App-Bereichswechsel:** Die App spart unsichtbare Zeichenframes ein. Sobald das Labor wieder geöffnet oder der Tab aktiv wird, wird die tatsächlich vergangene Zeit mit der **exakten RC-Gleichung** nachgerechnet; Tracer und Diagramm werden nachgeführt. Die ursprünglichen Elektronenpositionen und der physikalische Simulationszustand überleben interne App-Navigation, aber **kein bewusstes Neuladen/Schließen des gesamten Dokuments**.
+- **Geschwindigkeit:** Bewegte Punkte sind stark beschleunigte Tracer und nicht maßstabsgetreue einzelne Elektronen. Die Ausbreitung des elektrischen Feldes wird nicht als atomistischer Transport simuliert. Einmalige Wege werden als Illustration gleichmäßig in kleine Bewegungsstücke aufgeteilt.
+- **Einheiten:** In der App sind `R` in kΩ, `C` in µF, `Q` in µC, `U` in V und `t` in s; damit gilt `τ = R·C/1000`.
+
+Auch die Labore **Reihen-/Parallelschaltung** und **Herleitung live** zeigen die Leitungs-Elektronen jetzt bei verschwindendem Strom weiterhin statisch. Im Herleitungs-Labor bewegen sie sich nur bei tatsächlich fließendem Strom und verschwinden beim Durchqueren eines Widerstands nicht mehr.
+
+Regressionsprüfungen: `node build.mjs && node --test tests/*.test.mjs`. Sie prüfen RC-Zeitgesetz, große Unterbrechungen, Stromrichtung, Kondensatorladungen und Leiterwege. Eine **vollständige** visuelle und Touch-Interaktion auf echten Endgeräten ist damit noch nicht nachgewiesen.

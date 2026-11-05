@@ -49,11 +49,13 @@
     GX.plate(x, c, 158, 108, 202, 108); GX.plate(x, c, 158, 140, 202, 140);
     const n = f > 0.01 ? Math.max(1, Math.round(f * 8)) : 0;
     for (let i = 0; i < n; i++) { const px = 162 + i * 36 / 7; GX.ball(x, px, 115.5, 3.2, c.pos, "+"); GX.ball(x, px, 132.5, 3.2, c.neg, "−"); }
-    if (o.paths && o.I > 0.01) o.paths.forEach(pts => {
+    // Auch im stromlosen Leiter bleiben die Tracer sichtbar, lediglich ihre Bewegung stoppt.
+    if (o.paths) o.paths.forEach(pts => {
       const len = pathLen(pts), n2 = Math.max(4, Math.round(len / 20));
       for (let i = 0; i < n2; i++) {
         const p = pointAt(pts, (((i * len / n2) + o.phase) % len + len) % len);
-        if (!(o.res && inRes(p))) GX.electron(x, c, p[0], p[1], Math.min(1, 0.4 + o.I));
+        // Im Widerstand verschwindet keine Ladung: das Teilchen bleibt auch dort sichtbar.
+        GX.electron(x, c, p[0], p[1], Math.min(1, 0.55 + Math.abs(o.I || 0)));
       }
     });
     (o.rings || []).forEach(r => ring(x, r.col, r.k, r.x, r.y, r.w, r.h));
@@ -302,7 +304,8 @@
     m.I = () => (o.mode === "charge" ? (U0 - m.Uc()) / m.R : -m.Uc() / m.R); // mA, Vorzeichen: + = Laden
     m.step = dt => {
       if (m.run) { const inf = o.mode === "charge" ? m.Q0() : 0; m.Q = inf + (m.Q - inf) * Math.exp(-dt / m.tau()); }
-      m.ph += (m.run ? 8 + 9 * Math.abs(m.I()) : 0) * dt;
+      // Kein künstlicher Grundstrom: Bewegung endet auch bei I → 0.
+      m.ph += (m.run ? 10 * Math.abs(m.I()) : 0) * dt;
     };
     m.setC = v => { const f = m.Q / m.Q0(); m.C = v; m.Q = f * m.Q0(); };
     m.reset = () => { m.Q = o.start === "full" ? m.Q0() : 0; m.run = true; };
@@ -339,7 +342,7 @@
           const P = pal(c), Uc = m.Uc(), Ur = U0 - Uc, I = Ur / m.R;
           GX.bg(x, W, H, c);
           const sub = hk("sub");
-          circuit(x, c, { src: "bat", srcLab: "10 V", res: true, resLab: "", f: Uc / U0, paths: m.run ? [CH1, CH2] : [], phase: m.ph, I: I / 5,
+          circuit(x, c, { src: "bat", srcLab: "10 V", res: true, resLab: "", f: Uc / U0, paths: [CH1, CH2], phase: m.ph, I: I / 5,
             rings: [RING.src(P.T, hk("U0")), RING.res(P.UR, Math.max(hk("UR"), sub)), RING.cap(P.UC, Math.max(hk("UC"), sub))] });
           GX.pill(x, c, "U_R = " + f1(Ur) + " V", 100, 18, { col: P.UR, size: 10 });
           GX.pill(x, c, "U_C = " + f1(Uc) + " V", 112, 168, { col: P.UC, size: 10 });
@@ -389,7 +392,7 @@
         draw(x, c) {
           const P = pal(c), Q0 = m.Q0(), gap = Q0 - m.Q, I = gap / m.tau();
           GX.bg(x, W, H, c);
-          circuit(x, c, { src: "bat", srcLab: "10 V", res: true, resLab: "R", f: m.Q / Q0, paths: m.run ? [CH1, CH2] : [], phase: m.ph, I: I / 3, rings: [RING.res(P.T, hk("tau")), RING.cap(P.Q, Math.max(hk("Q0"), hk("gap")))] });
+          circuit(x, c, { src: "bat", srcLab: "10 V", res: true, resLab: "R", f: m.Q / Q0, paths: [CH1, CH2], phase: m.ph, I: I / 3, rings: [RING.res(P.T, hk("tau")), RING.cap(P.Q, Math.max(hk("Q0"), hk("gap")))] });
           // Füllstandsbalken
           const bx = 262, bw = 36, top = 50, bot = 200, hU = bot - top, hq = hU * m.Q / Q0, hg = hU - hq;
           GX.text(x, c.dim, "Ladungsstand", 280, 20, { weight: 700, size: 11 });
@@ -436,7 +439,7 @@
         draw(x, c) {
           const P = pal(c), Uc = m.Uc(), Ur = -Uc, I = m.I();
           GX.bg(x, W, H, c);
-          circuit(x, c, { src: "wire", res: true, resLab: "R", f: m.Q / m.Q0(), paths: m.run ? [DIS] : [], phase: m.ph, I: Math.abs(I) / 5,
+          circuit(x, c, { src: "wire", res: true, resLab: "R", f: m.Q / m.Q0(), paths: [DIS], phase: m.ph, I: Math.abs(I) / 5,
             rings: [RING.res(P.UR, Math.max(hk("UR"), hk("minus"))), RING.cap(P.UC, hk("UC"))] });
           GX.pill(x, c, "U_R = " + f1(Ur) + " V", 100, 18, { col: P.UR, size: 10 });
           GX.pill(x, c, "U_C = " + f1(Uc) + " V", 112, 168, { col: P.UC, size: 10 });

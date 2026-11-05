@@ -39,11 +39,12 @@ ${body}<script>${noSync}</script>`);
 // Zusätzlicher fokussierter Lernweg – die Haupt-App bleibt vollständig erhalten.
 let entladung = read("entladung.html");
 const lessonCss = katexCss + "\n" + read("css/entladung.css");
-const lessonJs = ["vendor/katex/katex.min.js", "js/entladung.js"].map(read).join("\n;\n").replace(/<\\/script/gi, "<\\\\/script");
+const lessonJs = ["vendor/katex/katex.min.js", "js/entladung.js"].map(read).join("\n;\n").replace(/<\/script/gi, "<\\/script");
 entladung = entladung
   .replace('<link rel="stylesheet" href="vendor/katex/katex.min.css">', "")
   .replace('<link rel="stylesheet" href="css/entladung.css">', "<style>" + lessonCss + "</style>")
-  .replace('<script src="vendor/katex/katex.min.js"></script>\\n<script src="js/entladung.js"></script>', "<script>" + lessonJs + "</script>");
+  .replace('<script src="vendor/katex/katex.min.js"></script>', "<script>" + lessonJs + "</script>")
+  .replace('<script src="js/entladung.js"></script>', "");
 if (entladung.includes('src="js/entladung.js"')) throw new Error("Entladungs-Lernweg nicht gebündelt");
 writeFileSync(new URL("public/entladung.html", import.meta.url), entladung);
 console.log("fertig: public/index.html (alle Themen), public/entladung.html (Entladung), dist/artifact.html");

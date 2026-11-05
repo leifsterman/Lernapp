@@ -30,6 +30,8 @@
   function energyAt(p, mode, U0, Uc) {
     if (mode === "open") return null; // Nothing flows: keep the previous bucket levels.
     if (mode !== "charge" && mode !== "discharge") return null;
+    // The branch disconnected by the switch does not exchange energy.
+    if ((mode === "charge" && p.c === "R") || (mode === "discharge" && p.c === "L")) return null;
     const reference = Math.max(Math.abs(U0), 1e-9);
     const available = mode === "discharge" ? Uc : U0;
     return clamp((available - potentialAt(p, mode, U0, Uc)) / reference, 0, 1);

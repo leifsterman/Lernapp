@@ -1,82 +1,53 @@
-# Physik Q1 – Elektrisches Feld (Lernkarten)
+# Kondensatorentladung – Physik LK
 
-Karteikarten, Diagramme und Rechenaufgaben zu allen Punkten der Checkliste:
-Influenz, Polarisation, Feldlinienbilder, Spitzeneffekt / Faradayscher Käfig, F = E·Q, Coulomb-Gesetz,
-Plattenkondensator (E = U/d, Q = C·U, C = ε₀εᵣA/d), Reihen-/Parallelschaltung, Auf- und Entladung (Differenzialgleichung),
-Millikan-Versuch, Messwerttabelle / Mittelwert / Diagramme.
+Die App konzentriert sich in der aktuellen Version bewusst **nur auf die Entladung** eines Kondensators. Ziel ist ein nachvollziehbarer Nachweis einer **bereits vorgegebenen** e-Funktion – nicht die vollständige Behandlung des Ladens und Entladens, keine Integralrechnung als Pflichtweg.
 
-- 92 Karten in 11 Themen, jede mit Schwierigkeit (leicht, mittel, schwer) und Art (Abfrage oder Rechnen), Formeln mit KaTeX (lokal eingebunden, funktioniert offline)
-- Karteikasten mit 5 Fächern (Leitner): Gewusst = ein Fach weiter, Nicht gewusst = zurück in Fach 1; Fach antippen und nur dessen Karten üben
-- Fortschritt pro Karte wird im Browser gespeichert und über einen persönlichen Lerncode (Supabase) zwischen Geräten und Personen getrennt synchronisiert
-- Vollbild-/Fokus-Modus (Taste F), Dunkelmodus (Standard), Hellmodus per Knopf, Konfetti nach jeder Runde
+## Lernziel und Reihenfolge
 
-## Lernmethoden
+**Gegeben:** \(Q(t)=Q_0e^{-t/(RC)}\). Das ist die *Entladungsfunktion*, nicht die Differentialgleichung.
 
-- **Karteikasten** (5 Fächer, Leitner), filterbar nach Schwierigkeit, Art (Abfrage/Rechnen) und Thema (Themen in 4 Gruppen, ganze Gruppe per Antippen der Überschrift)
-- **Größen abfragen**: Alles, nur Formel oder nur Einheit. Jede Variante hat ihren eigenen Fortschritt im Karteikasten
-- **Quiz**: Multiple Choice mit Erklärung (76 Fragen, davon 39 automatisch aus den Größenkarten)
-- **Rechentrainer**: 19 Aufgabentypen mit Zufallswerten, Eingabe mit 3 % Toleranz, Lösungsweg
-- **Zuordnen**: Größe mit Symbol, Einheit oder Formel verbinden
-- **Klausur-Simulation**: 20 Minuten, 4 Quizfragen und 4 Rechenaufgaben, Punkte und Notenpunkte
-- **Kernübersichten**: eine Seite pro Thema mit Formeln, Skizzen und Checkliste, dazu „Alle Formeln“
+1. Unterscheiden: bekannte e-Funktion versus gesuchte Differentialgleichung.
+2. Maschenregel im idealen Entladekreis: \(U_R+U_C=0\), mit konsistenter Vorzeichenkonvention.
+3. \(U_R=RI\), \(U_C=Q/C\) einsetzen: \(RI+Q/C=0\).
+4. Bei vorzeichenbehaftetem Strom \(I=\dot Q\): \(R\dot Q+Q/C=0\).
+5. Mit \(C\) multiplizieren: \(RC\dot Q+Q=0\).
+6. Nach \(\dot Q\) umstellen: \(\dot Q=-Q/(RC)\).
+7. Die gegebene Funktion ableiten (Faktorregel für \(Q_0\), Kettenregel für \(-t/(RC)\)): \(\dot Q=-Q_0e^{-t/(RC)}/(RC)\).
+8. Beide Ausdrücke in die Differentialgleichung einsetzen und \(RC\) kürzen: \(0=0\).
+9. Anfangsbedingung prüfen: \(Q(0)=Q_0\).
+10. Verstehen, warum analog \(\dot U=-U/(RC)\) und \(U(t)=U_0e^{-t/(RC)}\) gelten.
 
-## Labor (Simulationen)
+**Vorzeichenhinweis:** Wer den aus dem Kondensator herausfließenden Strom als positiv definiert, verwendet \(I_{\mathrm{aus}}=-\dot Q\). Die App verwendet wie im gezeigten Unterrichtsweg einen vorzeichenbehafteten Strom \(I=\dot Q\).
 
-- **Herleitung live**: 9 Schritte mit Animation zur Differenzialgleichung: Q, C und U_C (Tank-Vergleich), U_R = R·I, I = dQ/dt, Maschenregel, (Q₀−Q)/τ, Entladen mit dem Minus, Variablentrennung (ln als Fläche), Lösung mit Probe und eine Übung zum Selbst-Herleiten (Schritte in die richtige Reihenfolge bringen). Jeder Formelteil ist farbig, antippbar und leuchtet im Bild auf
-- **RC-Schaltung** wie im Schaltbild der Aufgabe: Umschalter, R₁ zum Laden, R₂ zum Entladen, Voltmeter, bewegte Elektronen, Kurven Uc(t), I(t), Q(t), τ-Marke und Potenziale an den Punkten A bis F
-- **Differenzialgleichung**: die Kurve Schritt für Schritt per Euler-Verfahren aus dU/dt aufbauen, Schrittweite einstellbar
-- **Kondensator-Labor**: d, A, εᵣ und U verändern, angeschlossen oder getrennt, live C, Q, U, E und W
-- **Influenz & Polarisation**: Animationen zu Influenz (mit Erdung), Orientierungs- und Verschiebungspolarisation, Faradayscher Käfig
-- **Q-U-Messung**: Kapazität eines unbekannten Kondensators per Messreihe, Diagramm und Ausgleichsgerade bestimmen, Energie als Fläche
-- **Reihe & Parallel**: zwei Kondensatoren, Ladungen, Teilspannungen und Ersatzkapazität
-- **Millikan-Versuch**: Schwebespannung einstellen, Polung umkehren (positive und negative Tröpfchen), q berechnen, Messreihe mit Mittelwert
-- **Millikan-Auswertung**: viele Tröpfchen messen, Häufungen bei Vielfachen von e sehen, e bestimmen
-- **Feldlinien-Labor**: Ladungen setzen und verschieben, Feldlinien und Probeladung
-- **Schaltung beschriften** (unter „Lernen“): Potenziale an der RC-Schaltung eintragen, mit Erklärung je Punkt
+## Aufbau
 
-## Lokal öffnen
+- **Schritt für Schritt:** elf kurze Abschnitte mit Formel, Begründung, Verständnisfrage, Fehlerrückmeldung und Hinweis.
+- **Lernkarten:** vierzehn Karten über die konkret aufgetretenen Verständnisprobleme (Q₀, Kettenregel, k, RC, Minuszeichen, U vs. Q, Probe).
+- **Meine Fragen:** kurze Erklärungen, die bei den typischen Fehlern aus dem Lernprozess ansetzen.
+- **Fortschritt:** lokal im Browser gespeichert (kein Konto nötig).
+- **Mobilfreundlich / offline:** responsive, KaTeX im Build lokal eingebettet, Service Worker.
 
-`public/index.html` im Browser öffnen. Das ist eine einzelne Datei, die auch auf dem Handy offline läuft.
+Die älteren Dateien für andere Themen verbleiben zur Rückfallmöglichkeit im Repository, werden aber nicht mehr in den aktuellen Build aufgenommen.
 
-## Online stellen (kostenlos)
+## Ausführen
 
-**GitHub Pages** (fertig vorbereitet): Repo → *Settings → Pages → Source: GitHub Actions*. Danach baut `.github/workflows/pages.yml`
-bei jedem Push auf `main` die Seite. Adresse: `https://<benutzer>.github.io/Lernapp/`.
+Lokal das Repository mit einem HTTP-Server bereitstellen, beispielsweise `python -m http.server`, dann `index.html` öffnen. Für GitHub Pages:
 
-**Cloudflare Pages**: *Workers & Pages → Create → Pages → Connect to Git*, Repo wählen, Build command leer lassen,
-Output directory `public`. Oder per Kommandozeile: `npx wrangler pages deploy public --project-name physik-q1`.
+```sh
+node build.mjs
+```
 
-## Entwickeln
+Erzeugt `public/index.html` sowie `dist/artifact.html`; das GitHub-Actions-Deployment baut beim Merge nach `main` automatisch.
 
-Grafik der Simulationen: `js/gfx.js` (Hintergrund, Bauteile, Kugeln, Feldlinien, Sprite-Cache), Simulationen in `js/sims*.js`.
+Tests:
 
+```sh
+node --test tests/*.test.mjs
+```
 
-Quellen: `index.html`, `css/`, `js/` (`cards.js` = alle Karten, `diagrams.js` = Feldlinien-Diagramme).
-Mit `node build.mjs` wird daraus `public/index.html` gebaut. Lokal testen: `python3 -m http.server` im Projektordner.
+## Quellen und Grenzen
 
-## Konto und Rangliste
+- [LEIFIphysik: Entladen eines Kondensators](https://www.leifiphysik.de/elektrizitaetslehre/kondensator-kapazitaet/ausblick/entladen-eines-kondensators-theorie)
+- [OpenStax University Physics 2, §10.5 RC Circuits](https://openstax.org/books/university-physics-volume-2/pages/10-5-rc-circuits)
 
-- Registrieren mit **Benutzername und eigenem Passwort**, keine E-Mail..
-- Anmelden auf jedem Gerät mit Benutzername und Passwort, der Fortschritt wird synchronisiert.
-- Passwort und Benutzername lassen sich im Reiter „Konto“ ändern. Ohne E-Mail gibt es kein Zurücksetzen per Link.
-- **Rangliste** im gleichnamigen Reiter: alle Konten stehen automatisch in der Liste (Ausblenden im Konto möglich). Punkte: Karteikasten nach Fach (1/2/4/7/10 je Karte), Quiz (1, bis 150), Rechentrainer (2, bis 75 Aufgaben), Schaltung beschriften (3, bis 10), Zuordnen (1 pro Runde, bis 20) und Klausur (4 pro Notenpunkt). Die Rangliste hat eine Tageswertung („Heute“: Punkte seit Mitternacht, deutsche Zeit) neben „Gesamt“. Eine bereits richtig gelöste Aufgabe bringt bei Wiederholung nur noch ein Viertel der Punkte. Dazu Titel von „Einsteiger“ bis „Physik-Legende“, eigene Karte mit Fortschritt und Aufschlüsselung.
-
-## Synchronisation (alt: Lerncode)
-
-Beim ersten Start „Neuen Code erstellen“ (Name und Einladungscode der Gruppe eintragen). Der Code (z. B. `K7M2-QX9P`) wird auf dem anderen Gerät unter „Verbinden“ eingegeben.
-Jede Person hat ihren eigenen Code. Die Tabelle ist per RLS gesperrt, Zugriff nur über zwei Funktionen (`supabase/schema.sql`),
-der Code ist das Geheimnis. Der Publishable-Key in `js/config.js` ist für den Browser gedacht.
-
-## Karten löschen
-
-Unter jeder Karte (und jeder Quizfrage) gibt es zwei Knöpfe. Beide setzen eine Anmeldung per Lerncode voraus.
-- **Nur für mich löschen**: wird in deinem Profil gespeichert und mit deinen Geräten synchronisiert.
-- **Für alle löschen**: blendet die Karte bei allen aus (Tabelle `lern_global`, mit Bestätigung).
-Beides lässt sich unter *Mehr → Gelöschte Karten* wieder rückgängig machen.
-
-## Sicherheit
-
-- Der Lerncode ist das Geheimnis eines Profils. Wer ihn kennt, kann den Fortschritt lesen und ändern.
-- Neue Profile entstehen nur mit dem **Einladungscode** (steht in Supabase in der Tabelle `lern_config`, nicht im Repo). Dadurch kann niemand ohne Einladung Profile anlegen oder Karten für alle löschen.
-- Einladungscode ändern: `update public.lern_config set v = 'NEUERCODE' where k = 'invite';`
-- Der Publishable-Key in `js/config.js` ist für den Browser gedacht. Alle Tabellen sind per RLS gesperrt, Zugriff nur über die Funktionen in `supabase/schema.sql`.
+Idealisierung: konstanter ohmscher Widerstand, konstante Kapazität, keine Spannungsquelle im Entladekreis. Die Probe zeigt, dass die gegebene Funktion die Gleichung erfüllt; sie ersetzt keine separate Diskussion über allgemeine Existenz- und Eindeutigkeitssätze.

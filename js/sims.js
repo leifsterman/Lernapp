@@ -337,12 +337,21 @@
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
       const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1 };
-      let mode = "open", Q = 0, t = 0, qty = "U", EL = { e: newElectrons(), nT: 0, nB: 0 }, prevK = 0, showTau = true, showPot = false, hist = [], histT = 0, ev = null, fieldPhase = 0;
-      let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0;
-      const tau = m => (m === "charge" ? P.R1 : P.R2) * P.C / 1000; // kΩ·µF = ms
+      const RC_FLOW = window.PHYS_RC_FLOW;
+      if (!RC_FLOW) throw new Error("RC flow model missing");
+      let mode = "open", Q = 0, t = 0, qty = "U", EL = { e: newElectrons(), nT: 0, nB: 0 },
+        showTau = true, showPot = false, hist = [], ev = null, fieldPhase = 0;
+      let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0, lastUpdateWall = Date.now();
+      const tau = m => RC_FLOW.tau(m, P); // kΩ·µF = 10⁻³ s
       const Uc = () => Q / P.C;
+      function currentFor(q, m) {
+        const u = q / P.C;
+        return m === "charge" ? (P.U0 - u) / P.R1
+          : m === "discharge" ? -u / P.R2 : 0;
+      }
       function setMode(m) {
         if (m === mode) return;
+        resume(); // First account for time under the OLD switch position.
         mode = m; segMode.set(m);
         if (m !== "open") ev = { t0: t, Ustart: Uc(), Uinf: m === "charge" ? P.U0 : 0, tau: tau(m), mode: m };
         else ev = null;
@@ -351,13 +360,13 @@
       const info = el("div", "sim-info"); host.append(info);
       const segMode = seg(host, { label: "Schalter (oder im Bild auf den Schalter tippen)", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: "open", onChange: setMode });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
-      slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
-      slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
-      slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); } });
-      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { const u = Uc(); P.C = v; Q = u * v; prevK = Q; if (ev) ev.tau = tau(ev.mode); } });
-      slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { P.speed = v; } });
+      slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { resume(); P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
+      slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { resume(); P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
+      slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { resume(); P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); } });
+      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { resume(); const q = Q; P.C = v; Q = q; if (ev) ev.tau = tau(ev.mode); } });
+      slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { resume(); P.speed = v; } });
       const acts = el("div", "sim-acts"); host.append(acts);
-      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; histT = 0; ev = null; mode = "open"; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; prevK = 0; });
+      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; ev = null; mode = "open"; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; lastUpdateWall = Date.now(); });
       const tb = button(acts, "τ zeigen: an", () => { showTau = !showTau; tb.textContent = "τ zeigen: " + (showTau ? "an" : "aus"); });
       const pb = button(acts, "Potenziale: aus", () => { showPot = !showPot; pb.textContent = "Potenziale: " + (showPot ? "an" : "aus"); });
       host.append(pl.c);
@@ -370,7 +379,7 @@
         "Schalte auf <b>Entladen</b> und lies die Spannung nach genau $\\tau$ ab. Welchen Bruchteil von $U_0$ erwartest du?",
         "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen."
       ]);
-      function curI() { return mode === "charge" ? (P.U0 - Uc()) / P.R1 : mode === "discharge" ? -Uc() / P.R2 : 0; } // mA
+      function curI() { return currentFor(Q, mode); } // mA
 
       function step(dt) {
         const ds = dt * P.speed;

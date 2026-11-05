@@ -25,6 +25,7 @@ mkdirSync(new URL("dist/", import.meta.url), { recursive: true });
 mkdirSync(new URL("public/", import.meta.url), { recursive: true });
 copyFileSync(new URL("icon.svg", import.meta.url), new URL("public/icon.svg", import.meta.url));
 copyFileSync(new URL("manifest.webmanifest", import.meta.url), new URL("public/manifest.webmanifest", import.meta.url));
+copyFileSync(new URL("sw.js", import.meta.url), new URL("public/sw.js", import.meta.url));
 writeFileSync(new URL("public/index.html", import.meta.url),
 `<!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">

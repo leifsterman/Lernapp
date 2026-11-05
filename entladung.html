@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101724">
+  <meta name="description" content="Kondensatorentladung für Physik LK: Differentialgleichung Schritt für Schritt herleiten, die e-Funktion überprüfen und typische Fragen verstehen.">
+  <title>Kondensatorentladung – Physik LK Lernweg</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="css/entladung.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="head-inner">
+    <div class="brand"><span class="mark" aria-hidden="true">∿</span><span>Kondensatorentladung<span class="head-sub">Physik LK · ein Thema, ein Lernziel</span></span></div>
+    <button class="head-action" id="home-brand" type="button" aria-label="Zurück zur Lernapp mit allen Themen">← Alle Themen</button>
+  </div>
+</header>
+<main>
+  <section class="hero" aria-labelledby="hero-title">
+    <div>
+      <p class="eyebrow">Klausurtraining · Entladung</p>
+      <h1 id="hero-title">Von der gegebenen e-Funktion zum Beweis.</h1>
+      <p>Du kennst die Formel mit e schon. Hier leitest du selbst die Differentialgleichung aus der Schaltung her und zeigst durch Einsetzen, dass die Formel sie erfüllt. <b>Nur die Entladung</b> – die Aufladung brauchst du für diesen Lernweg aktuell nicht. Die anderen Themen findest du weiterhin in der Lernapp.</p>
+    </div>
+    <div class="formula-hero">
+      <small>Gegeben · die Entladungsfunktion</small>
+      <div class="equation" id="hero-formula">Q(t) = Q₀ · e^(−t/(RC))</div>
+      <p>Das ist <b>nicht</b> die Differentialgleichung. Genau diese Unterscheidung wirst du hier verstehen.</p>
+    </div>
+  </section>
+  <nav class="mode-nav" aria-label="Lernbereiche">
+    <button type="button" data-mode="weg" aria-selected="true">① Schritt für Schritt</button>
+    <button type="button" data-mode="karten" aria-selected="false">② Lernkarten</button>
+    <button type="button" data-mode="fragen" aria-selected="false">③ Meine Fragen</button>
+  </nav>
+
+  <section class="mode-panel" data-panel="weg" aria-label="Geführte Herleitung">
+    <div class="workspace">
+      <aside class="steps" aria-label="Schritte der Herleitung">
+        <h2>Dein Rechenweg</h2>
+        <ol class="step-list" id="step-list"></ol>
+      </aside>
+      <div>
+        <article class="lesson-card">
+          <div class="lesson-meta"><span id="step-counter">Schritt 1 von 11</span><span id="done-counter">0 verstanden</span></div>
+          <div class="meter" aria-label="Lernfortschritt"><div class="meter-fill" id="meter-fill"></div></div>
+          <h2 id="lesson-title"></h2>
+          <p class="lesson-lead" id="lesson-lead"></p>
+          <div class="math-panel" id="equations" aria-label="Rechenschritte"></div>
+          <p class="reason" id="reason"></p>
+          <section class="challenge" aria-labelledby="challenge-title">
+            <p class="challenge-label">Kurz prüfen, ob du es verstanden hast</p>
+            <h3 id="challenge-title"></h3>
+            <div class="options" id="options" role="group" aria-label="Antwortmöglichkeiten"></div>
+            <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
+            <details class="tip" id="hint-detail"><summary>Ich komme nicht weiter – kleiner Hinweis</summary><p id="hint-text"></p></details>
+          </section>
+          <div class="lesson-actions">
+            <button id="prev" type="button" class="btn ghost">← Zurück</button>
+            <button id="next" type="button" class="btn primary" disabled>Nächster Schritt →</button>
+          </div>
+          <div class="complete" id="complete" role="status">✓ Du hast alle Schritte bearbeitet. Teste dich jetzt mit den Lernkarten, ohne die Erklärung anzusehen.</div>
+        </article>
+        <div class="box">
+          <h2>Einmal allein auf dem Blatt</h2>
+          <p>Schreibe ohne Vorlage: <b>Maschenregel → Einsetzen → I = Q̇ → mit C multiplizieren → umstellen → gegebene Funktion ableiten → einsetzen → 0 = 0.</b> Nicht nur die Antwort wiedererkennen, sondern jeden Übergang selbst rechnen.</p>
+          <button class="btn ghost" id="restart" type="button">Lernweg von vorn beginnen</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mode-panel" data-panel="karten" aria-label="Lernkarten" hidden>
+    <div class="box">
+      <p class="eyebrow">Aktives Wiederholen</p>
+      <h2>Die Fragen aus deinem Lernweg</h2>
+      <p>Erst laut beantworten, dann aufdecken. Das bewertet nicht automatisch deine Antwort – entscheide selbst, ob du sie wirklich wusstest.</p>
+      <div class="cards-wrap">
+        <div>
+          <button class="flashcard" id="flashcard" type="button" aria-label="Lernkarte umdrehen">
+            <small id="flashcard-face">Frage</small>
+            <strong id="flashcard-content"></strong>
+            <small>Tippen zum Umdrehen ↻</small>
+          </button>
+          <div class="card-actions">
+            <button type="button" class="btn" id="card-again" hidden>Nochmal</button>
+            <button type="button" class="btn primary" id="card-mark" hidden>Sitzt ✓</button>
+          </div>
+        </div>
+        <div class="card-side">
+          <div><div class="card-progress" id="flashcard-index"></div><b id="flashcard-known"></b></div>
+          <div><button class="btn ghost" id="card-prev" type="button">←</button> <button class="btn ghost" id="card-next" type="button">→</button></div>
+          <button type="button" class="btn" id="goto-lesson">Zum Rechenweg</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mode-panel" data-panel="fragen" aria-label="Häufige Fragen" hidden>
+    <article class="box">
+      <p class="eyebrow">Genau deine Stolperstellen</p>
+      <h2>Fragen, die beim Rechnen auftauchen</h2>
+      <div class="q-list">
+        <details><summary>Warum ist Q₀ keine Ableitung – und was bedeutet die Null?</summary><p>Q₀ (sprich „Q null“) ist die feste Anfangsladung bei t = 0; nicht e₀. In Q(t) = Q₀·e^(−t/(RC)) gilt dann Q(0) = Q₀·e⁰ = Q₀.</p></details>
+        <details><summary>Warum bleibt Q₀ beim Ableiten stehen, obwohl Konstanten zu null werden?</summary><p>Weil Q₀ mit einer Funktion multipliziert wird (Faktorregel). Wie bei (5·t²)′ = 5·2t. Mit der Produktregel käme 0·e^(...) + Q₀·(e^(...))′ heraus – der zweite Term bleibt.</p></details>
+        <details><summary>Woher kommt das k vor Q₀?</summary><p>Beim allgemeinen Ansatz Q₀·e^(kt) lautet die Ableitung k·Q₀·e^(kt), denn (kt)′ = k. Bei unserer bereits vorgegebenen Funktion steht statt k genau −1/(RC). Niemals k zusätzlich stehen lassen.</p></details>
+        <details><summary>Warum darf man überhaupt eine e-Funktion vermuten?</summary><p>Weil für die Entladung Q̇ = −Q/(RC) gilt: Die Änderungsrate ist proportional zum momentanen Q. Solche Zusammenhänge passen zu e^(kt), denn (e^(kt))′ = k·e^(kt). In deiner Aufgabe ist die e-Funktion aber bereits <b>gegeben</b>, du musst sie nur nachweisen.</p></details>
+        <details><summary>Warum ist I manchmal Q̇ und manchmal −Q̇?</summary><p>Weil die Stromrichtung eine Konvention ist. Zählst du den aus dem Kondensator fließenden Strom positiv, gilt I<sub>aus</sub> = −Q̇. Verwendest du den vorzeichenbehafteten Strom in der Maschenregel wie auf deinem Blatt, gilt I = Q̇ &lt; 0. Bei konsistenten Richtungen erhältst du dieselbe Entladung.</p></details>
+        <details><summary>Warum taucht das Minuszeichen auf?</summary><p>Aus RC·Q̇ + Q = 0 folgt durch Abziehen von Q: RC·Q̇ = −Q. Nach Division durch RC steht Q̇ = −Q/(RC). Die negative Änderungsrate beschreibt abnehmende Ladung.</p></details>
+        <details><summary>Ist −Q/(RC) dasselbe wie −(1/(RC))·Q?</summary><p>Ja. Allgemein gilt a/b = (1/b)·a. Beim Umstellen musst du also keine zusätzliche Regel für Differentialgleichungen lernen.</p></details>
+        <details><summary>Wo ist das e in der Differentialgleichung hin?</summary><p>Die Differentialgleichung Q̇ = −Q/(RC) ist eine Beziehung zwischen Funktion und Ableitung. Die konkrete Funktion Q(t) = Q₀·e^(−t/(RC)) erfüllt diese Beziehung – dort steht das e.</p></details>
+        <details><summary>Warum gibt es die Formeln mit Q und auch mit U?</summary><p>Weil Q = C·U gilt und C konstant ist. Dann ist Q̇ = C·U̇. Das führt von Q̇ = −Q/(RC) zu U̇ = −U/(RC). Die Lösungen Q₀e^(−t/(RC)) und U₀e^(−t/(RC)) haben denselben Verlauf.</p></details>
+        <details><summary>Was zeigt die Probe 0 = 0 wirklich?</summary><p>Sie zeigt, dass deine gegebene Funktion die hergeleitete Differentialgleichung erfüllt. Zusammen mit Q(0) = Q₀ ist sie damit die passende Entladungslösung. 0 = 0 bedeutet nicht, dass die Kondensatorladung von Anfang an null ist.</p></details>
+      </div>
+    </article>
+  </section>
+  <footer class="foot">
+    Fachlich abgeglichen mit <a href="https://www.leifiphysik.de/elektrizitaetslehre/kondensator-kapazitaet/ausblick/entladen-eines-kondensators-theorie" target="_blank" rel="noopener noreferrer">LEIFIphysik: Entladen eines Kondensators</a>
+    und <a href="https://openstax.org/books/university-physics-volume-2/pages/10-5-rc-circuits" target="_blank" rel="noopener noreferrer">OpenStax University Physics 2, § 10.5</a>.
+    <p>Modell: idealer Kondensator mit konstantem C, ohmscher Widerstand R, keine weitere Spannungsquelle im Entladekreis.</p>
+  </footer>
+</main>
+<script src="vendor/katex/katex.min.js"></script>
+<script src="js/entladung.js"></script>
+</body>
+</html>

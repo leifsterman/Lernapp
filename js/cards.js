@@ -15,7 +15,7 @@
     { id: "spitze",     title: "Spitzeneffekt & Faraday-Käfig",   short: "Spitze & Faraday",  group: "Leiter & Isolatoren", sub: "Leiter im Feld" },
     { id: "kondensator",title: "Kondensator & Plattenkondensator",short: "Kondensator",       group: "Kondensator", sub: "E = U/d, Q = C·U, C = ε₀εᵣA/d" },
     { id: "schaltung",  title: "Reihen- & Parallelschaltung",     short: "Reihe & Parallel",  group: "Kondensator", sub: "Ersatzkapazität" },
-    { id: "ladung",     title: "Auf- und Entladung",              short: "Auf- & Entladung",  group: "Kondensator", sub: "Differenzialgleichung, τ = R·C" },
+    { id: "ladung",     title: "Entladung (Aufladung: Zusatzwissen)", short: "Entladung", group: "Kondensator", sub: "Differenzialgleichung, τ = R·C · Aufladung aktuell nicht benötigt" },
     { id: "millikan",   title: "Millikan-Versuch",                short: "Millikan",          group: "Versuch & Auswertung", sub: "Schwebemethode, Elementarladung" },
     { id: "klausur",    title: "Messwerte & Diagramme",           short: "Messwerte",         group: "Versuch & Auswertung", sub: "Tabelle, Mittelwert, Diagramm" }
   ];
@@ -263,7 +263,7 @@
       <p>Trennung der Variablen: $\dfrac{\mathrm{d}Q}{Q} = -\dfrac{\mathrm{d}t}{\tau}$ → $\ln Q = -\dfrac{t}{\tau} + c$:</p>
       <p>$$Q(t) = Q_0\,e^{-t/\tau}$$</p>
       <p>$$U(t) = U_0\,e^{-t/\tau}\qquad I(t) = I_0\,e^{-t/\tau}$$</p>`);
-  Q("ladung", "Wie lautet die <b>Differenzialgleichung der Aufladung</b> und was ist ihre Lösung?",
+  Q("ladung", "<b>Zusatzwissen – Aufladung (aktuell nicht benötigt):</b> Wie lautet die <b>Differenzialgleichung der Aufladung</b> und was ist ihre Lösung?",
     R`<p>Maschenregel: $U_0 = U_R + U_C = R\dfrac{\mathrm{d}Q}{\mathrm{d}t} + \dfrac{Q}{C}$.</p>
       <p>Mit $Q_0 = C\cdot U_0$ (Endladung):</p>
       <p>$$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{\tau}$$</p>
@@ -277,10 +277,10 @@
       <li>Nach $5\tau$ sind ca. $99{,}3\,\%$ erreicht (praktisch fertig).</li>
       <li>Die <b>Tangente bei $t = 0$</b> schneidet die Endlinie bei $t = \tau$.</li>
       <li>Größeres $R$ oder $C$ → langsamer.</li></ul>`, { diagram: "rc" });
-  Q("ladung", "Zeichne und beschrifte die $U(t)$-Kurven für Auf- und Entladung.",
+  Q("ladung", "<b>Zusatzwissen – Aufladung aktuell nicht benötigt:</b> Zeichne und beschrifte die $U(t)$-Kurven für Auf- und Entladung.",
     R`<p>Aufladen: steigt, nähert sich $U_0$ (63 % bei $\tau$). Entladen: fällt von $U_0$ auf 0 (37 % bei $\tau$).</p>
       <p>Beide Kurven laufen an die Achse bzw. an $U_0$ heran, <b>erreichen sie aber nie</b>.</p>`, { diagram: "rc" });
-  Q("ladung", "Wie verhält sich der <b>Strom</b> beim Aufladen?",
+  Q("ladung", "<b>Zusatzwissen – Aufladung aktuell nicht benötigt:</b> Wie verhält sich der <b>Strom</b> beim Aufladen?",
     R`<p>Beim Einschalten ist der leere Kondensator wie ein Kurzschluss: $I_0 = \dfrac{U_0}{R}$ (<b>Maximum</b>).</p>
       <p>Dann fällt $I(t) = I_0\,e^{-t/\tau}$ auf 0. Ist der Kondensator voll, fließt kein Strom mehr (wie eine Unterbrechung).</p>`);
   Q("ladung", "Wie lange dauert es, bis ein Kondensator beim Entladen auf die <b>Hälfte</b> abgefallen ist?",
@@ -422,13 +422,13 @@
       <li>$U_R = R\cdot I$: Der Widerstand bremst die Elektronen, dafür braucht es ein Potenzialgefälle.</li>
       <li>$I = \dfrac{\mathrm{d}Q}{\mathrm{d}t}$: Strom ist Ladung pro Zeit, also die Steigung der $Q(t)$-Kurve.</li>
       <li><b>Maschenregel:</b> Alle Spannungen im geschlossenen Kreis ergeben zusammen null (Quelle gegen die Verbraucher).</li></ul>`);
-  Q("ladung", "Leite die Differenzialgleichung der <b>Aufladung</b> Schritt für Schritt her.",
+  Q("ladung", "<b>Zusatzwissen – Aufladung aktuell nicht benötigt:</b> Leite die Differenzialgleichung der <b>Aufladung</b> Schritt für Schritt her.",
     R`<ol><li>Maschenregel: $U_0 = U_R + U_C$</li>
       <li>Bausteine einsetzen: $U_0 = R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} + \dfrac{Q}{C}$</li>
       <li>Mit $Q_0 = C\,U_0$ gilt $U_0 = \dfrac{Q_0}{C}$, also $R\,\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{C}$</li>
       <li>Durch $R$ teilen, $\tau = RC$: $$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{\tau}$$</li></ol>
       <p>Lies es so: Die Rate ist der <b>Abstand zum Ziel</b>, geteilt durch $\tau$.</p>`);
-  Q("ladung", "Löse die Dgl. der <b>Aufladung</b> mit Variablentrennung (alle Schritte, mit Grenzen).",
+  Q("ladung", "<b>Zusatzwissen – Aufladung aktuell nicht benötigt:</b> Löse die Dgl. der <b>Aufladung</b> mit Variablentrennung (alle Schritte, mit Grenzen).",
     R`<ol><li>Trennen: $\dfrac{\mathrm{d}Q}{Q_0 - Q} = \dfrac{\mathrm{d}t}{\tau}$</li>
       <li>Integrieren von $t = 0$ ($Q = 0$) bis $t$: $$-\ln(Q_0 - Q)\Big|_0^{Q} = \dfrac{t}{\tau}$$ (Minus wegen der inneren Ableitung $-1$.)</li>
       <li>Einsetzen: $-\ln(Q_0 - Q) + \ln Q_0 = \dfrac{t}{\tau}$, also $\ln\dfrac{Q_0 - Q}{Q_0} = -\dfrac{t}{\tau}$</li>
@@ -441,7 +441,7 @@
       <li>Integrieren von $Q_0$ bis $Q$ und $0$ bis $t$: $\ln\dfrac{Q}{Q_0} = -\dfrac{t}{\tau}$</li>
       <li>Mit $e$ auflösen: $$Q(t) = Q_0\,e^{-t/\tau}$$</li></ol>
       <p><b>Das Minus:</b> Der Strom fließt entgegen der Laderichtung, $\mathrm{d}Q/\mathrm{d}t$ ist negativ, $Q$ wird kleiner.</p>`);
-  Q("ladung", "Wie machst du die <b>Probe</b>, dass $Q(t) = Q_0(1 - e^{-t/\\tau})$ die Dgl. löst?",
+  Q("ladung", "<b>Zusatzwissen – Aufladung aktuell nicht benötigt:</b> Wie machst du die <b>Probe</b>, dass $Q(t) = Q_0(1 - e^{-t/\\tau})$ die Dgl. löst?",
     R`<ul><li>Ableiten: $\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0}{\tau}\,e^{-t/\tau}$</li>
       <li>Rechte Seite der Dgl.: $\dfrac{Q_0 - Q}{\tau} = \dfrac{Q_0\,e^{-t/\tau}}{\tau}$. Beide Seiten sind <b>gleich</b>. ✓</li>
       <li>Anfangsbedingung: $t = 0$ gibt $Q = Q_0(1 - 1) = 0$. ✓</li>

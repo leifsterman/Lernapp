@@ -158,7 +158,7 @@
       sol: R`<p>$$U(t) = U_0\,e^{-t/\tau}$$</p><p>$$U = ${U0}\,\mathrm{V}\cdot e^{-${de(t)}/${tau}} = ${U0}\,\mathrm{V}\cdot e^{-${de(f)}} = ${de(U, 3)}\,\mathrm{V}$$</p>`
     };
   });
-  add("ladung", 3, "Aufladung U(t)", () => {
+  add("ladung", 3, "Aufladung U(t) – Zusatzwissen, aktuell nicht benötigt", () => {
     const U0 = rnd([6, 9, 12]), tau = rnd([0.5, 1, 2]), f = rnd([0.5, 1, 2, 3]);
     const t = f * tau, U = U0 * (1 - Math.exp(-f));
     return {

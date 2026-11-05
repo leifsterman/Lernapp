@@ -1,18 +1,11 @@
 {
-  "name": "Kondensatorentladung – Physik LK",
-  "short_name": "Entladung LK",
+  "name": "Physik Q1 – Elektrisches Feld",
+  "short_name": "Physik Q1",
   "lang": "de",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#101724",
-  "theme_color": "#101724",
-  "icons": [
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
-  ]
+  "background_color": "#0e1117",
+  "theme_color": "#0e1117",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
 }

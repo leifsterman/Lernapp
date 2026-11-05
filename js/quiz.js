@@ -108,7 +108,7 @@
   mc("ladung", 3, "Welche Differenzialgleichung beschreibt die <b>Entladung</b> eines Kondensators über einen Widerstand?",
     [R`$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = -\dfrac{Q}{RC}$`, R`$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = +\dfrac{Q}{RC}$`, R`$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = -RC\cdot Q$`, R`$\dfrac{\mathrm{d}Q}{\mathrm{d}t} = \dfrac{Q_0 - Q}{RC}$`],
     R`Maschenregel $\dfrac{Q}{C} + R\dfrac{\mathrm{d}Q}{\mathrm{d}t} = 0$. Lösung: $Q = Q_0e^{-t/RC}$.`);
-  mc("ladung", 3, "Wann ist der Ladestrom beim <b>Aufladen</b> eines Kondensators am größten?",
+  mc("ladung", 3, "<b>Zusatzwissen – Aufladung aktuell nicht benötigt:</b> Wann ist der Ladestrom beim <b>Aufladen</b> eines Kondensators am größten?",
     [R`Beim Einschalten ($t = 0$)`, R`Nach der Zeit $\tau$`, "Wenn der Kondensator voll ist", "Der Strom ist konstant"],
     R`$I(t) = \dfrac{U_0}{R}e^{-t/\tau}$ ist bei $t = 0$ maximal und fällt dann ab.`);
   mc("ladung", 3, R`Du trägst $\ln U$ gegen $t$ für eine Entladung auf. Was erhältst du?`,

@@ -353,6 +353,10 @@
         if (m === mode) return;
         resume(); // First account for time under the OLD switch position.
         mode = m; segMode.set(m);
+        // Während eines gezeichneten Kontaktswechsels darf kein Strom durch
+        // einen schwebenden Schalterkontakt fließen: Zustand und Kontakt
+        // wechseln deshalb im selben Moment.
+        blade = BLADE[m].slice();
         if (m !== "open") ev = { t0: t, Ustart: Uc(), Uinf: m === "charge" ? P.U0 : 0, tau: tau(m), mode: m };
         else ev = null;
       }
@@ -477,8 +481,8 @@
         const W = niceW(5.5 * Math.max(tau("charge"), tau("discharge")));
         const t0 = Math.max(0, t - W), t1 = t0 + W;
         let ymin = 0, ymax, key, col;
-        if (qty === "U") { ymax = Math.max(P.U0, 1) * 1.08; key = 1; col = c.accent; }
-        else if (qty === "I") { const m = P.U0 / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; key = 2; col = c.bad; }
+        if (qty === "U") { ymax = Math.max(P.U0, Uc(), 1) * 1.08; key = 1; col = c.accent; }
+        else if (qty === "I") { const m = Math.max(P.U0, Uc(), 1) / Math.min(P.R1, P.R2) * 1.08; ymin = -m; ymax = m; key = 2; col = c.bad; }
         else { ymax = Math.max(P.C * P.U0, Q, 1) * 1.08; key = 3; col = c.ok; }
         const sx = tt => X0 + (tt - t0) / W * (X1 - X0), sy = v => Y1 - (v - ymin) / (ymax - ymin) * (Y1 - Y0);
         const val = h => key === 3 ? h[3] : h[key];

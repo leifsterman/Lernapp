@@ -397,6 +397,51 @@
       }
       host.append(st.c);
       const info = el("div", "sim-info"); host.append(info);
+      // Eimer in den kleinen Leiter-Tracern sind allein schwer zu erkennen.
+      // Die Lupe zeigt exakt die Werte desselben Potenzialmodells, nicht eine
+      // zweite, frei erfundene Füllstandsanzeige.
+      const bucketGuide = el("div", "rc-energy-guide");
+      bucketGuide.innerHTML = '<div class="rc-energy-head"><strong>Bienen-Eimer · vergrößerte Ansicht</strong><span class="rc-energy-mode"></span></div>' +
+        '<div class="rc-energy-comparison">' +
+        ['before', 'after'].map(side =>
+          '<div class="rc-energy-item"><span class="rc-energy-label ' + side + '"></span>' +
+          '<div class="rc-energy-vessel" aria-hidden="true"><div class="rc-energy-liquid ' + side + '"></div></div>' +
+          '<strong class="rc-energy-value ' + side + '"></strong></div>'
+        ).join('') + '</div><p class="rc-energy-explain"></p>';
+      host.append(bucketGuide);
+      const bucketNodes = {
+        mode: bucketGuide.querySelector(".rc-energy-mode"),
+        beforeLabel: bucketGuide.querySelector(".rc-energy-label.before"),
+        afterLabel: bucketGuide.querySelector(".rc-energy-label.after"),
+        beforeLiquid: bucketGuide.querySelector(".rc-energy-liquid.before"),
+        afterLiquid: bucketGuide.querySelector(".rc-energy-liquid.after"),
+        beforeValue: bucketGuide.querySelector(".rc-energy-value.before"),
+        afterValue: bucketGuide.querySelector(".rc-energy-value.after"),
+        explain: bucketGuide.querySelector(".rc-energy-explain")
+      };
+      let lastBucket = "";
+      function showBucketGuide() {
+        bucketGuide.hidden = GX.style !== "biene";
+        if (bucketGuide.hidden) return;
+        const charging = mode === "charge", open = mode === "open";
+        const branch = charging ? "L" : "R";
+        const start = open ? 0 : RC_ENERGY.energyAt({c:branch, d:charging?12:326}, mode, P.U0, Uc());
+        const end = open ? 0 : RC_ENERGY.energyAt({c:branch, d:charging?120:410}, mode, P.U0, Uc());
+        const before = Math.round(100 * (start || 0)), after = Math.round(100 * (end || 0));
+        const key = [mode, before, after, P.U0, Math.round(Uc() * 10)].join("|");
+        if (key === lastBucket) return;
+        lastBucket = key;
+        bucketNodes.mode.textContent = open ? "Schalter offen" : charging ? "Laden · R₁" : "Entladen · R₂";
+        bucketNodes.beforeLabel.textContent = open ? "Keine Bewegung" : "Vor dem Widerstand";
+        bucketNodes.afterLabel.textContent = open ? "Ladung bleibt" : "Nach dem Widerstand";
+        bucketNodes.beforeLiquid.style.height = before + "%";
+        bucketNodes.afterLiquid.style.height = after + "%";
+        bucketNodes.beforeValue.textContent = open ? "Stillstand" : before + " %";
+        bucketNodes.afterValue.textContent = open ? "Stillstand" : after + " %";
+        bucketNodes.explain.textContent = open
+          ? "Ideal offen: kein Strom. Die Bienen stehen, Uc bleibt konstant."
+          : "Die Eimer sind ein vereinfachtes Modell für elektrische Energie pro Ladung. Am Widerstand fällt der Energiewert, nicht die Zahl der Elektronen.";
+      }
       const segMode = seg(host, { label: "Schalter (oder im Bild auf den Schalter tippen)", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: mode, onChange: setMode });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
       slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { resume(); P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; saveSession(true); } });
@@ -511,6 +556,7 @@
           : mode === "discharge"
           ? "Entladen: Elektronen verlassen die negative Platte, passieren R₂ und erreichen die zuvor positive Platte. Hinter R₂ fließt derselbe Strom wie davor; nur die verfügbare elektrische Energie pro Ladung sinkt. Kein Elektron durchquert den Plattenzwischenraum."
           : "Schalter offen: Keine Drift im idealen Kreis. Elektronen bleiben in den Leitern sichtbar, die Plattenladungen und Kondensatorspannung bleiben erhalten.";
+        showBucketGuide();
         if ((frame = (frame + 1) % 2) === 0) drawPlot(c); // Diagramm reicht mit halber Bildrate
       }
 

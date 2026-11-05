@@ -25,18 +25,6 @@ jobs:
           node-version: 22
       - run: node build.mjs
       - uses: actions/configure-pages@v5
-      # Einmalige Recovery: Der alte Pages-Lauf 8687f8b blieb laut API
-      # als Deployment aktiv, obwohl sein Action-Job fehlgeschlagen ist.
-      - name: Blockiertes altes Pages-Deployment freigeben
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api -X POST "repos/${{ github.repository }}/pages/deployments/8687f8bee12fd467c0a25d33d5de8e1def928549/cancel" --silent || echo "Altes Deployment bereits beendet oder nicht erreichbar."
-      # One-time recovery: clear a stale Pages deployment left by the timed-out run.
-      - name: Cancel stuck previous Pages deployment
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh api --method POST "repos/${{ github.repository }}/pages/deployments/8687f8bee12fd467c0a25d33d5de8e1def928549/cancel"
       - uses: actions/upload-pages-artifact@v4
         with:
           path: public

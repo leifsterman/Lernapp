@@ -363,6 +363,8 @@
         const valid = saved.electrons.every(e => e && Object.hasOwn(CLEN, e.c) && Number.isFinite(e.d) &&
           e.d >= 0 && e.d <= CLEN[e.c] && (e.en == null || (Number.isFinite(e.en) && e.en >= 0 && e.en <= 1)));
         if (valid) EL.e = saved.electrons.map(e => ({c:e.c,d:e.d,en:e.en,fl:!!e.fl}));
+        if (Number.isInteger(saved.nT) && Math.abs(saved.nT) < 100000) EL.nT = saved.nT;
+        if (Number.isInteger(saved.nB) && Math.abs(saved.nB) < 100000) EL.nB = saved.nB;
       }
       let blade = BLADE[mode].slice(), meter = Q / P.C / 12, glow = 0, frame = 0,
         lastUpdateWall = saved ? Math.min(Date.now(), saved.wall) : Date.now(), lastSave = 0;
@@ -372,7 +374,8 @@
         lastSave = now;
         try { sessionStorage.setItem(sessionKey, JSON.stringify({
           version:3, wall:lastUpdateWall, mode, Q, t, qty, P:{...P},
-          showTau, showPot, electrons:EL.e.map(e => ({c:e.c,d:e.d,en:e.en,fl:!!e.fl}))
+          showTau, showPot, nT:EL.nT, nB:EL.nB,
+          electrons:EL.e.map(e => ({c:e.c,d:e.d,en:e.en,fl:!!e.fl}))
         })); } catch (_) { /* Speichern darf Labor nie unterbrechen. */ }
       }
       const tau = m => RC_FLOW.tau(m, P); // kΩ·µF = 10⁻³ s

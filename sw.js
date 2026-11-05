@@ -1,5 +1,5 @@
 /* Offline-Cache für die Haupt-App (mit allen Themen) und den zusätzlichen Entladungs-Lernweg. */
-const CACHE = "physikq1-v24";
+const CACHE = "physikq1-v25";
 const ASSETS = ["./", "./index.html", "./entladung.html", "./icon.svg", "./manifest.webmanifest"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

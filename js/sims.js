@@ -108,15 +108,16 @@
     if (cur.resume) cur.resume();
     if (!document.hidden) raf = requestAnimationFrame(loop);
   }
-  function stopLoop() { cancelAnimationFrame(raf); raf = 0; cur = null; }
+  function stopLoop() { if (cur?.save) cur.save(); cancelAnimationFrame(raf); raf = 0; cur = null; }
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+    if (document.hidden) { if (cur?.save) cur.save(); cancelAnimationFrame(raf); raf = 0; }
     else if (cur && !raf) {
       last = performance.now();
       if (cur.resume) cur.resume();
       raf = requestAnimationFrame(loop);
     }
   });
+  window.addEventListener("pagehide", () => { if (cur?.save) cur.save(); });
   A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
 
   const styleBoxes = [];
@@ -336,12 +337,47 @@
     icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 18c4 0 5-12 9-12s5 12 9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
-      const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1 };
       const RC_FLOW = window.PHYS_RC_FLOW;
       if (!RC_FLOW) throw new Error("RC flow model missing");
-      let mode = "open", Q = 0, t = 0, qty = "U", EL = { e: newElectrons(), nT: 0, nB: 0 },
-        showTau = true, showPot = false, hist = [], ev = null, fieldPhase = 0;
-      let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0, lastUpdateWall = Date.now();
+      const sessionKey = "physikq1.rc-labor.v3";
+      function readSession() {
+        try {
+          const raw = sessionStorage.getItem(sessionKey);
+          if (!raw) return null;
+          const obj = JSON.parse(raw);
+          if (obj?.version !== 3 || !["open", "charge", "discharge"].includes(obj.mode)) return null;
+          const numbers = [obj.Q, obj.t, obj.wall, obj.P?.U0, obj.P?.R1, obj.P?.R2, obj.P?.C, obj.P?.speed];
+          if (!numbers.every(Number.isFinite) || obj.Q < 0 || obj.t < 0 || obj.wall > Date.now() + 2000) return null;
+          if (obj.P.U0 < 1 || obj.P.U0 > 12 || obj.P.R1 < 1 || obj.P.R1 > 10 || obj.P.R2 < 1 || obj.P.R2 > 10 ||
+            obj.P.C < 100 || obj.P.C > 1000 || obj.P.speed < .25 || obj.P.speed > 4) return null;
+          return obj;
+        } catch (_) { return null; }
+      }
+      const saved = readSession();
+      const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1, ...(saved?.P || {}) };
+      let mode = saved?.mode || "open", Q = saved?.Q ?? 0, t = saved?.t ?? 0,
+        qty = ["U", "I", "Q"].includes(saved?.qty) ? saved.qty : "U",
+        EL = { e: newElectrons(), nT: 0, nB: 0 }, showTau = saved?.showTau ?? true,
+        showPot = saved?.showPot ?? false, hist = [], ev = null, fieldPhase = 0;
+      if (saved?.electrons && Array.isArray(saved.electrons) && saved.electrons.length <= 120) {
+        const valid = saved.electrons.every(e => e && Object.hasOwn(CLEN, e.c) && Number.isFinite(e.d) &&
+          e.d >= 0 && e.d <= CLEN[e.c] && (e.en == null || (Number.isFinite(e.en) && e.en >= 0 && e.en <= 1)));
+        if (valid) EL.e = saved.electrons.map(e => ({c:e.c,d:e.d,en:e.en,fl:!!e.fl}));
+        if (Number.isInteger(saved.nT) && Math.abs(saved.nT) < 100000) EL.nT = saved.nT;
+        if (Number.isInteger(saved.nB) && Math.abs(saved.nB) < 100000) EL.nB = saved.nB;
+      }
+      let blade = BLADE[mode].slice(), meter = Q / P.C / 12, glow = 0, frame = 0,
+        lastUpdateWall = saved ? Math.min(Date.now(), saved.wall) : Date.now(), lastSave = 0;
+      function saveSession(force = false) {
+        const now = Date.now();
+        if (!force && now - lastSave < 700) return;
+        lastSave = now;
+        try { sessionStorage.setItem(sessionKey, JSON.stringify({
+          version:3, wall:lastUpdateWall, mode, Q, t, qty, P:{...P},
+          showTau, showPot, nT:EL.nT, nB:EL.nB,
+          electrons:EL.e.map(e => ({c:e.c,d:e.d,en:e.en,fl:!!e.fl}))
+        })); } catch (_) { /* Speichern darf Labor nie unterbrechen. */ }
+      }
       const tau = m => RC_FLOW.tau(m, P); // kΩ·µF = 10⁻³ s
       const Uc = () => Q / P.C;
       function currentFor(q, m) {
@@ -359,22 +395,69 @@
         blade = BLADE[m].slice();
         if (m !== "open") ev = { t0: t, Ustart: Uc(), Uinf: m === "charge" ? P.U0 : 0, tau: tau(m), mode: m };
         else ev = null;
+        meter = Uc() / 12;
+        saveSession(true);
       }
       host.append(st.c);
       const info = el("div", "sim-info"); host.append(info);
-      const segMode = seg(host, { label: "Schalter (oder im Bild auf den Schalter tippen)", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: "open", onChange: setMode });
+      // Eimer in den kleinen Leiter-Tracern sind allein schwer zu erkennen.
+      // Die Lupe zeigt exakt die Werte desselben Potenzialmodells, nicht eine
+      // zweite, frei erfundene Füllstandsanzeige.
+      const bucketGuide = el("div", "rc-energy-guide");
+      bucketGuide.innerHTML = '<div class="rc-energy-head"><strong>Bienen-Eimer · vergrößerte Ansicht</strong><span class="rc-energy-mode"></span></div>' +
+        '<div class="rc-energy-comparison">' +
+        ['before', 'after'].map(side =>
+          '<div class="rc-energy-item"><span class="rc-energy-label ' + side + '"></span>' +
+          '<div class="rc-energy-vessel" aria-hidden="true"><div class="rc-energy-liquid ' + side + '"></div></div>' +
+          '<strong class="rc-energy-value ' + side + '"></strong></div>'
+        ).join('') + '</div><p class="rc-energy-explain"></p>';
+      host.append(bucketGuide);
+      const bucketNodes = {
+        mode: bucketGuide.querySelector(".rc-energy-mode"),
+        beforeLabel: bucketGuide.querySelector(".rc-energy-label.before"),
+        afterLabel: bucketGuide.querySelector(".rc-energy-label.after"),
+        beforeLiquid: bucketGuide.querySelector(".rc-energy-liquid.before"),
+        afterLiquid: bucketGuide.querySelector(".rc-energy-liquid.after"),
+        beforeValue: bucketGuide.querySelector(".rc-energy-value.before"),
+        afterValue: bucketGuide.querySelector(".rc-energy-value.after"),
+        explain: bucketGuide.querySelector(".rc-energy-explain")
+      };
+      let lastBucket = "";
+      function showBucketGuide() {
+        bucketGuide.hidden = GX.style !== "biene";
+        if (bucketGuide.hidden) return;
+        const charging = mode === "charge", open = mode === "open";
+        const branch = charging ? "L" : "R";
+        const start = open ? 0 : RC_ENERGY.energyAt({c:branch, d:charging?12:326}, mode, P.U0, Uc());
+        const end = open ? 0 : RC_ENERGY.energyAt({c:branch, d:charging?120:410}, mode, P.U0, Uc());
+        const before = Math.round(100 * (start || 0)), after = Math.round(100 * (end || 0));
+        const key = [mode, before, after, P.U0, Math.round(Uc() * 10)].join("|");
+        if (key === lastBucket) return;
+        lastBucket = key;
+        bucketNodes.mode.textContent = open ? "Schalter offen" : charging ? "Laden · R₁" : "Entladen · R₂";
+        bucketNodes.beforeLabel.textContent = open ? "Keine Bewegung" : "Vor dem Widerstand";
+        bucketNodes.afterLabel.textContent = open ? "Ladung bleibt" : "Nach dem Widerstand";
+        bucketNodes.beforeLiquid.style.height = before + "%";
+        bucketNodes.afterLiquid.style.height = after + "%";
+        bucketNodes.beforeValue.textContent = open ? "Stillstand" : before + " %";
+        bucketNodes.afterValue.textContent = open ? "Stillstand" : after + " %";
+        bucketNodes.explain.textContent = open
+          ? "Ideal offen: kein Strom. Die Bienen stehen, Uc bleibt konstant."
+          : "Die Eimer sind ein vereinfachtes Modell für elektrische Energie pro Ladung. Am Widerstand fällt der Energiewert, nicht die Zahl der Elektronen.";
+      }
+      const segMode = seg(host, { label: "Schalter (oder im Bild auf den Schalter tippen)", options: [{ v: "charge", t: "Laden (links)" }, { v: "open", t: "Offen" }, { v: "discharge", t: "Entladen (rechts)" }], value: mode, onChange: setMode });
       const ctl = el("div", "sim-ctl"); host.append(ctl);
-      slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { resume(); P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; } });
-      slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { resume(); P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); } });
-      slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { resume(); P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); } });
-      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { resume(); const q = Q; P.C = v; Q = q; if (ev) ev.tau = tau(ev.mode); } });
-      slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { resume(); P.speed = v; } });
+      slider(ctl, { label: "Spannung U₀", min: 1, max: 12, step: 1, value: P.U0, fmt: v => v + " V", onInput: v => { resume(); P.U0 = v; if (ev && ev.mode === "charge") ev.Uinf = v; saveSession(true); } });
+      slider(ctl, { label: "Widerstand R₁ (Laden)", min: 1, max: 10, step: 0.5, value: P.R1, fmt: v => de(v) + " kΩ", onInput: v => { resume(); P.R1 = v; if (ev && ev.mode === "charge") ev.tau = tau("charge"); saveSession(true); } });
+      slider(ctl, { label: "Widerstand R₂ (Entladen)", min: 1, max: 10, step: 0.5, value: P.R2, fmt: v => de(v) + " kΩ", onInput: v => { resume(); P.R2 = v; if (ev && ev.mode === "discharge") ev.tau = tau("discharge"); saveSession(true); } });
+      slider(ctl, { label: "Kapazität C", min: 100, max: 1000, step: 10, value: P.C, fmt: v => v + " µF", onInput: v => { resume(); const q = Q; P.C = v; Q = q; meter = Uc()/12; if (ev) ev.tau = tau(ev.mode); saveSession(true); } });
+      slider(ctl, { label: "Zeitraffer", min: 0.25, max: 4, step: 0.25, value: 1, fmt: v => "×" + de(v), onInput: v => { resume(); P.speed = v; saveSession(true); } });
       const acts = el("div", "sim-acts"); host.append(acts);
-      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; ev = null; mode = "open"; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; lastUpdateWall = Date.now(); });
-      const tb = button(acts, "τ zeigen: an", () => { showTau = !showTau; tb.textContent = "τ zeigen: " + (showTau ? "an" : "aus"); });
-      const pb = button(acts, "Potenziale: aus", () => { showPot = !showPot; pb.textContent = "Potenziale: " + (showPot ? "an" : "aus"); });
+      button(acts, "Zurücksetzen", () => { Q = 0; t = 0; hist = []; ev = null; mode = "open"; blade = BLADE.open.slice(); meter = 0; segMode.set("open"); EL = { e: newElectrons(), nT: 0, nB: 0 }; lastUpdateWall = Date.now(); saveSession(true); });
+      const tb = button(acts, "τ zeigen: " + (showTau ? "an" : "aus"), () => { showTau = !showTau; tb.textContent = "τ zeigen: " + (showTau ? "an" : "aus"); saveSession(true); });
+      const pb = button(acts, "Potenziale: " + (showPot ? "an" : "aus"), () => { showPot = !showPot; pb.textContent = "Potenziale: " + (showPot ? "an" : "aus"); saveSession(true); });
       host.append(pl.c);
-      seg(host, { label: "Kurve", options: [{ v: "U", t: "Uc(t)" }, { v: "I", t: "I(t)" }, { v: "Q", t: "Q(t)" }], value: "U", onChange: v => { qty = v; } });
+      seg(host, { label: "Kurve", options: [{ v: "U", t: "Uc(t)" }, { v: "I", t: "I(t)" }, { v: "Q", t: "Q(t)" }], value: qty, onChange: v => { qty = v; saveSession(true); } });
       const ro = readouts(host, [["u", "Kondensatorspannung"], ["i", "Stromstärke"], ["q", "Ladung"], ["tau", "Zeitkonstante"]]);
       notes(host, "Aufgaben", [
         "Lege den Schalter nach links und beobachte $U_C$. Wann ist der Kondensator nach etwa $5\\tau$ voll?",
@@ -420,6 +503,7 @@
         lastUpdateWall = now;
         advanceElapsed(seconds);
         electronEnergy(EL, mode, P.U0, Uc(), 0, blade);
+        saveSession();
       }
       function step(dt) {
         resume();
@@ -427,7 +511,8 @@
         const target = BLADE[mode];
         blade[0] = GX.ease(blade[0], target[0], dt, 14);
         blade[1] = GX.ease(blade[1], target[1], dt, 14);
-        meter = GX.ease(meter, Uc() / 12, dt, 6);
+        // Das ideale offene RC-Glied hat kein Spannungsabklingen.
+        meter = mode === "open" ? Uc() / 12 : GX.ease(meter, Uc() / 12, dt, 6);
         glow = GX.ease(glow, Math.min(1, I / 2), dt, 6);
         electronEnergy(EL, mode, P.U0, Uc(), dt, blade);
       }
@@ -474,6 +559,7 @@
           : mode === "discharge"
           ? "Entladen: Elektronen verlassen die negative Platte, passieren R₂ und erreichen die zuvor positive Platte. Hinter R₂ fließt derselbe Strom wie davor; nur die verfügbare elektrische Energie pro Ladung sinkt. Kein Elektron durchquert den Plattenzwischenraum."
           : "Schalter offen: Keine Drift im idealen Kreis. Elektronen bleiben in den Leitern sichtbar, die Plattenladungen und Kondensatorspannung bleiben erhalten.";
+        showBucketGuide();
         if ((frame = (frame + 1) % 2) === 0) drawPlot(c); // Diagramm reicht mit halber Bildrate
       }
 
@@ -526,7 +612,7 @@
         particles: EL.e.map(e => ({ c: e.c, d: e.d, en: e.en })),
         plateAlpha: RC_FLOW.plateDots(Q, P, 9), parameters: { ...P }
       });
-      return { step, draw, resume };
+      return { step, draw, resume, save() { resume(); saveSession(true); } };
     }
   });
 

@@ -443,8 +443,9 @@
         // Zählern der laufenden Tracer), auch bei kleinen Q mit Transparenz.
         // Die Bienen zeichnen wir NICHT zwischen die isolierten Platten.
         RC_FLOW.plateDots(Q, P, 9).forEach((opacity, i) => {
-          GX.minus(x, c, 176 + i * 8.5, G.pb + 9, 3.6,
-            { energy: RC_FLOW.plateFill(Q, P), alpha: opacity });
+          // An den Metallplatten kompakte Ladungssymbole statt überlappender
+          // großer Bienen-Eimer (die Bienen sind die mobilen Leiter-Tracer).
+          GX.ball(x, 176 + i * 8.5, G.pb + 9, 3.6, c.neg, "−", { alpha: opacity });
           GX.ball(x, 176 + i * 8.5, G.pt - 9, 3.6, c.pos, "+", { alpha: opacity });
         });
         // Stromstärke am aktiven Widerstand

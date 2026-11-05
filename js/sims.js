@@ -336,12 +336,44 @@
     icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 18c4 0 5-12 9-12s5 12 9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     make(host) {
       const st = stage(360, 250), pl = stage(360, 175);
-      const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1 };
       const RC_FLOW = window.PHYS_RC_FLOW;
       if (!RC_FLOW) throw new Error("RC flow model missing");
-      let mode = "open", Q = 0, t = 0, qty = "U", EL = { e: newElectrons(), nT: 0, nB: 0 },
-        showTau = true, showPot = false, hist = [], ev = null, fieldPhase = 0;
-      let blade = BLADE.open.slice(), meter = 0, glow = 0, frame = 0, lastUpdateWall = Date.now();
+      const sessionKey = "physikq1.rc-labor.v3";
+      function readSession() {
+        try {
+          const raw = sessionStorage.getItem(sessionKey);
+          if (!raw) return null;
+          const obj = JSON.parse(raw);
+          if (obj?.version !== 3 || !["open", "charge", "discharge"].includes(obj.mode)) return null;
+          const numbers = [obj.Q, obj.t, obj.wall, obj.P?.U0, obj.P?.R1, obj.P?.R2, obj.P?.C, obj.P?.speed];
+          if (!numbers.every(Number.isFinite) || obj.Q < 0 || obj.t < 0 || obj.wall > Date.now() + 2000) return null;
+          if (obj.P.U0 < 1 || obj.P.U0 > 12 || obj.P.R1 < 1 || obj.P.R1 > 10 || obj.P.R2 < 1 || obj.P.R2 > 10 ||
+            obj.P.C < 100 || obj.P.C > 1000 || obj.P.speed < .25 || obj.P.speed > 4) return null;
+          return obj;
+        } catch (_) { return null; }
+      }
+      const saved = readSession();
+      const P = { U0: 9, R1: 5, R2: 5, C: 470, speed: 1, ...(saved?.P || {}) };
+      let mode = saved?.mode || "open", Q = saved?.Q ?? 0, t = saved?.t ?? 0,
+        qty = ["U", "I", "Q"].includes(saved?.qty) ? saved.qty : "U",
+        EL = { e: newElectrons(), nT: 0, nB: 0 }, showTau = saved?.showTau ?? true,
+        showPot = saved?.showPot ?? false, hist = [], ev = null, fieldPhase = 0;
+      if (saved?.electrons && Array.isArray(saved.electrons) && saved.electrons.length <= 120) {
+        const valid = saved.electrons.every(e => e && Object.hasOwn(CLEN, e.c) && Number.isFinite(e.d) &&
+          e.d >= 0 && e.d <= CLEN[e.c] && (e.en == null || (Number.isFinite(e.en) && e.en >= 0 && e.en <= 1)));
+        if (valid) EL.e = saved.electrons.map(e => ({c:e.c,d:e.d,en:e.en,fl:!!e.fl}));
+      }
+      let blade = BLADE[mode].slice(), meter = Q / P.C / 12, glow = 0, frame = 0,
+        lastUpdateWall = saved ? Math.min(Date.now(), saved.wall) : Date.now(), lastSave = 0;
+      function saveSession(force = false) {
+        const now = Date.now();
+        if (!force && now - lastSave < 700) return;
+        lastSave = now;
+        try { sessionStorage.setItem(sessionKey, JSON.stringify({
+          version:3, wall:lastUpdateWall, mode, Q, t, qty, P:{...P},
+          showTau, showPot, electrons:EL.e.map(e => ({c:e.c,d:e.d,en:e.en,fl:!!e.fl}))
+        })); } catch (_) { /* Speichern darf Labor nie unterbrechen. */ }
+      }
       const tau = m => RC_FLOW.tau(m, P); // kΩ·µF = 10⁻³ s
       const Uc = () => Q / P.C;
       function currentFor(q, m) {

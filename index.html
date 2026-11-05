@@ -3,127 +3,508 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101724">
-  <meta name="description" content="Kondensatorentladung für Physik LK: Differentialgleichung Schritt für Schritt herleiten, die e-Funktion überprüfen und typische Fragen verstehen.">
-  <title>Kondensatorentladung – Physik LK Lernweg</title>
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="description" content="Lernapp zum elektrischen Feld (Physik Q1): Karteikasten, Quiz, Rechentrainer, Zuordnen, Klausur-Simulation und Kernübersichten.">
+  <title>Physik Q1 – Elektrisches Feld</title>
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="css/entladung.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="app-header">
-  <div class="head-inner">
-    <div class="brand"><span class="mark" aria-hidden="true">∿</span><span>Kondensatorentladung<span class="head-sub">Physik LK · ein Thema, ein Lernziel</span></span></div>
-    <button class="head-action" id="home-brand" type="button" aria-label="Zum Beginn des Lernwegs">Zum Anfang ↑</button>
+  <div id="splash" class="splash" role="status" aria-label="App wird geladen">
+    <div class="splash-in">
+      <div class="fly-wrap"><svg class="hfly" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <radialGradient id="flyEyeS" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#d9644a"/><stop offset=".55" stop-color="#9a2f1d"/><stop offset="1" stop-color="#4d140b"/></radialGradient>
+    <radialGradient id="flyThxS" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#7a6a3a"/><stop offset=".6" stop-color="#3f3620"/><stop offset="1" stop-color="#1f1a10"/></radialGradient>
+    <linearGradient id="flyWingS" x1="0" x2="1"><stop offset="0" stop-color="#e9f4ff" stop-opacity=".75"/><stop offset="1" stop-color="#bcd9f5" stop-opacity=".35"/></linearGradient>
+    <clipPath id="flyAbdS"><ellipse cx="32" cy="44" rx="8.6" ry="13"/></clipPath>
+  </defs>
+  <path class="blur" d="M28 25 L6 18 Q2 34 10 46 Z" fill="#cfe5ff" opacity=".22"/>
+  <path class="blur" d="M36 25 L58 18 Q62 34 54 46 Z" fill="#cfe5ff" opacity=".22"/>
+  <ellipse cx="32" cy="44" rx="8.6" ry="13" fill="#17140d"/>
+  <g clip-path="url(#flyAbdS)" fill="#f2c230">
+    <rect x="22" y="35" width="20" height="3.4" rx="1"/>
+    <rect x="22" y="41.5" width="20" height="3.4" rx="1"/>
+    <rect x="22" y="48" width="20" height="3" rx="1"/>
+  </g>
+  <ellipse cx="29.5" cy="39" rx="2.2" ry="5" fill="#fff" opacity=".12"/>
+  <g class="wing wl">
+    <ellipse cx="17" cy="33" rx="14" ry="5.2" transform="rotate(-32 17 33)" fill="url(#flyWingS)" stroke="#9cc2e6" stroke-width=".7"/>
+    <path d="M28 25 L9 36 M24 27 L12 30" stroke="#8fb3d6" stroke-width=".5" fill="none"/>
+  </g>
+  <g class="wing wr">
+    <ellipse cx="47" cy="33" rx="14" ry="5.2" transform="rotate(32 47 33)" fill="url(#flyWingS)" stroke="#9cc2e6" stroke-width=".7"/>
+    <path d="M36 25 L55 36 M40 27 L52 30" stroke="#8fb3d6" stroke-width=".5" fill="none"/>
+  </g>
+  <ellipse cx="32" cy="25" rx="8" ry="7.2" fill="url(#flyThxS)"/>
+  <ellipse cx="32" cy="31.5" rx="4.2" ry="2.1" fill="#d9a72a"/>
+  <path d="M25.5 22.5 Q27 20 29 21 M38.5 22.5 Q37 20 35 21" stroke="#e8c547" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <ellipse cx="32" cy="14.5" rx="8.4" ry="6" fill="#2a2214"/>
+  <ellipse cx="27.6" cy="14" rx="5" ry="5.6" fill="url(#flyEyeS)"/>
+  <ellipse cx="36.4" cy="14" rx="5" ry="5.6" fill="url(#flyEyeS)"/>
+  <ellipse cx="32" cy="10.4" rx="2.2" ry="1.6" fill="#e8c547"/>
+  <circle cx="26.2" cy="12.2" r="1.1" fill="#fff" opacity=".7"/><circle cx="35" cy="12.2" r="1.1" fill="#fff" opacity=".7"/>
+  <path d="M30.6 9 L29.4 5.6 M33.4 9 L34.6 5.6" stroke="#2a2214" stroke-width="1.1" stroke-linecap="round"/>
+</svg><div class="fly-shadow"></div></div>
+      <p class="splash-title">Physik Q1</p>
+      <p class="splash-sub">Schwebfliegen schlagen bis zu 300-mal pro Sekunde mit den Flügeln.</p>
+    </div>
   </div>
-</header>
-<main>
-  <section class="hero" aria-labelledby="hero-title">
-    <div>
-      <p class="eyebrow">Klausurtraining · Entladung</p>
-      <h1 id="hero-title">Von der gegebenen e-Funktion zum Beweis.</h1>
-      <p>Du kennst die Formel mit e schon. Hier leitest du selbst die Differentialgleichung aus der Schaltung her und zeigst durch Einsetzen, dass die Formel sie erfüllt. Ohne unnötige Themen zum Aufladen oder lange Integralrechnung.</p>
-    </div>
-    <div class="formula-hero">
-      <small>Gegeben · die Entladungsfunktion</small>
-      <div class="equation" id="hero-formula">Q(t) = Q₀ · e^(−t/(RC))</div>
-      <p>Das ist <b>nicht</b> die Differentialgleichung. Genau diese Unterscheidung wirst du hier verstehen.</p>
-    </div>
-  </section>
-  <nav class="mode-nav" aria-label="Lernbereiche">
-    <button type="button" data-mode="weg" aria-selected="true">① Schritt für Schritt</button>
-    <button type="button" data-mode="karten" aria-selected="false">② Lernkarten</button>
-    <button type="button" data-mode="fragen" aria-selected="false">③ Meine Fragen</button>
-  </nav>
+    <header class="top">
+    <button id="btn-home" class="brand" type="button" aria-label="Zur Übersicht">
+      <span class="brand-mark" aria-hidden="true"><svg class="hfly" width="26" height="26" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <radialGradient id="flyEyeH" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#d9644a"/><stop offset=".55" stop-color="#9a2f1d"/><stop offset="1" stop-color="#4d140b"/></radialGradient>
+    <radialGradient id="flyThxH" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#7a6a3a"/><stop offset=".6" stop-color="#3f3620"/><stop offset="1" stop-color="#1f1a10"/></radialGradient>
+    <linearGradient id="flyWingH" x1="0" x2="1"><stop offset="0" stop-color="#e9f4ff" stop-opacity=".75"/><stop offset="1" stop-color="#bcd9f5" stop-opacity=".35"/></linearGradient>
+    <clipPath id="flyAbdH"><ellipse cx="32" cy="44" rx="8.6" ry="13"/></clipPath>
+  </defs>
+  <path class="blur" d="M28 25 L6 18 Q2 34 10 46 Z" fill="#cfe5ff" opacity=".22"/>
+  <path class="blur" d="M36 25 L58 18 Q62 34 54 46 Z" fill="#cfe5ff" opacity=".22"/>
+  <ellipse cx="32" cy="44" rx="8.6" ry="13" fill="#17140d"/>
+  <g clip-path="url(#flyAbdH)" fill="#f2c230">
+    <rect x="22" y="35" width="20" height="3.4" rx="1"/>
+    <rect x="22" y="41.5" width="20" height="3.4" rx="1"/>
+    <rect x="22" y="48" width="20" height="3" rx="1"/>
+  </g>
+  <ellipse cx="29.5" cy="39" rx="2.2" ry="5" fill="#fff" opacity=".12"/>
+  <g class="wing wl">
+    <ellipse cx="17" cy="33" rx="14" ry="5.2" transform="rotate(-32 17 33)" fill="url(#flyWingH)" stroke="#9cc2e6" stroke-width=".7"/>
+    <path d="M28 25 L9 36 M24 27 L12 30" stroke="#8fb3d6" stroke-width=".5" fill="none"/>
+  </g>
+  <g class="wing wr">
+    <ellipse cx="47" cy="33" rx="14" ry="5.2" transform="rotate(32 47 33)" fill="url(#flyWingH)" stroke="#9cc2e6" stroke-width=".7"/>
+    <path d="M36 25 L55 36 M40 27 L52 30" stroke="#8fb3d6" stroke-width=".5" fill="none"/>
+  </g>
+  <ellipse cx="32" cy="25" rx="8" ry="7.2" fill="url(#flyThxH)"/>
+  <ellipse cx="32" cy="31.5" rx="4.2" ry="2.1" fill="#d9a72a"/>
+  <path d="M25.5 22.5 Q27 20 29 21 M38.5 22.5 Q37 20 35 21" stroke="#e8c547" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <ellipse cx="32" cy="14.5" rx="8.4" ry="6" fill="#2a2214"/>
+  <ellipse cx="27.6" cy="14" rx="5" ry="5.6" fill="url(#flyEyeH)"/>
+  <ellipse cx="36.4" cy="14" rx="5" ry="5.6" fill="url(#flyEyeH)"/>
+  <ellipse cx="32" cy="10.4" rx="2.2" ry="1.6" fill="#e8c547"/>
+  <circle cx="26.2" cy="12.2" r="1.1" fill="#fff" opacity=".7"/><circle cx="35" cy="12.2" r="1.1" fill="#fff" opacity=".7"/>
+  <path d="M30.6 9 L29.4 5.6 M33.4 9 L34.6 5.6" stroke="#2a2214" stroke-width="1.1" stroke-linecap="round"/>
+</svg></span>
+      <span>Physik Q1</span>
+    </button>
+    <button id="btn-theme" class="icon-btn" type="button" aria-label="Hell/Dunkel umschalten"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
+  </header>
 
-  <section class="mode-panel" data-panel="weg" aria-label="Geführte Herleitung">
-    <div class="workspace">
-      <aside class="steps" aria-label="Schritte der Herleitung">
-        <h2>Dein Rechenweg</h2>
-        <ol class="step-list" id="step-list"></ol>
-      </aside>
-      <div>
-        <article class="lesson-card">
-          <div class="lesson-meta"><span id="step-counter">Schritt 1 von 11</span><span id="done-counter">0 verstanden</span></div>
-          <div class="meter" aria-label="Lernfortschritt"><div class="meter-fill" id="meter-fill"></div></div>
-          <h2 id="lesson-title"></h2>
-          <p class="lesson-lead" id="lesson-lead"></p>
-          <div class="math-panel" id="equations" aria-label="Rechenschritte"></div>
-          <p class="reason" id="reason"></p>
-          <section class="challenge" aria-labelledby="challenge-title">
-            <p class="challenge-label">Kurz prüfen, ob du es verstanden hast</p>
-            <h3 id="challenge-title"></h3>
-            <div class="options" id="options" role="group" aria-label="Antwortmöglichkeiten"></div>
-            <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
-            <details class="tip" id="hint-detail"><summary>Ich komme nicht weiter – kleiner Hinweis</summary><p id="hint-text"></p></details>
-          </section>
-          <div class="lesson-actions">
-            <button id="prev" type="button" class="btn ghost">← Zurück</button>
-            <button id="next" type="button" class="btn primary" disabled>Nächster Schritt →</button>
-          </div>
-          <div class="complete" id="complete" role="status">✓ Du hast alle Schritte bearbeitet. Teste dich jetzt mit den Lernkarten, ohne die Erklärung anzusehen.</div>
-        </article>
-        <div class="box">
-          <h2>Einmal allein auf dem Blatt</h2>
-          <p>Schreibe ohne Vorlage: <b>Maschenregel → Einsetzen → I = Q̇ → mit C multiplizieren → umstellen → gegebene Funktion ableiten → einsetzen → 0 = 0.</b> Nicht nur die Antwort wiedererkennen, sondern jeden Übergang selbst rechnen.</p>
-          <button class="btn ghost" id="restart" type="button">Lernweg von vorn beginnen</button>
+  <main>
+    <!-- Übersicht -->
+    <section id="screen-start" class="screen">
+      <div class="hero">
+        <div class="hero-text">
+          <p class="eyebrow" id="countdown"></p>
+          <h1>Das elektrische Feld</h1>
+          <p class="lead">Karteikasten, Quiz, Rechentrainer und Klausur-Simulation. Stelle Schwierigkeit und Themen ein und leg los.</p>
+          <p class="pts-line" id="pts-line"></p>
         </div>
+        <div class="ring" id="ring" role="img" aria-label="Gesamtfortschritt"></div>
       </div>
-    </div>
-  </section>
 
-  <section class="mode-panel" data-panel="karten" aria-label="Lernkarten" hidden>
-    <div class="box">
-      <p class="eyebrow">Aktives Wiederholen</p>
-      <h2>Die Fragen aus deinem Lernweg</h2>
-      <p>Erst laut beantworten, dann aufdecken. Das bewertet nicht automatisch deine Antwort – entscheide selbst, ob du sie wirklich wusstest.</p>
-      <div class="cards-wrap">
-        <div>
-          <button class="flashcard" id="flashcard" type="button" aria-label="Lernkarte umdrehen">
-            <small id="flashcard-face">Frage</small>
-            <strong id="flashcard-content"></strong>
-            <small>Tippen zum Umdrehen ↻</small>
+      <nav class="tabs" role="tablist" aria-label="Bereiche">
+        <button type="button" class="tab-btn" role="tab" data-tab="learn">Lernen</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="lab">Labor</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="sheets">Wissen</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="board">Rangliste</button>
+        <button type="button" class="tab-btn" role="tab" data-tab="more">Konto</button>
+      </nav>
+
+      <!-- Tab: Lernen -->
+      <div class="tabpane" id="tab-learn">
+        <section class="panel" aria-labelledby="discharge-path-title" style="margin-bottom:18px">
+          <div class="panel-head"><h2 id="discharge-path-title">Kondensator: Entladung Schritt für Schritt</h2></div>
+          <p>Dein Klausurweg: Die <b>gegebene e-Funktion</b> prüfen, die Differentialgleichung aus der Maschenregel herleiten und mit <b>0 = 0</b> bestätigen.</p>
+          <p class="fine"><b>Abgrenzung:</b> Die <b>Aufladung</b> des Kondensators wird für deinen aktuellen Lernstoff <b>nicht benötigt</b>. Sie bleibt als freiwilliges Zusatzmaterial in der App erhalten. Andere Physikthemen sind unverändert verfügbar.</p>
+          <div class="start-actions"><a class="btn primary" href="entladung.html">Geführte Entladungs-Herleitung starten →</a></div>
+        </section>
+        <div class="panel topics-panel" id="topics-panel">
+          <div class="panel-head">
+            <h2>Was willst du lernen?</h2>
+            <span class="mini-actions"><button type="button" id="sel-all" class="link">Alle</button><button type="button" id="sel-none" class="link">Keine</button></span>
+          </div>
+          <p class="topics-sum" id="topics-sel"></p>
+          <div id="topic-list" class="topic-groups"></div>
+        </div>
+
+        <div class="panel filter">
+          <div class="panel-head"><h2>Einstellungen</h2><span class="fine nomargin" id="filter-summary"></span></div>
+          <div class="frow">
+            <span class="flabel">Schwierigkeit</span>
+            <div class="chips" id="chips-level" role="group" aria-label="Schwierigkeit">
+              <button type="button" class="chip lvl-1" data-lvl="1" aria-pressed="true">Leicht</button>
+              <button type="button" class="chip lvl-2" data-lvl="2" aria-pressed="true">Mittel</button>
+              <button type="button" class="chip lvl-3" data-lvl="3" aria-pressed="true">Schwer</button>
+            </div>
+          </div>
+          <div class="frow">
+            <span class="flabel">Art (Karteikasten)</span>
+            <div class="chips" id="chips-kind" role="group" aria-label="Art der Karten">
+              <button type="button" class="chip" data-kind="abfrage" aria-pressed="true">Abfrage</button>
+              <button type="button" class="chip" data-kind="rechnen" aria-pressed="true">Rechnen</button>
+            </div>
+          </div>
+          <div class="frow">
+            <span class="flabel">Größen abfragen</span>
+            <div class="chips" id="chips-ask" role="group" aria-label="Was bei Größenkarten abgefragt wird">
+              <button type="button" class="chip" data-ask="alles" aria-pressed="true">Alles</button>
+              <button type="button" class="chip" data-ask="formel" aria-pressed="false">Nur Formel</button>
+              <button type="button" class="chip" data-ask="einheit" aria-pressed="false">Nur Einheit</button>
+            </div>
+          </div>
+          <div class="frow">
+            <span class="flabel">Taschenrechner</span>
+            <div class="chips" id="chips-calc" role="group" aria-label="Taschenrechner">
+              <button type="button" class="chip" data-calc="1" aria-pressed="true">Mit</button>
+              <button type="button" class="chip" data-calc="0" aria-pressed="false">Ohne</button>
+            </div>
+          </div>
+          <p class="fine tight">Schwierigkeit und Themen gelten für alle Methoden. „Art“ und „Größen abfragen“ gelten nur für den Karteikasten, der Rechentrainer rechnet immer. „Ohne“ blendet den Taschenrechner überall aus (wie in der Klausur ohne GTR).</p>
+        </div>
+
+        <div class="panel drawer-panel">
+          <div class="panel-head">
+            <h2>Karteikasten</h2>
+            <span class="fine nomargin" id="drawer-total"></span>
+          </div>
+          <button type="button" class="drawer-topics" id="drawer-topics"></button>
+          <div id="drawer" class="drawer"></div>
+          <p id="drawer-info" class="drawer-info"></p>
+          <div class="start-actions">
+            <button id="btn-start" class="btn primary" type="button">Lernrunde starten <span id="start-count" class="count"></span></button>
+            <button id="btn-weak" class="btn" type="button">Nur Schwächen <span id="weak-count" class="count"></span></button>
+          </div>
+        </div>
+
+        <h2 class="section-title">Weitere Lernmethoden</h2>
+        <div class="methods">
+          <button type="button" class="method" id="m-mc">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 7h2M5 12h2M5 17h2M10 7h9M10 12h9M10 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></span>
+            <span class="mname">Quiz</span>
+            <span class="mdesc">Eine Frage, vier Antworten, sofort erklärt</span>
+            <span class="mstat" id="stat-mc"></span>
           </button>
-          <div class="card-actions">
-            <button type="button" class="btn" id="card-again" hidden>Nochmal</button>
-            <button type="button" class="btn primary" id="card-mark" hidden>Sitzt ✓</button>
+          <button type="button" class="method" id="m-trainer">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+            <span class="mname">Rechentrainer</span>
+            <span class="mdesc">Zufallsaufgaben mit Eingabe und Lösungsweg</span>
+            <span class="mstat" id="stat-tr"></span>
+          </button>
+          <button type="button" class="method" id="m-match">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="6" cy="7" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.4 7h3c3 0 1 10 4.2 10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>
+            <span class="mname">Zuordnen</span>
+            <span class="mdesc">Größen mit Symbol, Einheit oder Formel verbinden</span>
+            <span class="mstat" id="stat-match"></span>
+          </button>
+          <button type="button" class="method" id="m-label">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="mname">Schaltung beschriften</span>
+            <span class="mdesc">Potenziale an den Punkten der RC-Schaltung eintragen</span>
+            <span class="mstat" id="stat-label"></span>
+          </button>
+          <button type="button" class="method" id="m-exam">
+            <span class="micon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9v4l3 2M9.5 3h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></span>
+            <span class="mname">Klausur-Simulation</span>
+            <span class="mdesc">20 Minuten, 8 Aufgaben, Punkte und Note</span>
+            <span class="mstat" id="stat-exam"></span>
+          </button>
+        </div>
+        <p class="fine">Tasten im Karteikasten: <kbd>Leertaste</kbd> umdrehen · <kbd>1</kbd> nicht gewusst · <kbd>2</kbd> teilweise · <kbd>3</kbd> gewusst · <kbd>F</kbd> Vollbild · <kbd>Esc</kbd> Übersicht</p>
+      </div>
+
+      <!-- Tab: Labor -->
+      <div class="tabpane" id="tab-lab" hidden>
+        <p class="fine tight">Simulationen zum Ausprobieren. Verändere Werte und beobachte, was passiert.</p>
+        <div class="methods" id="sim-list"></div>
+      </div>
+
+      <!-- Tab: Übersichten -->
+      <div class="tabpane" id="tab-sheets" hidden>
+        <p class="fine tight">Kernübersichten: alles Wichtige pro Thema auf einer Seite, mit Formeln und Skizzen.</p>
+        <ul id="sheet-list" class="sheet-list"></ul>
+      </div>
+
+      <!-- Tab: Rangliste -->
+      <div class="tabpane" id="tab-board" hidden>
+        <div class="panel">
+          <div class="panel-head"><h2>Rangliste</h2><button type="button" id="board-refresh" class="link">Aktualisieren</button></div>
+          <div class="seg" id="board-mode" role="group" aria-label="Wertung">
+            <button type="button" data-mode="day" aria-pressed="true">Heute</button>
+            <button type="button" data-mode="all" aria-pressed="false">Gesamt</button>
+          </div>
+          <div class="me-card" id="board-me" hidden>
+            <div class="me-top"><b id="me-rank"></b><span id="me-title"></span></div>
+            <div class="bar big"><i id="me-bar"></i></div>
+            <p class="fine tight" id="me-next"></p>
+            <ul class="me-parts" id="me-parts"></ul>
+          </div>
+          <ol id="board-list" class="board"></ol>
+          <p class="fine tight" id="board-note"></p>
+        </div>
+        <div class="panel">
+          <h2>So gibt es Punkte</h2>
+          <ul class="rules">
+            <li>Karteikasten (zählt am meisten): Fach 1 = 1, Fach 2 = 2, Fach 3 = 4, Fach 4 = 7, Fach 5 = 10 Punkte pro Karte. Wer Karten wirklich behält, kommt am weitesten.</li>
+            <li>Heute: In „Heute“ zählen nur die Punkte, die du seit Mitternacht (deutsche Zeit) gesammelt hast. Jeden Tag geht es bei 0 los.</li>
+            <li>Wiederholung: Wer dieselbe Frage, Aufgabe, Schaltung oder Zuordnung ein weiteres Mal richtig löst, bekommt nur noch ein Viertel der Punkte.</li>
+            <li>Quiz: 1 Punkt pro richtige Antwort (bis 150)</li>
+            <li>Rechentrainer: 2 Punkte pro richtige Aufgabe (bis 75 Aufgaben)</li>
+            <li>Schaltung beschriften: 3 Punkte pro komplett richtige Schaltung (bis 10)</li>
+            <li>Zuordnen: 1 Punkt pro Runde (bis 20)</li>
+            <li>Klausur-Simulation: 4 Punkte pro Notenpunkt deines besten Versuchs (bis 60)</li>
+          </ul>
+          <p class="fine tight">Ab einer Punktzahl bekommst du einen neuen Titel. Alle Konten stehen automatisch in der Liste; ausblenden geht unter „Konto“.</p>
+        </div>
+      </div>
+
+      <!-- Tab: Konto -->
+      <div class="tabpane" id="tab-more" hidden>
+        <div class="panel" id="sync-panel">
+          <div class="panel-head"><h2>Konto</h2></div>
+          <div id="sync-off">
+            <p class="fine tight">Mit einem Konto wird dein Fortschritt auf allen Geräten gespeichert und du erscheinst in der Rangliste. Keine E-Mail nötig.</p>
+            <div class="seg acct-seg" role="tablist">
+              <button type="button" data-acct="login" aria-pressed="true">Anmelden</button>
+              <button type="button" data-acct="register" aria-pressed="false">Registrieren</button>
+            </div>
+            <form id="form-login" class="acct-form">
+              <input id="login-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername" aria-label="Benutzername">
+              <input id="login-pw" type="password" maxlength="72" autocomplete="current-password" placeholder="Passwort" aria-label="Passwort">
+              <button type="submit" class="btn primary">Anmelden</button>
+            </form>
+            <form id="form-register" class="acct-form" hidden>
+              <input id="reg-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername (1–20 Zeichen)" aria-label="Benutzername">
+              <input id="reg-pw" type="password" maxlength="72" autocomplete="new-password" placeholder="Passwort (mindestens 1 Zeichen)" aria-label="Passwort">
+              <input id="reg-pw2" type="password" maxlength="72" autocomplete="new-password" placeholder="Passwort wiederholen" aria-label="Passwort wiederholen">
+              <button type="submit" class="btn primary">Konto erstellen</button>
+              <p class="fine tight">Merke dir dein Passwort gut. Ohne E-Mail kann es nicht per Link zurückgesetzt werden.</p>
+            </form>
+            <details class="legacy">
+              <summary>Ich habe noch einen alten Lerncode</summary>
+              <div class="row">
+                <input id="sync-code" type="text" maxlength="12" placeholder="z. B. K7M2-QX9P" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Lerncode">
+                <button type="button" id="sync-join" class="btn">Verbinden</button>
+              </div>
+            </details>
+          </div>
+          <div id="sync-on" hidden>
+            <p class="sync-who"><b id="sync-who"></b></p>
+            <label class="toggle"><input type="checkbox" id="board-opt" checked> In der Rangliste anzeigen</label>
+            <details id="setlogin">
+              <summary id="setlogin-sum">Passwort oder Benutzername ändern</summary>
+              <form id="form-setlogin" class="acct-form">
+                <input id="set-user" type="text" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Benutzername" aria-label="Benutzername">
+                <input id="set-pw" type="password" maxlength="72" autocomplete="new-password" placeholder="Neues Passwort" aria-label="Neues Passwort">
+                <input id="set-pw2" type="password" maxlength="72" autocomplete="new-password" placeholder="Neues Passwort wiederholen" aria-label="Neues Passwort wiederholen">
+                <button type="submit" class="btn">Speichern</button>
+              </form>
+            </details>
+            <button type="button" id="sync-leave" class="link danger">Abmelden</button>
+          </div>
+          <p class="fine tight" id="sync-status" role="status"></p>
+        </div>
+
+        <div class="panel" id="deleted-panel">
+          <div class="panel-head"><h2>Gelöschte Karten</h2></div>
+          <p class="fine tight" id="deleted-empty">Noch nichts gelöscht.</p>
+          <ul id="deleted-list" class="deleted-list"></ul>
+        </div>
+
+        <div class="panel exam">
+          <h2>Klausur</h2>
+          <ul>
+            <li>Messwerttabelle erstellen · Mittelwert · Diagramme zeichnen</li>
+            <li>Formelsammlung: <b>S. 23, 24, 25, 27</b></li>
+          </ul>
+        </div>
+        <p class="fine"><button type="button" id="btn-reset" class="link danger">Lernfortschritt zurücksetzen</button></p>
+      </div>
+    </section>
+
+    <!-- Karteikasten: Quiz -->
+    <section id="screen-quiz" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="btn-quit" class="link">← Übersicht</button>
+        <div id="mini-drawer" class="drawer mini" aria-label="Karteikasten"></div>
+        <button type="button" id="btn-fs" class="icon-btn small" aria-label="Vollbild">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><div id="progress-bar"></div></div>
+      <p class="left"><span id="cards-left">0</span> offen</p>
+
+      <div class="card-wrap">
+        <div id="card" class="card" tabindex="0" aria-label="Karteikarte, Leertaste zum Umdrehen">
+          <div class="card-inner">
+            <div class="face front">
+              <div class="face-head"><span class="tag"><i class="dot"></i><span id="front-tag"></span></span><span class="chips-r"><span class="lvlchip" id="front-lvl"></span><span class="boxchip" id="front-box"></span></span></div>
+              <div id="front-body" class="front-body"></div>
+              <p class="flip-hint">Tippen zum Aufdecken</p>
+            </div>
+            <div class="face back">
+              <div class="face-head"><span class="tag"><i class="dot"></i><span id="back-tag"></span></span><span class="chips-r"><span class="lvlchip" id="back-lvl"></span><span class="boxchip" id="back-box"></span></span></div>
+              <div id="back-body" class="back-body"></div>
+            </div>
           </div>
         </div>
-        <div class="card-side">
-          <div><div class="card-progress" id="flashcard-index"></div><b id="flashcard-known"></b></div>
-          <div><button class="btn ghost" id="card-prev" type="button">←</button> <button class="btn ghost" id="card-next" type="button">→</button></div>
-          <button type="button" class="btn" id="goto-lesson">Zum Rechenweg</button>
+      </div>
+
+      <div id="rating" class="rating" aria-hidden="true">
+        <button type="button" class="btn r-wrong" data-rate="wrong"><kbd>1</kbd> Wusste ich nicht</button>
+        <button type="button" class="btn r-partial" data-rate="partial"><kbd>2</kbd> Teilweise</button>
+        <button type="button" class="btn r-right" data-rate="correct"><kbd>3</kbd> Wusste ich</button>
+      </div>
+      <div class="cardtools" id="cardtools">
+        <button type="button" class="tool" id="del-me"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Nur für mich löschen</button>
+        <button type="button" class="tool danger" id="del-all"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Für alle löschen</button>
+      </div>
+    </section>
+
+    <!-- Karteikasten: Ende -->
+    <section id="screen-end" class="screen" hidden>
+      <div class="hero center">
+        <h1>Runde geschafft</h1>
+        <p class="lead" id="end-summary"></p>
+      </div>
+      <div class="panel drawer-panel">
+        <div class="panel-head"><h2>So liegen deine Karten jetzt</h2></div>
+        <div id="end-drawer" class="drawer"></div>
+      </div>
+      <div class="start-actions">
+        <button id="btn-again" class="btn primary" type="button">Nochmal dieselben Themen</button>
+        <button id="btn-end-weak" class="btn" type="button">Nur Schwächen</button>
+        <button id="btn-end-home" class="btn" type="button">Zur Übersicht</button>
+      </div>
+    </section>
+
+    <!-- Quiz / Rechentrainer / Klausur: eine Aufgabe nach der anderen -->
+    <section id="screen-task" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="task-quit" class="link">← Übersicht</button>
+        <span id="task-title" class="task-title"></span>
+        <span id="task-timer" class="timer" hidden></span>
+      </div>
+      <div class="progress"><div id="task-progress-bar"></div></div>
+      <p class="left" id="task-count"></p>
+      <div class="panel task-card">
+        <div class="face-head"><span class="tag"><i class="dot" id="task-dot"></i><span id="task-tag"></span></span><span class="lvlchip" id="task-lvl"></span></div>
+        <div id="task-q" class="task-q"></div>
+        <div id="task-opts" class="opts"></div>
+        <form id="task-form" class="ansrow" hidden>
+          <input id="task-input" type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ergebnis" aria-label="Ergebnis">
+          <span id="task-unit" class="unit"></span>
+          <button type="submit" class="btn primary" id="task-check">Prüfen</button>
+        </form>
+        <div id="task-fb" class="fb" hidden></div>
+        <div class="cardtools" id="task-tools" hidden>
+          <button type="button" class="tool" id="tdel-me">Nur für mich löschen</button>
+          <button type="button" class="tool danger" id="tdel-all">Für alle löschen</button>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section class="mode-panel" data-panel="fragen" aria-label="Häufige Fragen" hidden>
-    <article class="box">
-      <p class="eyebrow">Genau deine Stolperstellen</p>
-      <h2>Fragen, die beim Rechnen auftauchen</h2>
-      <div class="q-list">
-        <details><summary>Warum ist Q₀ keine Ableitung – und was bedeutet die Null?</summary><p>Q₀ (sprich „Q null“) ist die feste Anfangsladung bei t = 0; nicht e₀. In Q(t) = Q₀·e^(−t/(RC)) gilt dann Q(0) = Q₀·e⁰ = Q₀.</p></details>
-        <details><summary>Warum bleibt Q₀ beim Ableiten stehen, obwohl Konstanten zu null werden?</summary><p>Weil Q₀ mit einer Funktion multipliziert wird (Faktorregel). Wie bei (5·t²)′ = 5·2t. Mit der Produktregel käme 0·e^(...) + Q₀·(e^(...))′ heraus – der zweite Term bleibt.</p></details>
-        <details><summary>Woher kommt das k vor Q₀?</summary><p>Beim allgemeinen Ansatz Q₀·e^(kt) lautet die Ableitung k·Q₀·e^(kt), denn (kt)′ = k. Bei unserer bereits vorgegebenen Funktion steht statt k genau −1/(RC). Niemals k zusätzlich stehen lassen.</p></details>
-        <details><summary>Warum darf man überhaupt eine e-Funktion vermuten?</summary><p>Weil für die Entladung Q̇ = −Q/(RC) gilt: Die Änderungsrate ist proportional zum momentanen Q. Solche Zusammenhänge passen zu e^(kt), denn (e^(kt))′ = k·e^(kt). In deiner Aufgabe ist die e-Funktion aber bereits <b>gegeben</b>, du musst sie nur nachweisen.</p></details>
-        <details><summary>Warum ist I manchmal Q̇ und manchmal −Q̇?</summary><p>Weil die Stromrichtung eine Konvention ist. Zählst du den aus dem Kondensator fließenden Strom positiv, gilt I<sub>aus</sub> = −Q̇. Verwendest du den vorzeichenbehafteten Strom in der Maschenregel wie auf deinem Blatt, gilt I = Q̇ &lt; 0. Bei konsistenten Richtungen erhältst du dieselbe Entladung.</p></details>
-        <details><summary>Warum taucht das Minuszeichen auf?</summary><p>Aus RC·Q̇ + Q = 0 folgt durch Abziehen von Q: RC·Q̇ = −Q. Nach Division durch RC steht Q̇ = −Q/(RC). Die negative Änderungsrate beschreibt abnehmende Ladung.</p></details>
-        <details><summary>Ist −Q/(RC) dasselbe wie −(1/(RC))·Q?</summary><p>Ja. Allgemein gilt a/b = (1/b)·a. Beim Umstellen musst du also keine zusätzliche Regel für Differentialgleichungen lernen.</p></details>
-        <details><summary>Wo ist das e in der Differentialgleichung hin?</summary><p>Die Differentialgleichung Q̇ = −Q/(RC) ist eine Beziehung zwischen Funktion und Ableitung. Die konkrete Funktion Q(t) = Q₀·e^(−t/(RC)) erfüllt diese Beziehung – dort steht das e.</p></details>
-        <details><summary>Warum gibt es die Formeln mit Q und auch mit U?</summary><p>Weil Q = C·U gilt und C konstant ist. Dann ist Q̇ = C·U̇. Das führt von Q̇ = −Q/(RC) zu U̇ = −U/(RC). Die Lösungen Q₀e^(−t/(RC)) und U₀e^(−t/(RC)) haben denselben Verlauf.</p></details>
-        <details><summary>Was zeigt die Probe 0 = 0 wirklich?</summary><p>Sie zeigt, dass deine gegebene Funktion die hergeleitete Differentialgleichung erfüllt. Zusammen mit Q(0) = Q₀ ist sie damit die passende Entladungslösung. 0 = 0 bedeutet nicht, dass die Kondensatorladung von Anfang an null ist.</p></details>
+      <div class="start-actions">
+        <button type="button" id="task-next" class="btn primary" hidden>Weiter</button>
+        <button type="button" id="task-giveup" class="btn" hidden>Lösung zeigen</button>
       </div>
-    </article>
-  </section>
-  <footer class="foot">
-    Fachlich abgeglichen mit <a href="https://www.leifiphysik.de/elektrizitaetslehre/kondensator-kapazitaet/ausblick/entladen-eines-kondensators-theorie" target="_blank" rel="noopener noreferrer">LEIFIphysik: Entladen eines Kondensators</a>
-    und <a href="https://openstax.org/books/university-physics-volume-2/pages/10-5-rc-circuits" target="_blank" rel="noopener noreferrer">OpenStax University Physics 2, § 10.5</a>.
-    <p>Modell: idealer Kondensator mit konstantem C, ohmscher Widerstand R, keine weitere Spannungsquelle im Entladekreis.</p>
-  </footer>
-</main>
-<script src="vendor/katex/katex.min.js"></script>
-<script src="js/entladung.js"></script>
+    </section>
+
+    <!-- Zuordnen -->
+    <section id="screen-match" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="match-quit" class="link">← Übersicht</button>
+        <span id="match-title" class="task-title"></span>
+      </div>
+      <div class="progress"><div id="match-progress-bar"></div></div>
+      <p class="left" id="match-count"></p>
+      <div class="panel">
+        <p class="fine tight" id="match-hint"></p>
+        <div class="match">
+          <div id="match-left" class="mcol"></div>
+          <div id="match-right" class="mcol"></div>
+        </div>
+      </div>
+      <div class="start-actions" id="match-actions" hidden>
+        <button type="button" id="match-next" class="btn primary">Nächste Runde</button>
+        <button type="button" id="match-home" class="btn">Zur Übersicht</button>
+      </div>
+    </section>
+
+    <!-- Ergebnis (Quiz, Trainer, Klausur) -->
+    <section id="screen-result" class="screen" hidden>
+      <div class="hero center">
+        <h1 id="result-title">Geschafft</h1>
+        <p class="lead" id="result-sub"></p>
+      </div>
+      <div class="panel" id="result-score" hidden></div>
+      <div class="panel" id="result-review" hidden></div>
+      <div class="start-actions">
+        <button id="result-again" class="btn primary" type="button">Nochmal</button>
+        <button id="result-home" class="btn" type="button">Zur Übersicht</button>
+      </div>
+    </section>
+
+    <!-- Simulation -->
+    <section id="screen-sim" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="sim-back" class="link">← Labor</button>
+        <span id="sim-title" class="task-title"></span>
+        <button type="button" id="sim-sheet" class="link">Übersicht</button>
+      </div>
+      <div id="sim-host" class="sim-host"></div>
+    </section>
+
+    <!-- Schaltung beschriften -->
+    <section id="screen-label" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="label-quit" class="link">← Übersicht</button>
+        <span class="task-title">Schaltung beschriften</span>
+        <span class="grow"></span>
+      </div>
+      <div class="progress"><div id="label-progress-bar"></div></div>
+      <p class="left" id="label-count"></p>
+      <div id="label-host"></div>
+    </section>
+
+    <!-- Kernübersicht -->
+    <section id="screen-sheet" class="screen" hidden>
+      <div class="quizbar">
+        <button type="button" id="sheet-back" class="link">← Übersichten</button>
+        <span class="grow"></span>
+        <button type="button" id="sheet-prev" class="icon-btn small" aria-label="Vorheriges Thema">‹</button>
+        <button type="button" id="sheet-next" class="icon-btn small" aria-label="Nächstes Thema">›</button>
+      </div>
+      <article class="panel sheet">
+        <h2 id="sheet-title" class="sheet-title"></h2>
+        <p class="fine tight" id="sheet-sub"></p>
+        <div id="sheet-body" class="sheet-body"></div>
+        <div id="sheet-dia" class="dia-grid"></div>
+      </article>
+      <div class="start-actions">
+        <button type="button" id="sheet-practice" class="btn primary">Karten zu diesem Thema üben</button>
+        <button type="button" id="sheet-print" class="btn">Drucken</button>
+      </div>
+    </section>
+  </main>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <script src="vendor/katex/katex.min.js"></script>
+  <script src="vendor/katex/auto-render.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/diagrams.js"></script>
+  <script src="js/trainer.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/calculator.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/methods.js"></script>
+  <script src="js/gfx.js"></script>
+  <script src="js/sims.js"></script>
+  <script src="js/sims2.js"></script>
+  <script src="js/sims3.js"></script>
+  <script src="js/sims4.js"></script>
 </body>
 </html>

@@ -40,5 +40,25 @@
     const available = mode === "discharge" ? Uc : Math.max(U0, Uc);
     return clamp((available - potentialAt(p, mode, U0, Uc)) / reference, 0, 1);
   }
-  root.PHYS_RC_ENERGY = Object.freeze({ potentialAt, energyAt });
+  // Physikalische Speicherenergie des Kondensators (nicht die Eimerenergie
+  // eines einzelnen Elektrons). C in µF und Q in µC -> Ergebnis in µJ.
+  // E_C = Q²/(2C) = (C·U_C²)/2. Die Vergleichsgröße bezieht sich explizit
+  // auf die momentan eingestellte Quellspannung U₀.
+  function storedEnergyMicroJ(Q, C) {
+    if (!Number.isFinite(Q) || !Number.isFinite(C) || C <= 0) return 0;
+    return Q * Q / (2 * C);
+  }
+  function capacitorStore(Q, C, U0) {
+    const microJ = storedEnergyMicroJ(Q, C);
+    const sourceVoltage = Math.max(0, Number.isFinite(U0) ? Math.abs(U0) : 0);
+    const referenceMicroJ = C > 0 ? 0.5 * C * sourceVoltage * sourceVoltage : 0;
+    const ratio = referenceMicroJ > 0 ? microJ / referenceMicroJ : 0;
+    const voltage = C > 0 ? Q / C : 0;
+    return {
+      microJ, joules: microJ * 1e-6, referenceMicroJ,
+      voltage, ratio, percent: ratio * 100, fill: clamp(ratio, 0, 1),
+      fieldStrengthRelative: sourceVoltage > 0 ? Math.abs(voltage) / sourceVoltage : 0
+    };
+  }
+  root.PHYS_RC_ENERGY = Object.freeze({ potentialAt, energyAt, storedEnergyMicroJ, capacitorStore });
 })(typeof window === "undefined" ? globalThis : window);

@@ -58,6 +58,20 @@ test("Illustrative particle motion tracks transferred fraction, not fixed voltag
   }
 });
 
+test("Reverse charging current: bucket energy falls across source and resistor in the opposite direction", () => {
+  const rcEnergy={window:{}};
+  vm.runInNewContext(read("js/rc-energy.js"),rcEnergy);
+  const E=rcEnergy.window.PHYS_RC_ENERGY;
+  const U0=3,Uc=9;
+  const atNegativePlate=E.energyAt({c:"B",d:12},"charge",U0,Uc);
+  const afterBattery=E.energyAt({c:"L",d:170},"charge",U0,Uc);
+  const beforePositivePlate=E.energyAt({c:"L",d:10},"charge",U0,Uc);
+  near(atNegativePlate,1);
+  near(afterBattery,2/3);
+  near(beforePositivePlate,0);
+  assert.ok(atNegativePlate>afterBattery && afterBattery>beforePositivePlate);
+});
+
 test("Both capacitor plates always show equal magnitudes, even small fractions",()=>{
   for(const f of [0,.001,.02,.1,.6,1]){
     const dots=M.plateDots(f*P.C*P.U0,P,9);

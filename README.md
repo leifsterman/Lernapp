@@ -119,3 +119,14 @@ Der Build `node build.mjs` erzeugt wie bisher `public/index.html` und `dist/arti
 Auch die Labore **Reihen-/Parallelschaltung** und **Herleitung live** zeigen die Leitungs-Elektronen jetzt bei verschwindendem Strom weiterhin statisch. Im Herleitungs-Labor bewegen sie sich nur bei tatsächlich fließendem Strom und verschwinden beim Durchqueren eines Widerstands nicht mehr.
 
 Regressionsprüfungen: `node build.mjs && node --test tests/*.test.mjs`. Sie prüfen RC-Zeitgesetz, große Unterbrechungen, Stromrichtung, Kondensatorladungen und Leiterwege. Eine **vollständige** visuelle und Touch-Interaktion auf echten Endgeräten ist damit noch nicht nachgewiesen.
+
+
+## RC-Labor: visuell überprüfte Bedienung
+
+Die Bienen-Eimer haben nun eine deutlich unterscheidbare türkisfarbene Füllung auf dunklem Grund und sind etwas größer. Wenn die Bienen-Darstellung aktiv ist, erscheint zusätzlich eine vergrößerte Energievergleichsanzeige **vor und nach dem jeweils geschlossenen Widerstand**. Die Anzeige verwendet dieselbe Modellfunktion wie die bewegten Teilchen und gibt Prozentwerte an. Bei offenem Schalter wird statt einer Energiemessung ausdrücklich Stillstand angezeigt.
+
+Der RC-Zustand (Schalter, Q, verstrichene Zeit, gewählte Schaltungsparameter, Elektronenpositionen samt Reserven, Diagrammauswahl, Anzeigeoptionen) wird in `sessionStorage` für den **gleichen Browser-Tab** gespeichert. Interne Navigation, vorübergehend unsichtbare Tabs und Neuladen derselben Registerkarte sollen den RC-Zustand nicht auf den Anfang zurücksetzen; nach der Rückkehr wird die verstrichene Zeit mit der RC-Gleichung nachgerechnet. Ein neu geöffneter separater Browser-Tab ist bewusst eine neue Sitzung. Der Knopf `Zurücksetzen` setzt nur die RC-Simulation zurück. Beim offenen Schalter folgt das Voltmeter ohne künstlichen Anzeige-Nachlauf dem konstanten `U_C`.
+
+Offline nutzt der Service Worker Netzwerkpriorität für Seiten-Navigation, damit veraltete JS-Versionen nicht ständig aus dem Cache geladen werden. Alle ursprünglichen Themen und Lernbereiche bleiben vorhanden.
+
+**Prüfung:** `node build.mjs && node --test tests/*.test.mjs`. Der Build bestätigt, dass die vollständige Haupt-App und die Entladungs-Lerneinheit erhalten bleiben. Die automatisierten Prüfungen sind keine vollständige visuelle Abnahme auf jedem Mobilgerät.

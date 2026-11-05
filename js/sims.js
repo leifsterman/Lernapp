@@ -381,7 +381,9 @@
         "Verdopple $R_1$. Wie ändert sich $\\tau$, wie die Form der Kurve?",
         "Lade bis fast voll, dann <b>Offen</b>: Was passiert mit $U_C$? Warum?",
         "Schalte auf <b>Entladen</b> und lies die Spannung nach genau $\\tau$ ab. Welchen Bruchteil von $U_0$ erwartest du?",
-        "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen."
+        "Schalte <b>Potenziale: an</b> und vergleiche die Werte bei den Schalterstellungen.",
+        "Lade den Kondensator, wechsle zu einem anderen App-Bereich oder Browserfenster und kehre zurück: Die Entladung oder Aufladung muss der verstrichenen Zeit entsprechen.",
+        "Prüfe die Bienen vor und nach dem aktiven Widerstand: gleiche Bewegungsrichtung im selben Leiterzweig, aber unterschiedlicher Eimerfüllstand. Zwischen den Kondensatorplatten dürfen keine Elektronen durch das Dielektrikum wandern."
       ]);
       function curI() { return currentFor(Q, mode); } // mA
 
@@ -465,7 +467,9 @@
           Object.keys(NODES).forEach(k => { const nd = NODES[k]; GX.pill(x, c, k + ": " + de(pot[k], 3) + " V", nd.x, nd.y - 12, { col: c.accent, size: 10, clampW: 360 }); });
         }
         ro({ u: de(Uc(), 3) + " V", i: de(curI(), 3) + " mA", q: de(Q, 3) + " µC", tau: de(tau(mode === "open" ? "charge" : mode), 3) + " s" });
-        info.textContent = mode === "charge"
+        info.textContent = mode === "charge" && curI() < -1e-6
+          ? "Rückstrom: Uc ist höher als die eingestellte Quellspannung. Elektronen bewegen sich umgekehrt durch R₁, und die Quelle nimmt Energie auf. Kein Elektron verschwindet im Widerstand."
+          : mode === "charge"
           ? "Laden: Elektronen wandern außen durch R₁ und die Spannungsquelle zur negativen Platte; die andere Platte verliert Elektronen. In R₁ verschwinden keine Elektronen. Die Punkte zeigen eine stark beschleunigte Drift, keine echte Elektronengeschwindigkeit."
           : mode === "discharge"
           ? "Entladen: Elektronen verlassen die negative Platte, passieren R₂ und erreichen die zuvor positive Platte. Hinter R₂ fließt derselbe Strom wie davor; nur die verfügbare elektrische Energie pro Ladung sinkt. Kein Elektron durchquert den Plattenzwischenraum."

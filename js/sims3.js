@@ -130,7 +130,8 @@
         flowAmt = GX.ease(flowAmt, clamp(dq / 20, 0, 1), dt, 10);
         VV.q1 = GX.ease(VV.q1, v.q1, dt, 3); VV.q2 = GX.ease(VV.q2, v.q2, dt, 3);
         VV.u1 = GX.ease(VV.u1, v.u1, dt, 3); VV.u2 = GX.ease(VV.u2, v.u2, dt, 3);
-        phase += dt * 60;
+        // Bewegte Elektronen werden nur bei tatsächlicher Ladungsänderung verschoben.
+        phase += dt * 60 * flowAmt;
       }
       // Kondensator mit Ladungen; horizontal: Platten senkrecht im waagerechten Draht
       function cap(x, c, cx, cy, Cv, Q, Uv, label, horizontal) {
@@ -147,12 +148,13 @@
         else { GX.text(x, c.fg, label, cx + w / 2 + 8, cy - 8, { align: "left", weight: 700, size: 11 }); GX.pill(x, c, de(Uv, 3) + " V", cx + w / 2 + 8, cy + 10, { align: "left", col: c.accent, size: 10 }); }
       }
       function flowDots(x, c, pts) {
-        if (flowAmt < 0.03) return;
+        // Leiter enthalten auch bei I = 0 Elektronen: dann stehen die Punkte still,
+        // statt aus dem Diagramm zu verschwinden.
         let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
         const n = Math.round(len / 22);
         for (let k = 0; k < n; k++) {
           let d = ((k * len / n + phase) % len + len) % len;
-          for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= l) { const t = d / l; GX.electron(x, c, pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t, flowAmt); break; } d -= l; }
+          for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= l) { const t = d / l; GX.electron(x, c, pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t, 0.8); break; } d -= l; }
         }
       }
       function draw() {

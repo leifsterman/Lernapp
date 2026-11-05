@@ -139,3 +139,16 @@ test("Electron tracer transitions preserve mobile-plus-plate charge bookkeeping"
     "all visible particles must stay on connected conductors");
   assert.ok(state.e.length>0,"moving particles should remain visible");
 });
+
+
+test("Other electron lab scenes show stationary tracers rather than hiding them",()=>{
+  const series=read("js/sims3.js");
+  const derivation=read("js/sims4.js");
+  assert.ok(series.includes("phase += dt * 60 * flowAmt;"));
+  assert.ok(!series.includes("if (flowAmt < 0.03) return;"));
+  assert.ok(series.includes("GX.electron"));
+  assert.ok(derivation.includes("if (o.paths) o.paths.forEach"));
+  assert.ok(!derivation.includes("if (!(o.res && inRes(p)))"));
+  assert.ok(derivation.includes("m.ph += (m.run ? 10 * Math.abs(m.I()) : 0) * dt;"));
+  assert.ok(!derivation.includes("paths: m.run ? [DIS] : []"));
+});

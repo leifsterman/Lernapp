@@ -55,13 +55,13 @@ test("Grafik: leerer Eimer bleibt leer und sehr kleine Füllung wird sichtbar", 
   vm.runInNewContext(read("js/gfx.js"),context);
   const gfx=context.window.PHYS_GFX, ctx=makeContext();
   gfx.electron(ctx,{},0,0,1,0);
-  assert.equal(fills.includes("#ff9d1c"),false,"empty bucket must have no honey fill");
+  assert.equal(fills.includes("#17dfbc"),false,"empty bucket must have no colored energy fill");
   fills.length=0;
   gfx.electron(ctx,{},0,0,1,1/12);
-  assert.equal(fills.includes("#ff9d1c"),true,"1/12 energy must already be visible");
+  assert.equal(fills.includes("#17dfbc"),true,"1/12 energy must already be visible");
   fills.length=0;
   gfx.electron(ctx,{},0,0,1,1);
-  assert.equal(fills.includes("#ff9d1c"),true,"full bucket should show honey");
+  assert.equal(fills.includes("#17dfbc"),true,"full bucket should show energy fill");
 });
 
 test("Labor: sämtliche Simulationsmodule bleiben im Gesamt-Build eingebunden", () => {

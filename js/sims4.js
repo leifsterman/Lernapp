@@ -67,7 +67,7 @@
   // ------------------------------------------------------------ Hauptgerät
   const SC = []; // Schritte, unten definiert
   K.add({
-    id: "herleitung", title: "Herleitung live", desc: "Die Dgl. in 9 Schritten am Kondensator sehen: was jeder Teil bedeutet, woher er kommt, dann selbst herleiten", sheet: "herleitung",
+    id: "herleitung", title: "Herleitung live (Aufladen = Zusatzwissen)", desc: "Alte 9-Schritte-Simulation zu Auf- und Entladung; die Aufladung ist aktuell nicht benötigt. Für die prüfungsrelevante Entladung den neuen Lernweg öffnen.", sheet: "herleitung",
     icon: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4h6v6H5zM13 14h6v6h-6zM8 10v4h5M16 14v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     make(host) {
       const st = stage(W, H);

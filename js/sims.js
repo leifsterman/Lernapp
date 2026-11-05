@@ -108,15 +108,16 @@
     if (cur.resume) cur.resume();
     if (!document.hidden) raf = requestAnimationFrame(loop);
   }
-  function stopLoop() { cancelAnimationFrame(raf); raf = 0; cur = null; }
+  function stopLoop() { if (cur?.save) cur.save(); cancelAnimationFrame(raf); raf = 0; cur = null; }
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+    if (document.hidden) { if (cur?.save) cur.save(); cancelAnimationFrame(raf); raf = 0; }
     else if (cur && !raf) {
       last = performance.now();
       if (cur.resume) cur.resume();
       raf = requestAnimationFrame(loop);
     }
   });
+  window.addEventListener("pagehide", () => { if (cur?.save) cur.save(); });
   A.onShow(name => { if (name !== "sim" && name !== "label") stopLoop(); });
 
   const styleBoxes = [];

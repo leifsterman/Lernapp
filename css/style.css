@@ -765,6 +765,9 @@ html.nosync .cardtools { display: none; }
   border-radius: 12px; min-width: 0;
 }
 .rc-store-bee .rc-store-honeycomb { display: grid; }
+/* In Punkt-/Männchenansicht ist die Wabe ausgeblendet: die Textanzeige
+   muss dann die gesamte Kartenbreite einnehmen statt nur 170 px. */
+.rc-capacitor-storage:not(.rc-store-bee) .rc-store-body { grid-template-columns: minmax(0, 1fr); }
 .rc-store-cell {
   --honey: 0; width: 22px; height: 24px; position: relative;
   clip-path: polygon(50% 0, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);

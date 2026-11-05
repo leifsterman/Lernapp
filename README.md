@@ -31,19 +31,19 @@ Die älteren Dateien für andere Themen verbleiben zur Rückfallmöglichkeit im 
 
 ## Ausführen
 
-Lokal das Repository mit einem HTTP-Server bereitstellen, beispielsweise \`python -m http.server\`, dann \`index.html\` öffnen. Für GitHub Pages:
+Lokal das Repository mit einem HTTP-Server bereitstellen, beispielsweise `python -m http.server`, dann `index.html` öffnen. Für GitHub Pages:
 
-\`\`\`sh
+```sh
 node build.mjs
-\`\`\`
+```
 
-Erzeugt \`public/index.html\` sowie \`dist/artifact.html\`; das GitHub-Actions-Deployment baut beim Merge nach \`main\` automatisch.
+Erzeugt `public/index.html` sowie `dist/artifact.html`; das GitHub-Actions-Deployment baut beim Merge nach `main` automatisch.
 
 Tests:
 
-\`\`\`sh
+```sh
 node --test tests/*.test.mjs
-\`\`\`
+```
 
 ## Quellen und Grenzen
 

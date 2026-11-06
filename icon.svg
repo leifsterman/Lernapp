@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 -6 80 80">
+  <rect x="-8" y="-6" width="80" height="80" rx="18" fill="#0e1117"/><defs>
+    <radialGradient id="flyEye" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#d9644a"/><stop offset=".55" stop-color="#9a2f1d"/><stop offset="1" stop-color="#4d140b"/></radialGradient>
+    <radialGradient id="flyThx" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#7a6a3a"/><stop offset=".6" stop-color="#3f3620"/><stop offset="1" stop-color="#1f1a10"/></radialGradient>
+    <linearGradient id="flyWing" x1="0" x2="1"><stop offset="0" stop-color="#e9f4ff" stop-opacity=".75"/><stop offset="1" stop-color="#bcd9f5" stop-opacity=".35"/></linearGradient>
+    <clipPath id="flyAbd"><ellipse cx="32" cy="44" rx="8.6" ry="13"/></clipPath>
+  </defs>
+  <path class="blur" d="M28 25 L6 18 Q2 34 10 46 Z" fill="#cfe5ff" opacity=".22"/>
+  <path class="blur" d="M36 25 L58 18 Q62 34 54 46 Z" fill="#cfe5ff" opacity=".22"/>
+  <ellipse cx="32" cy="44" rx="8.6" ry="13" fill="#17140d"/>
+  <g clip-path="url(#flyAbd)" fill="#f2c230">
+    <rect x="22" y="35" width="20" height="3.4" rx="1"/>
+    <rect x="22" y="41.5" width="20" height="3.4" rx="1"/>
+    <rect x="22" y="48" width="20" height="3" rx="1"/>
+  </g>
+  <ellipse cx="29.5" cy="39" rx="2.2" ry="5" fill="#fff" opacity=".12"/>
+  <g class="wing wl">
+    <ellipse cx="17" cy="31" rx="14" ry="5.2" transform="rotate(32 17 31)" fill="url(#flyWing)" stroke="#9cc2e6" stroke-width=".7"/>
+    <path d="M28 25 L9 36 M24 27 L12 30" stroke="#8fb3d6" stroke-width=".5" fill="none"/>
+  </g>
+  <g class="wing wr">
+    <ellipse cx="47" cy="31" rx="14" ry="5.2" transform="rotate(-32 47 31)" fill="url(#flyWing)" stroke="#9cc2e6" stroke-width=".7"/>
+    <path d="M36 25 L55 36 M40 27 L52 30" stroke="#8fb3d6" stroke-width=".5" fill="none"/>
+  </g>
+  <ellipse cx="32" cy="25" rx="8" ry="7.2" fill="url(#flyThx)"/>
+  <ellipse cx="32" cy="31.5" rx="4.2" ry="2.1" fill="#d9a72a"/>
+  <path d="M25.5 22.5 Q27 20 29 21 M38.5 22.5 Q37 20 35 21" stroke="#e8c547" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <ellipse cx="32" cy="14.5" rx="8.4" ry="6" fill="#2a2214"/>
+  <ellipse cx="27.6" cy="14" rx="5" ry="5.6" fill="url(#flyEye)"/>
+  <ellipse cx="36.4" cy="14" rx="5" ry="5.6" fill="url(#flyEye)"/>
+  <ellipse cx="32" cy="10.4" rx="2.2" ry="1.6" fill="#e8c547"/>
+  <circle cx="26.2" cy="12.2" r="1.1" fill="#fff" opacity=".7"/><circle cx="35" cy="12.2" r="1.1" fill="#fff" opacity=".7"/>
+  <path d="M30.6 9 L29.4 5.6 M33.4 9 L34.6 5.6" stroke="#2a2214" stroke-width="1.1" stroke-linecap="round"/>
+</svg>
